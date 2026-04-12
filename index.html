@@ -32,8 +32,8 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 .hdr-search:focus{border-color:var(--accent);}
 
 /* LAYOUT */
-.page{display:none;height:calc(100vh - var(--hh));overflow:hidden;}
-.page.active{display:flex;}
+.page{display:none;height:calc(100vh - var(--hh));}
+.page.active{display:flex;overflow:hidden;}
 
 /* SCHEDULE PAGE — 2-col */
 #pgSchedule{flex-direction:row;}
@@ -215,7 +215,7 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
   .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:10px;font-family:'Noto Sans KR',sans-serif;}
   .tab-btn.active{color:var(--accent);}
   .tab-btn svg{width:18px;height:18px;}
-  .page.active{flex-direction:column;}
+  .page.active{flex-direction:column;overflow:hidden;}
   .panel-main{padding-bottom:calc(var(--tab-h)+8px);}
   .nav{display:none;}
   .week-lbl{min-width:56px;font-size:9px;}
