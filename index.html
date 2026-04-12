@@ -60,15 +60,6 @@
   .admin-bar-text{font-size:12px;color:var(--accent);font-weight:500;}
   .admin-bar-actions{display:flex;gap:6px;flex-wrap:wrap;}
   .stats-bar{display:flex;gap:8px;}
-  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;flex:1;}
-  .stat-label{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
-  .stat-value{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;}
-  .empty-slots-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;}
-  .empty-slots-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:7px;}
-  .empty-chips{display:flex;flex-wrap:wrap;gap:5px;}
-  .empty-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
-  .empty-chip:hover{border-color:var(--accent);color:var(--accent);}
-  .chip-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);}
 
   /* ── SCHEDULE ── */
   .schedule-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:0;}
@@ -125,6 +116,20 @@
   .info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
   .info-row:last-child{border-bottom:none;}
   .info-key{color:var(--text2);}
+
+  /* ── HELP POPUP ── */
+  .help-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px);animation:fadeIn .2s;}
+  .help-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:420px;max-width:92vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .22s;}
+  .help-header{padding:18px 20px 14px;border-bottom:1px solid var(--border);}
+  .help-title{font-size:16px;font-weight:700;}
+  .help-body{padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+  .help-section{display:flex;flex-direction:column;gap:6px;}
+  .help-section-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:2px;}
+  .help-item{font-size:13px;color:var(--text2);line-height:1.6;padding-left:10px;border-left:2px solid var(--border);}
+  .help-item strong{color:var(--text);}
+  .help-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .help-check-label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;user-select:none;}
+  .help-check-label input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;}
 
   /* ── LOADING ── */
   .loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:16px;}
@@ -269,7 +274,6 @@
       </div>
     </div>
     <div class="stats-bar" id="statsBar"></div>
-    <div class="empty-slots-bar" id="emptySlotsBar"></div>
     <div class="schedule-wrapper">
       <div class="schedule-title">
         <span id="scheduleTitleText">—</span>
@@ -329,6 +333,43 @@
   </div>
 </div>
 
+<!-- 사용법 팝업 -->
+<div class="help-backdrop" id="helpBackdrop">
+  <div class="help-modal">
+    <div class="help-header">
+      <div class="help-title">📋 동아리방 시간표 사용법</div>
+    </div>
+    <div class="help-body">
+      <div class="help-section">
+        <div class="help-section-title">시간표 보기</div>
+        <div class="help-item">◀ ▶ 버튼으로 주차를 이동할 수 있습니다.</div>
+        <div class="help-item">헤더의 학기 뱃지로 현재 학기를 확인할 수 있습니다.</div>
+      </div>
+      <div class="help-section">
+        <div class="help-section-title">미사용 신고</div>
+        <div class="help-item">이번 주 합주를 쉬는 경우, 시간표의 내 팀 슬롯을 클릭 → <strong>미사용 신고</strong>를 제출하세요.</div>
+        <div class="help-item">관리자 승인 후 시간표에 반영됩니다.</div>
+      </div>
+      <div class="help-section">
+        <div class="help-section-title">추가 사용 신청</div>
+        <div class="help-item">비어 있는 시간을 사용하고 싶다면, 해당 시간 칸의 <strong>신청</strong> 버튼을 클릭하세요.</div>
+        <div class="help-item">관리자 승인 후 시간표에 반영됩니다.</div>
+      </div>
+      <div class="help-section">
+        <div class="help-section-title">관리자</div>
+        <div class="help-item">우측 상단(또는 하단 탭)의 <strong>관리자</strong> 버튼으로 로그인할 수 있습니다.</div>
+        <div class="help-item">관리자는 신청 승인/거절, 기본 시간표 수정, 팀 관리, 학기 전환을 할 수 있습니다.</div>
+      </div>
+    </div>
+    <div class="help-footer">
+      <label class="help-check-label">
+        <input type="checkbox" id="helpDontShow"> 다시 열지 않음
+      </label>
+      <button class="btn btn-primary" onclick="closeHelp()">확인</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { supabase } from './js/supabase.js';
 import { isAdmin, loginAdmin, logoutAdmin } from './js/auth.js';
@@ -376,8 +417,22 @@ window.switchTab = function(tab){
   if(tab==='admin') handleAdminClick();
 };
 
+// ── HELP POPUP ───────────────────────────────────────────────────────
+function initHelp(){
+  if(localStorage.getItem('help_dismissed')==='true'){
+    document.getElementById('helpBackdrop').style.display='none';
+  }
+}
+window.closeHelp=function(){
+  if(document.getElementById('helpDontShow').checked){
+    localStorage.setItem('help_dismissed','true');
+  }
+  document.getElementById('helpBackdrop').style.display='none';
+};
+
 // ── INIT ─────────────────────────────────────────────────────────────
 async function init(){
+  initHelp();
   if(isAdmin()){ mode='admin'; syncModeUI(); }
   currentSeason = await getConfig('current_season').catch(()=>'1학기');
   await loadAll();
@@ -417,7 +472,6 @@ function render(){
   renderTeamList();
   renderPending();
   renderStats();
-  renderEmptySlots();
   renderSchedule();
 }
 
@@ -487,23 +541,6 @@ function renderStats(){
     <div class="stat-card"><div class="stat-label">미사용</div><div class="stat-value" style="color:var(--danger)">${absent}</div></div>
     <div class="stat-card"><div class="stat-label">추가</div><div class="stat-value" style="color:var(--accent2)">${extra}</div></div>
     <div class="stat-card"><div class="stat-label">대기</div><div class="stat-value" style="color:var(--warn)">${pending}</div></div>`;
-}
-
-function renderEmptySlots(){
-  const occupied=new Set(merged.filter(s=>s.status!=='absent').map(s=>`${s.day}-${s.hour}`));
-  const empties=[];
-  outer: for(let d=0;d<7;d++) for(const h of HOURS){
-    if(!occupied.has(`${d}-${h}`)&&(occupied.has(`${d}-${h-1}`)||occupied.has(`${d}-${h+1}`))){
-      empties.push({day:d,hour:h}); if(empties.length>=8) break outer;
-    }
-  }
-  const bar=document.getElementById('emptySlotsBar');
-  if(!empties.length){bar.innerHTML='<div class="empty-slots-title">빈 시간대 없음</div>';return;}
-  bar.innerHTML=`<div class="empty-slots-title">⚡ 사용 가능한 빈 시간대</div>
-    <div class="empty-chips">${empties.map(e=>`
-      <div class="empty-chip" onclick="openClaimModal(${e.day},${e.hour})">
-        <div class="chip-dot"></div>${DAYS[e.day]} ${e.hour}:00
-      </div>`).join('')}</div>`;
 }
 
 function renderSchedule(){
@@ -948,4 +985,3 @@ init();
 </script>
 </body>
 </html>
-
