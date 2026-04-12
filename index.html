@@ -2,26 +2,35 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>동아리방 시간표</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
-  :root{--bg:#0e0e0f;--surface:#18181b;--surface2:#222226;--border:#2e2e34;--accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;--text:#f0f0f0;--text2:#888;--text3:#555;--radius:8px;}
-  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#0e0e0f;--surface:#18181b;--surface2:#222226;--border:#2e2e34;
+    --accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;
+    --text:#f0f0f0;--text2:#888;--text3:#555;--radius:8px;
+    --header-h:56px;--tab-h:56px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
-  header{border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;background:rgba(14,14,15,.95);backdrop-filter:blur(8px);z-index:100;}
-  .logo{font-family:'Space Mono',monospace;font-weight:700;font-size:15px;color:var(--accent);}
-  .logo span{color:var(--text2);font-weight:400;margin-left:6px;font-size:12px;}
-  .header-right{display:flex;align-items:center;gap:10px;}
-  .week-nav{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;}
-  .week-nav button{background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;transition:color .15s;}
+
+  /* ── HEADER ── */
+  header{border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:var(--header-h);position:sticky;top:0;background:rgba(14,14,15,.96);backdrop-filter:blur(8px);z-index:100;}
+  .logo{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;color:var(--accent);}
+  .logo span{color:var(--text2);font-weight:400;margin-left:5px;font-size:11px;}
+  .header-right{display:flex;align-items:center;gap:8px;}
+  .season-badge{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--accent2);}
+  .week-nav{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 8px;}
+  .week-nav button{background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:2px 4px;transition:color .15s;}
   .week-nav button:hover{color:var(--accent);}
-  .week-label{font-family:'Space Mono',monospace;font-size:11px;color:var(--text);white-space:nowrap;min-width:110px;text-align:center;}
-  .season-badge{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--accent2);cursor:default;}
+  .week-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--text);white-space:nowrap;min-width:80px;text-align:center;}
   .mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
-  .mode-btn{padding:6px 14px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;transition:all .15s;}
+  .mode-btn{padding:5px 12px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:12px;transition:all .15s;}
   .mode-btn.active{background:var(--accent);color:#000;font-weight:700;}
-  .container{display:flex;height:calc(100vh - 56px);min-height:0;overflow:hidden;}
+
+  /* ── DESKTOP LAYOUT ── */
+  .container{display:flex;height:calc(100vh - var(--header-h));min-height:0;overflow:hidden;}
   .sidebar{width:220px;min-width:220px;border-right:1px solid var(--border);overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:12px;}
   .sidebar-section-title{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;padding:0 4px 6px;border-bottom:1px solid var(--border);}
   .team-group-label{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;padding:6px 8px 3px;}
@@ -44,84 +53,174 @@
   .btn-approve:hover,.btn-reject:hover{opacity:.8;}
   .no-pending{font-size:12px;color:var(--text3);padding:6px 4px;}
   .badge-pending{background:var(--warn);color:#000;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:900;}
-  .main{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;min-height:0;}
+
+  /* ── MAIN ── */
+  .main{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px;min-height:0;}
   .admin-bar{background:rgba(232,255,71,.06);border:1px solid rgba(232,255,71,.2);border-radius:var(--radius);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
   .admin-bar-text{font-size:12px;color:var(--accent);font-weight:500;}
-  .admin-bar-actions{display:flex;gap:8px;}
-  .stats-bar{display:flex;gap:10px;}
-  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;flex:1;}
+  .admin-bar-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .stats-bar{display:flex;gap:8px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;flex:1;}
   .stat-label{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
-  .stat-value{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;}
-  .empty-slots-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;}
-  .empty-slots-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+  .stat-value{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;}
+  .empty-slots-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;}
+  .empty-slots-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:7px;}
   .empty-chips{display:flex;flex-wrap:wrap;gap:5px;}
-  .empty-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
+  .empty-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
   .empty-chip:hover{border-color:var(--accent);color:var(--accent);}
   .chip-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);}
+
+  /* ── SCHEDULE ── */
   .schedule-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:0;}
-  .schedule-title{padding:12px 16px 10px;font-size:14px;font-weight:700;border-bottom:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:space-between;}
-  .schedule-title-season{font-size:11px;font-weight:400;color:var(--text2);}
-  .schedule-header{display:grid;grid-template-columns:54px repeat(7,1fr);border-bottom:1px solid var(--border);}
-  .day-header{padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text2);border-right:1px solid var(--border);}
+  .schedule-title{padding:11px 14px 9px;font-size:13px;font-weight:700;border-bottom:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:space-between;}
+  .schedule-title-season{font-size:10px;font-weight:400;color:var(--text2);}
+  .schedule-header{display:grid;grid-template-columns:50px repeat(7,1fr);border-bottom:1px solid var(--border);}
+  .day-header{padding:7px 3px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);border-right:1px solid var(--border);}
   .day-header:last-child{border-right:none;}
   .schedule-body{display:flex;overflow:visible;}
-  .time-col{width:54px;min-width:54px;border-right:1px solid var(--border);}
+  .time-col{width:50px;min-width:50px;border-right:1px solid var(--border);}
   .time-cell{height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:9px;color:var(--text3);border-bottom:1px solid var(--border);line-height:1.3;}
   .time-cell:last-child{border-bottom:none;}
-  .time-next{font-size:8px;color:var(--text3);opacity:.6;}
+  .time-next{font-size:7px;opacity:.6;}
   .days-grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);}
   .day-col{border-right:1px solid var(--border);position:relative;}
   .day-col:last-child{border-right:none;}
   .slot{height:52px;border-bottom:1px solid var(--border);position:relative;transition:background .1s;}
   .slot:last-child{border-bottom:none;}
   .slot:hover{background:var(--surface2);}
-  .slot-block{position:absolute;inset:2px;border-radius:5px;display:flex;flex-direction:column;overflow:hidden;cursor:pointer;transition:opacity .15s,transform .1s;}
+  .slot-block{position:absolute;inset:2px;border-radius:4px;display:flex;flex-direction:column;overflow:hidden;cursor:pointer;transition:opacity .15s,transform .1s;}
   .slot-block:hover{opacity:.85;transform:scale(.98);}
-  .slot-block-top{flex:1;display:flex;align-items:center;padding:0 6px;gap:4px;border-bottom:1px solid rgba(0,0,0,.15);}
-  .slot-block-bottom{flex:1;display:flex;align-items:center;padding:0 6px;}
+  .slot-block-top{flex:1;display:flex;align-items:center;padding:0 5px;gap:3px;border-bottom:1px solid rgba(0,0,0,.15);}
+  .slot-block-bottom{flex:1;display:flex;align-items:center;padding:0 5px;}
   .slot-block-name{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .slot-block-info{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.8;}
-  .slot-block-tag{font-size:8px;font-weight:700;background:rgba(0,0,0,.2);padding:1px 3px;border-radius:3px;flex-shrink:0;margin-left:auto;}
+  .slot-block-tag{font-size:7px;font-weight:700;background:rgba(0,0,0,.2);padding:1px 3px;border-radius:2px;flex-shrink:0;margin-left:auto;}
   .slot-block.absent{opacity:.35;}
   .slot-block.extra{outline:2px solid var(--accent2);}
-  .slot-block.exception-week{outline:2px solid var(--warn);}
   .slot-block.pending-block{opacity:.6;}
-  .slot-empty{position:absolute;inset:2px;border-radius:5px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);cursor:pointer;transition:all .15s;}
+  .slot-empty{position:absolute;inset:2px;border-radius:4px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);cursor:pointer;transition:all .15s;}
   .slot-empty:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,.04);}
-  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px);animation:fadeIn .15s;}
+
+  /* ── MODAL ── */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;z-index:200;backdrop-filter:blur(4px);animation:fadeIn .15s;}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:420px;max-width:95vw;animation:slideUp .18s;overflow:hidden;}
-  @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
-  .modal-header{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px 12px 0 0;width:100%;max-width:480px;animation:slideUp .2s;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;}
+  @keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-header{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
   .modal-title{font-size:15px;font-weight:700;}
-  .modal-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1;}
-  .modal-close:hover{color:var(--text);}
-  .modal-body{padding:16px 20px;display:flex;flex-direction:column;gap:12px;max-height:65vh;overflow-y:auto;}
-  .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+  .modal-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:22px;line-height:1;}
+  .modal-body{padding:14px 18px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1;}
+  .modal-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
   .field-label{font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:500;}
-  .field-input,.field-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 11px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border-color .15s;}
+  .field-input,.field-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 11px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border-color .15s;}
   .field-input:focus,.field-select:focus{border-color:var(--accent);}
   .field-select option{background:var(--surface);}
-  .btn{padding:7px 16px;border-radius:6px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+  .btn{padding:8px 16px;border-radius:6px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;}
   .btn:hover{opacity:.8;}
   .btn:disabled{opacity:.4;cursor:not-allowed;}
   .btn-primary{background:var(--accent);color:#000;}
   .btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
   .btn-danger{background:var(--danger);color:#fff;}
-  .btn-sm{padding:4px 10px;font-size:11px;}
-  .info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .btn-sm{padding:5px 10px;font-size:11px;}
+  .info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
   .info-row:last-child{border-bottom:none;}
   .info-key{color:var(--text2);}
+
+  /* ── LOADING ── */
   .loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:16px;}
   .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg)}}
   .loading-text{font-family:'Space Mono',monospace;font-size:12px;color:var(--text2);}
+
+  /* ── TOAST ── */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 18px;font-size:13px;font-weight:500;z-index:999;animation:fadeIn .2s;white-space:nowrap;}
   .toast.success{border-color:var(--accent);color:var(--accent);}
   .toast.error{border-color:var(--danger);color:var(--danger);}
-  ::-webkit-scrollbar{width:5px;height:5px;}
+  ::-webkit-scrollbar{width:4px;height:4px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+  /* ══════════════════════════════════════════════
+     MOBILE (≤ 700px)
+  ══════════════════════════════════════════════ */
+  @media(max-width:700px){
+    :root{--header-h:48px;}
+
+    /* header 간소화 */
+    header{padding:0 12px;gap:6px;}
+    .logo span{display:none;}
+    .season-badge{display:none;}
+    .week-label{min-width:60px;font-size:9px;}
+    .mode-toggle{display:none;} /* 모바일은 하단 탭으로 */
+
+    /* 사이드바 숨김 */
+    .sidebar{display:none;}
+
+    /* 메인이 전체 폭 */
+    .main{padding:10px 10px 0;gap:8px;}
+
+    /* 관리자 바 압축 */
+    .admin-bar{padding:7px 10px;}
+    .admin-bar-text{font-size:11px;}
+    .admin-bar-actions .btn{padding:5px 8px;font-size:11px;}
+
+    /* 통계 카드 2x2 */
+    .stats-bar{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+    .stat-card{padding:8px 10px;}
+    .stat-value{font-size:16px;}
+
+    /* 빈 시간대 바 */
+    .empty-slots-bar{padding:9px 12px;}
+    .empty-chip{font-size:10px;padding:3px 9px;}
+
+    /* 시간표 */
+    .schedule-title{padding:8px 10px;font-size:12px;}
+    .schedule-header{grid-template-columns:36px repeat(7,1fr);}
+    .day-header{font-size:9px;padding:5px 1px;}
+    .time-col{width:36px;min-width:36px;}
+    .time-cell{font-size:8px;height:44px;}
+    .slot{height:44px;}
+    .slot-block-name{font-size:9px;}
+    .slot-block-info{font-size:8px;}
+    .slot-block-tag{font-size:6px;}
+
+    /* 모달 — 하단 시트 */
+    .modal{border-radius:16px 16px 0 0;max-height:85vh;}
+    .modal::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;}
+    .modal-header{padding:10px 18px 10px;}
+    .field-input,.field-select{font-size:16px;} /* iOS 줌 방지 */
+
+    /* 하단 탭 네비게이션 */
+    .tab-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:rgba(14,14,15,.97);border-top:1px solid var(--border);z-index:100;backdrop-filter:blur(8px);}
+    .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:10px;font-weight:500;transition:color .15s;}
+    .tab-btn.active{color:var(--accent);}
+    .tab-btn svg{width:20px;height:20px;}
+    .tab-btn .tab-badge{background:var(--warn);color:#000;border-radius:8px;padding:1px 5px;font-size:9px;font-weight:900;min-width:14px;text-align:center;}
+
+    /* 모바일 패널 */
+    .mobile-panel{display:none;flex-direction:column;flex:1;overflow-y:auto;padding:10px;gap:10px;}
+    .mobile-panel.active{display:flex;}
+    .main.mobile-panel{padding-bottom:calc(var(--tab-h) + 10px);}
+
+    /* 모바일에서 main은 기본적으로 패널로 동작 */
+    .container{flex-direction:column;}
+    .main{padding-bottom:calc(var(--tab-h) + 10px);}
+
+    /* 팀 패널 */
+    #mobileTeamPanel{padding:10px;padding-bottom:calc(var(--tab-h) + 10px);overflow-y:auto;flex:1;display:none;flex-direction:column;gap:8px;}
+    #mobileTeamPanel.active{display:flex;}
+    #mobilePendingPanel{padding:10px;padding-bottom:calc(var(--tab-h) + 10px);overflow-y:auto;flex:1;display:none;flex-direction:column;gap:8px;}
+    #mobilePendingPanel.active{display:flex;}
+
+    /* 토스트 위치 (탭바 위) */
+    .toast{bottom:calc(var(--tab-h) + 12px);}
+  }
+
+  /* 데스크탑에서 탭바 숨김 */
+  @media(min-width:701px){
+    .tab-bar{display:none;}
+    #mobileTeamPanel,#mobilePendingPanel{display:none !important;}
+  }
 </style>
 </head>
 <body>
@@ -147,20 +246,22 @@
 </header>
 
 <div class="container">
+  <!-- 데스크탑 사이드바 -->
   <div class="sidebar">
     <div>
       <div class="sidebar-section-title">팀 목록</div>
-      <div class="team-list" id="teamList"><div class="no-pending">불러오는 중...</div></div>
+      <div class="team-list" id="teamList"></div>
     </div>
     <div>
       <div class="sidebar-section-title" id="pendingTitle">대기 중 신청</div>
-      <div class="pending-list" id="pendingList"><div class="no-pending">불러오는 중...</div></div>
+      <div class="pending-list" id="pendingList"></div>
     </div>
   </div>
 
-  <div class="main">
+  <!-- 메인 (시간표) -->
+  <div class="main" id="mainPanel">
     <div class="admin-bar" id="adminBar" style="display:none">
-      <div class="admin-bar-text">🔧 관리자 모드 — 슬롯 클릭 수정, 빈 칸 클릭 추가</div>
+      <div class="admin-bar-text">🔧 관리자 모드</div>
       <div class="admin-bar-actions">
         <button class="btn btn-secondary btn-sm" onclick="openSeasonModal()">학기 전환</button>
         <button class="btn btn-secondary btn-sm" onclick="openTeamManagerModal()">팀 관리</button>
@@ -170,7 +271,7 @@
     <div class="stats-bar" id="statsBar"></div>
     <div class="empty-slots-bar" id="emptySlotsBar"></div>
     <div class="schedule-wrapper">
-      <div class="schedule-title" id="scheduleTitle">
+      <div class="schedule-title">
         <span id="scheduleTitleText">—</span>
         <span class="schedule-title-season" id="scheduleTitleSeason"></span>
       </div>
@@ -181,8 +282,42 @@
       </div>
     </div>
   </div>
+
+  <!-- 모바일 팀 목록 패널 -->
+  <div id="mobileTeamPanel">
+    <div class="sidebar-section-title">팀 목록</div>
+    <div class="team-list" id="mobileTeamList"></div>
+  </div>
+
+  <!-- 모바일 신청 패널 -->
+  <div id="mobilePendingPanel">
+    <div class="sidebar-section-title" id="mobilePendingTitle">대기 중 신청</div>
+    <div class="pending-list" id="mobilePendingList"></div>
+  </div>
 </div>
 
+<!-- 모바일 하단 탭바 -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-schedule" onclick="switchTab('schedule')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    시간표
+  </button>
+  <button class="tab-btn" id="tab-teams" onclick="switchTab('teams')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>
+    팀 목록
+  </button>
+  <button class="tab-btn" id="tab-pending" onclick="switchTab('pending')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span id="tabPendingBadge"></span>
+    신청
+  </button>
+  <button class="tab-btn" id="tab-admin" onclick="handleAdminClick()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+    <span id="tabAdminLabel">관리자</span>
+  </button>
+</div>
+
+<!-- MODAL -->
 <div class="modal-backdrop" id="modalBackdrop" style="display:none" onclick="onBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
@@ -212,69 +347,73 @@ const SEASONS = ['1학기','여름방학','2학기','겨울방학'];
 const COLORS = ['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47ffea','#ffd447','#b4ff47','#ff9d47'];
 const GRAY = '#888888';
 
-let weekOffset = 0;
-let mode = 'user';
-let currentSeason = '1학기';
-let teams = [], baseSlots = [], exceptions = [], requests = [], merged = [];
+let weekOffset=0, mode='user', currentSeason='1학기';
+let teams=[], baseSlots=[], exceptions=[], requests=[], merged=[];
 
 // ── HELPERS ──────────────────────────────────────────────────────────
-function teamColor(t) { return t.type === '합주' ? GRAY : t.color; }
-function korSort(arr, key) { return [...arr].sort((a,b)=>a[key].localeCompare(b[key],'ko')); }
-
-function getWeekLabel(offset) {
-  const now = new Date();
-  const mon = new Date(now);
-  mon.setDate(now.getDate() - ((now.getDay()+6)%7) + offset*7);
-  const month = mon.getMonth()+1;
-  const weekNum = Math.ceil((mon.getDate()+(new Date(mon.getFullYear(),mon.getMonth(),1).getDay()+6)%7)/7);
+const teamColor = t => t.type==='합주' ? GRAY : (t.color||GRAY);
+// 한글 포함 로컬 정렬
+const korSort = (arr,key) => [...arr].sort((a,b)=>a[key].localeCompare(b[key],'ko-KR',{sensitivity:'base',numeric:true}));
+const timeLabel = h => h<24 ? h+':00' : '0'+(h-24)+':00';
+function getWeekLabel(offset){
+  const now=new Date(), mon=new Date(now);
+  mon.setDate(now.getDate()-((now.getDay()+6)%7)+offset*7);
+  const month=mon.getMonth()+1;
+  const weekNum=Math.ceil((mon.getDate()+(new Date(mon.getFullYear(),mon.getMonth(),1).getDay()+6)%7)/7);
   return `${month}월 ${weekNum}주차`;
 }
 
-function timeLabel(h) {
-  if(h < 24) return h+':00';
-  return '0'+(h-24)+':00';
-}
+// ── MOBILE TAB ───────────────────────────────────────────────────────
+let currentTab = 'schedule';
+window.switchTab = function(tab){
+  currentTab=tab;
+  ['schedule','teams','pending','admin'].forEach(t=>{
+    document.getElementById('tab-'+t)?.classList.toggle('active',t===tab);
+  });
+  document.getElementById('mainPanel').style.display        = tab==='schedule'?'flex':'none';
+  document.getElementById('mobileTeamPanel').classList.toggle('active',  tab==='teams');
+  document.getElementById('mobilePendingPanel').classList.toggle('active',tab==='pending');
+  if(tab==='admin') handleAdminClick();
+};
 
 // ── INIT ─────────────────────────────────────────────────────────────
-async function init() {
+async function init(){
   if(isAdmin()){ mode='admin'; syncModeUI(); }
   currentSeason = await getConfig('current_season').catch(()=>'1학기');
   await loadAll();
   document.getElementById('loadingOverlay').style.display='none';
   subscribeChanges(
-    async ()=>{ baseSlots=await fetchBaseSlots(currentSeason); merged=mergeSchedule(baseSlots,exceptions); render(); },
-    async ()=>{ exceptions=await fetchExceptions(weekOffset); merged=mergeSchedule(baseSlots,exceptions); render(); },
-    async ()=>{ requests=await fetchRequests(weekOffset); renderPending(); renderStats(); }
+    async()=>{ baseSlots=await fetchBaseSlots(currentSeason); merged=mergeSchedule(baseSlots,exceptions); render(); },
+    async()=>{ exceptions=await fetchExceptions(weekOffset); merged=mergeSchedule(baseSlots,exceptions); render(); },
+    async()=>{ requests=await fetchRequests(weekOffset); renderPending(); renderStats(); }
   );
 }
 
-async function loadAll() {
-  [teams, baseSlots, exceptions, requests] = await Promise.all([
-    fetchTeams(),
-    fetchBaseSlots(currentSeason),
-    fetchExceptions(weekOffset),
-    fetchRequests(weekOffset),
+async function loadAll(){
+  [teams,baseSlots,exceptions,requests] = await Promise.all([
+    fetchTeams(), fetchBaseSlots(currentSeason),
+    fetchExceptions(weekOffset), fetchRequests(weekOffset),
   ]);
-  merged = mergeSchedule(baseSlots, exceptions);
+  // 클라이언트 측 한글 정렬 (DB 정렬 보완)
+  teams = korSort(teams,'name');
+  merged = mergeSchedule(baseSlots,exceptions);
   render();
 }
 
-// ── WEEK ─────────────────────────────────────────────────────────────
-window.changeWeek = async function(delta) {
-  weekOffset += delta;
-  [exceptions, requests] = await Promise.all([fetchExceptions(weekOffset), fetchRequests(weekOffset)]);
-  merged = mergeSchedule(baseSlots, exceptions);
-  render();
+window.changeWeek = async function(delta){
+  weekOffset+=delta;
+  [exceptions,requests]=await Promise.all([fetchExceptions(weekOffset),fetchRequests(weekOffset)]);
+  merged=mergeSchedule(baseSlots,exceptions); render();
 };
 
 // ── RENDER ───────────────────────────────────────────────────────────
-function render() {
-  const weekLabel = getWeekLabel(weekOffset);
-  document.getElementById('weekLabel').textContent = weekLabel;
-  document.getElementById('seasonBadge').textContent = currentSeason;
-  document.getElementById('scheduleTitleText').textContent = `${weekLabel} 동아리방 사용 시간표`;
-  document.getElementById('scheduleTitleSeason').textContent = currentSeason;
-  document.getElementById('adminBar').style.display = mode==='admin'?'flex':'none';
+function render(){
+  const wl=getWeekLabel(weekOffset);
+  document.getElementById('weekLabel').textContent=wl;
+  document.getElementById('seasonBadge').textContent=currentSeason;
+  document.getElementById('scheduleTitleText').textContent=`${wl} 동아리방 사용 시간표`;
+  document.getElementById('scheduleTitleSeason').textContent=currentSeason;
+  document.getElementById('adminBar').style.display=mode==='admin'?'flex':'none';
   renderTeamList();
   renderPending();
   renderStats();
@@ -282,40 +421,39 @@ function render() {
   renderSchedule();
 }
 
-function renderTeamList() {
-  const groups = [
-    {key:'합주', label:'합주'},
-    {key:'스쿨', label:'스쿨'},
-    {key:'이외', label:'이외'},
-  ];
-  document.getElementById('teamList').innerHTML = groups.map(g=>{
-    const list = korSort(teams.filter(t=>t.type===g.key),'name');
+function teamListHTML(){
+  const groups=[{key:'합주'},{key:'스쿨'},{key:'이외'}];
+  return groups.map(g=>{
+    const list=korSort(teams.filter(t=>t.type===g.key),'name');
     if(!list.length) return '';
     return `<div>
-      <div class="team-group-label">${g.label}</div>
-      ${list.map(t=>`
-        <div class="team-item">
-          <div class="team-dot" style="background:${teamColor(t)}"></div>
-          <div style="flex:1;overflow:hidden">
-            <div class="team-name">${t.name}</div>
-            ${t.info?`<div class="team-info-small">${t.info}</div>`:''}
-          </div>
-        </div>`).join('')}
+      <div class="team-group-label">${g.key}</div>
+      ${list.map(t=>`<div class="team-item">
+        <div class="team-dot" style="background:${teamColor(t)}"></div>
+        <div style="flex:1;min-width:0">
+          <div class="team-name">${t.name}</div>
+          ${t.info?`<div class="team-info-small">${t.info}</div>`:''}
+        </div>
+      </div>`).join('')}
     </div>`;
   }).join('');
 }
 
-function renderPending() {
-  const pending = requests.filter(r=>r.status==='pending');
-  document.getElementById('pendingTitle').innerHTML = `대기 중 신청${pending.length?` <span class="badge-pending">${pending.length}</span>`:''}`;
-  if(!pending.length){ document.getElementById('pendingList').innerHTML='<div class="no-pending">없음</div>'; return; }
-  document.getElementById('pendingList').innerHTML = pending.map(r=>{
-    const typeLabel = r.type==='absent'?'미사용':'추가사용';
-    const actions = mode==='admin'?`
-      <div class="pending-actions">
-        <button class="btn-approve" onclick="handleApprove(${r.id})">승인</button>
-        <button class="btn-reject" onclick="handleReject(${r.id})">거절</button>
-      </div>`:'';
+function renderTeamList(){
+  const html=teamListHTML();
+  document.getElementById('teamList').innerHTML=html;
+  document.getElementById('mobileTeamList').innerHTML=html;
+}
+
+function pendingHTML(isAdmin){
+  const pending=requests.filter(r=>r.status==='pending');
+  if(!pending.length) return '<div class="no-pending">없음</div>';
+  return pending.map(r=>{
+    const typeLabel=r.type==='absent'?'미사용':'추가사용';
+    const actions=isAdmin?`<div class="pending-actions">
+      <button class="btn-approve" onclick="handleApprove(${r.id})">승인</button>
+      <button class="btn-reject" onclick="handleReject(${r.id})">거절</button>
+    </div>`:'';
     return `<div class="pending-card ${r.type}">
       <div class="pending-title" style="color:${teamColor(r.teams)}">${r.teams.name}</div>
       <div class="pending-detail">${DAYS[r.day]} ${r.hour}:00 · ${typeLabel}</div>
@@ -326,24 +464,37 @@ function renderPending() {
   }).join('');
 }
 
-function renderStats() {
-  const absent  = merged.filter(s=>s.status==='absent').length;
-  const extra   = exceptions.filter(e=>e.exception_type==='extra').length;
-  const pending = requests.filter(r=>r.status==='pending').length;
-  document.getElementById('statsBar').innerHTML = `
-    <div class="stat-card"><div class="stat-label">기본 배정</div><div class="stat-value">${baseSlots.length}</div></div>
-    <div class="stat-card"><div class="stat-label">이번 주 미사용</div><div class="stat-value" style="color:var(--danger)">${absent}</div></div>
-    <div class="stat-card"><div class="stat-label">이번 주 추가</div><div class="stat-value" style="color:var(--accent2)">${extra}</div></div>
-    <div class="stat-card"><div class="stat-label">대기 신청</div><div class="stat-value" style="color:var(--warn)">${pending}</div></div>`;
+function renderPending(){
+  const pending=requests.filter(r=>r.status==='pending');
+  const titleHTML=`대기 중 신청${pending.length?` <span class="badge-pending">${pending.length}</span>`:''}`;
+  document.getElementById('pendingTitle').innerHTML=titleHTML;
+  document.getElementById('mobilePendingTitle').innerHTML=titleHTML;
+  const html=pendingHTML(mode==='admin');
+  document.getElementById('pendingList').innerHTML=html;
+  document.getElementById('mobilePendingList').innerHTML=html;
+  // 탭 뱃지
+  const badge=document.getElementById('tabPendingBadge');
+  badge.textContent=pending.length||'';
+  badge.style.display=pending.length?'inline':'none';
 }
 
-function renderEmptySlots() {
-  const occupied = new Set(merged.filter(s=>s.status!=='absent').map(s=>`${s.day}-${s.hour}`));
+function renderStats(){
+  const absent=merged.filter(s=>s.status==='absent').length;
+  const extra=exceptions.filter(e=>e.exception_type==='extra').length;
+  const pending=requests.filter(r=>r.status==='pending').length;
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat-card"><div class="stat-label">기본 배정</div><div class="stat-value">${baseSlots.length}</div></div>
+    <div class="stat-card"><div class="stat-label">미사용</div><div class="stat-value" style="color:var(--danger)">${absent}</div></div>
+    <div class="stat-card"><div class="stat-label">추가</div><div class="stat-value" style="color:var(--accent2)">${extra}</div></div>
+    <div class="stat-card"><div class="stat-label">대기</div><div class="stat-value" style="color:var(--warn)">${pending}</div></div>`;
+}
+
+function renderEmptySlots(){
+  const occupied=new Set(merged.filter(s=>s.status!=='absent').map(s=>`${s.day}-${s.hour}`));
   const empties=[];
   outer: for(let d=0;d<7;d++) for(const h of HOURS){
     if(!occupied.has(`${d}-${h}`)&&(occupied.has(`${d}-${h-1}`)||occupied.has(`${d}-${h+1}`))){
-      empties.push({day:d,hour:h});
-      if(empties.length>=8) break outer;
+      empties.push({day:d,hour:h}); if(empties.length>=8) break outer;
     }
   }
   const bar=document.getElementById('emptySlotsBar');
@@ -355,41 +506,27 @@ function renderEmptySlots() {
       </div>`).join('')}</div>`;
 }
 
-function renderSchedule() {
-  document.getElementById('scheduleHeader').innerHTML =
+function renderSchedule(){
+  document.getElementById('scheduleHeader').innerHTML=
     '<div class="day-header"></div>'+DAYS.map(d=>`<div class="day-header">${d}</div>`).join('');
-  document.getElementById('timeCol').innerHTML = HOURS.map(h=>`
-    <div class="time-cell">
-      <span>${timeLabel(h)}</span>
-      ${h>=24?`<span class="time-next">익일</span>`:''}
-    </div>`).join('');
-
+  document.getElementById('timeCol').innerHTML=HOURS.map(h=>`
+    <div class="time-cell"><span>${timeLabel(h)}</span>${h>=24?`<span class="time-next">익일</span>`:''}</div>`).join('');
   const grid=document.getElementById('daysGrid');
   grid.innerHTML='';
-
-  // merged를 빠른 조회용 맵으로
-  const mergedMap = new Map(merged.map(s=>[`${s.day}-${s.hour}`,s]));
-  const pendingExtraMap = new Map(
-    requests.filter(r=>r.type==='extra'&&r.status==='pending').map(r=>[`${r.day}-${r.hour}`,r])
-  );
-
+  const mergedMap=new Map(merged.map(s=>[`${s.day}-${s.hour}`,s]));
+  const pendingExMap=new Map(requests.filter(r=>r.type==='extra'&&r.status==='pending').map(r=>[`${r.day}-${r.hour}`,r]));
   for(let d=0;d<7;d++){
-    const col=document.createElement('div');
-    col.className='day-col';
+    const col=document.createElement('div'); col.className='day-col';
     for(const h of HOURS){
-      const cell=document.createElement('div');
-      cell.className='slot';
-      const s=mergedMap.get(`${d}-${h}`);
-      const pendingEx=pendingExtraMap.get(`${d}-${h}`);
-
+      const cell=document.createElement('div'); cell.className='slot';
+      const s=mergedMap.get(`${d}-${h}`), pe=pendingExMap.get(`${d}-${h}`);
       if(s){
         const t=s.teams, absent=s.status==='absent', isExtra=s.source==='extra';
-        const c=teamColor(t);
+        const c=teamColor(t), tc=absent?c:'#000';
         const blk=document.createElement('div');
         blk.className=`slot-block${absent?' absent':''}${isExtra?' extra':''}`;
         blk.style.background=absent?'transparent':c;
         if(absent) blk.style.border=`1px dashed ${c}`;
-        const tc=absent?c:'#000';
         blk.innerHTML=`
           <div class="slot-block-top">
             <span class="slot-block-name" style="color:${tc}">${t.name}</span>
@@ -400,24 +537,18 @@ function renderSchedule() {
           </div>`;
         blk.onclick=()=>openSlotModal(s);
         cell.appendChild(blk);
-      } else if(pendingEx){
-        const t=pendingEx.teams, c=teamColor(t);
+      } else if(pe){
+        const t=pe.teams, c=teamColor(t);
         const blk=document.createElement('div');
         blk.className='slot-block pending-block';
         blk.style.cssText=`background:${c}33;border:1px dashed ${c}`;
         blk.innerHTML=`
-          <div class="slot-block-top">
-            <span class="slot-block-name" style="color:${c}">${t.name}</span>
-            <span class="slot-block-tag" style="color:${c}">대기</span>
-          </div>
-          <div class="slot-block-bottom">
-            <span class="slot-block-info" style="color:${c}">${t.info||''}</span>
-          </div>`;
-        blk.onclick=()=>openRequestDetailModal(pendingEx);
+          <div class="slot-block-top"><span class="slot-block-name" style="color:${c}">${t.name}</span><span class="slot-block-tag" style="color:${c}">대기</span></div>
+          <div class="slot-block-bottom"><span class="slot-block-info" style="color:${c}">${t.info||''}</span></div>`;
+        blk.onclick=()=>openRequestDetailModal(pe);
         cell.appendChild(blk);
       } else {
-        const ind=document.createElement('div');
-        ind.className='slot-empty';
+        const ind=document.createElement('div'); ind.className='slot-empty';
         ind.textContent=mode==='admin'?'+':'신청';
         ind.onclick=mode==='admin'?()=>openAddSlotModal(d,h):()=>openClaimModal(d,h);
         cell.appendChild(ind);
@@ -440,24 +571,22 @@ window.onBackdropClick=e=>{if(e.target===document.getElementById('modalBackdrop'
 
 // ── SLOT MODAL ───────────────────────────────────────────────────────
 window.openSlotModal=function(s){
-  const t=s.teams, absent=s.status==='absent', isExtra=s.source==='extra', isBase=s.source==='base';
+  const t=s.teams,absent=s.status==='absent',isExtra=s.source==='extra',isBase=s.source==='base';
   const c=teamColor(t);
   const body=`
     <div class="info-row"><span class="info-key">팀</span><span style="color:${c};font-weight:700">${t.name}</span></div>
     <div class="info-row"><span class="info-key">시간</span><span>${DAYS[s.day]} ${s.hour}:00</span></div>
     <div class="info-row"><span class="info-key">종류</span><span>${isExtra?'추가 사용 (이번 주)':isBase?'기본 시간표':t.type}</span></div>
     <div class="info-row"><span class="info-key">상태</span><span>${absent?'⛔ 이번 주 미사용':'✅ 정상'}</span></div>
-    ${t.info?`<div class="info-row"><span class="info-key">${t.type==='스쿨'?'선생님':'합주곡'}</span><span>${t.info}</span></div>`:''}`;
+    ${t.info?`<div class="info-row"><span class="info-key">${t.type==='스쿨'?'선생님':'정보'}</span><span>${t.info}</span></div>`:''}`;
   let footer;
   if(mode==='admin'){
-    footer=`
-      <button class="btn btn-secondary" onclick="closeModal()">닫기</button>
+    footer=`<button class="btn btn-secondary" onclick="closeModal()">닫기</button>
       ${s.exceptionId?`<button class="btn btn-secondary" onclick="handleRemoveException(${s.exceptionId})">예외 제거</button>`:''}
       ${isBase&&!absent?`<button class="btn btn-danger" onclick="openAbsenceModal(${s.id},${s.day},${s.hour},${s.team_id})">이번 주 미사용</button>`:''}
-      <button class="btn btn-primary" onclick="openEditBaseSlotModal(${s.id})">기본 시간표 수정</button>`;
+      <button class="btn btn-primary" onclick="openEditBaseSlotModal(${s.id})">수정</button>`;
   } else if(!absent&&isBase){
-    footer=`
-      <button class="btn btn-secondary" onclick="closeModal()">닫기</button>
+    footer=`<button class="btn btn-secondary" onclick="closeModal()">닫기</button>
       <button class="btn btn-danger" onclick="openAbsenceModal(${s.id},${s.day},${s.hour},${s.team_id})">미사용 신고</button>`;
   } else {
     footer=`<button class="btn btn-secondary" onclick="closeModal()">닫기</button>`;
@@ -472,7 +601,6 @@ window.handleRemoveException=async function(exId){
   }catch(e){showToast(e.message,'error');}
 };
 
-// ── ABSENCE ──────────────────────────────────────────────────────────
 window.openAbsenceModal=function(slotId,day,hour,teamId){
   const t=teams.find(t=>t.id===teamId);
   showModal('미사용 신고',
@@ -493,7 +621,6 @@ window.submitAbsence=async function(teamId,day,hour){
   btn.disabled=true; btn.textContent='제출 중...';
   try{
     if(mode==='admin'){
-      // 관리자는 바로 예외 생성
       await createException({team_id:teamId,day,hour,week_offset:weekOffset,exception_type:'absent'});
       showToast('미사용 처리됐습니다','success');
       exceptions=await fetchExceptions(weekOffset); merged=mergeSchedule(baseSlots,exceptions);
@@ -506,7 +633,6 @@ window.submitAbsence=async function(teamId,day,hour){
   }catch(e){showToast(e.message,'error');btn.disabled=false;btn.textContent='신고 제출';}
 };
 
-// ── CLAIM ────────────────────────────────────────────────────────────
 window.openClaimModal=function(day,hour){
   showModal(`추가 사용 신청 · ${DAYS[day]} ${hour}:00`,
     `<div><div class="field-label">팀 선택 *</div>
@@ -541,9 +667,8 @@ window.submitClaim=async function(day,hour){
   }catch(e){showToast(e.message,'error');btn.disabled=false;btn.textContent='신청 제출';}
 };
 
-// ── REQUEST DETAIL ───────────────────────────────────────────────────
 window.openRequestDetailModal=function(req){
-  const t=req.teams, c=teamColor(t);
+  const t=req.teams,c=teamColor(t);
   showModal('승인 대기 중',
     `<div class="info-row"><span class="info-key">팀</span><span style="color:${c};font-weight:700">${t.name}</span></div>
      <div class="info-row"><span class="info-key">시간</span><span>${DAYS[req.day]} ${req.hour}:00</span></div>
@@ -553,10 +678,9 @@ window.openRequestDetailModal=function(req){
   );
 };
 
-// ── ADD BASE SLOT (admin) ─────────────────────────────────────────────
 window.openAddSlotModal=function(day=0,hour=10){
   showModal('기본 시간표 슬롯 추가',
-    `<div style="font-size:11px;color:var(--text2);background:var(--surface2);padding:8px 10px;border-radius:6px;margin-bottom:4px">기본 시간표(${currentSeason})에 추가됩니다. 이번 주만 추가하려면 빈 슬롯 클릭 후 신청하세요.</div>
+    `<div style="font-size:11px;color:var(--text2);background:var(--surface2);padding:8px 10px;border-radius:6px">기본 시간표(${currentSeason})에 추가됩니다.</div>
      <div><div class="field-label">팀</div>
        <select class="field-select" id="addTeam">${korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
      <div><div class="field-label">요일</div>
@@ -582,7 +706,6 @@ window.submitAddSlot=async function(){
   }catch(e){showToast(e.message.includes('unique')?'이미 해당 시간에 슬롯이 있습니다':e.message,'error');btn.disabled=false;btn.textContent='추가';}
 };
 
-// ── EDIT BASE SLOT (admin) ────────────────────────────────────────────
 window.openEditBaseSlotModal=function(slotId){
   const s=baseSlots.find(b=>b.id===slotId);
   showModal('기본 시간표 슬롯 수정',
@@ -602,11 +725,7 @@ window.submitEditSlot=async function(slotId){
   const btn=document.getElementById('editSubmit');
   btn.disabled=true; btn.textContent='저장 중...';
   try{
-    await updateBaseSlot(slotId,{
-      team_id:parseInt(document.getElementById('editTeam').value),
-      day:parseInt(document.getElementById('editDay').value),
-      hour:parseInt(document.getElementById('editHour').value),
-    });
+    await updateBaseSlot(slotId,{team_id:parseInt(document.getElementById('editTeam').value),day:parseInt(document.getElementById('editDay').value),hour:parseInt(document.getElementById('editHour').value)});
     showToast('수정됐습니다','success');
     baseSlots=await fetchBaseSlots(currentSeason); merged=mergeSchedule(baseSlots,exceptions);
     closeModal(); render();
@@ -622,10 +741,8 @@ window.handleDeleteBaseSlot=async function(slotId){
   }catch(e){showToast(e.message,'error');}
 };
 
-// ── APPROVE / REJECT ─────────────────────────────────────────────────
 window.handleApprove=async function(reqId){
-  const req=requests.find(r=>r.id===reqId);
-  if(!req) return;
+  const req=requests.find(r=>r.id===reqId); if(!req) return;
   try{
     await approveRequest(req,weekOffset); showToast('승인됐습니다','success');
     [exceptions,requests]=await Promise.all([fetchExceptions(weekOffset),fetchRequests(weekOffset)]);
@@ -640,15 +757,13 @@ window.handleReject=async function(reqId){
   }catch(e){showToast(e.message,'error');}
 };
 
-// ── SEASON MODAL ─────────────────────────────────────────────────────
+// ── SEASON ───────────────────────────────────────────────────────────
 window.openSeasonModal=function(){
   showModal('학기/방학 전환',
     `<div style="font-size:12px;color:var(--text2);margin-bottom:4px">현재: <strong style="color:var(--accent)">${currentSeason}</strong></div>
      <div><div class="field-label">전환할 학기/방학</div>
-       <select class="field-select" id="newSeason">
-         ${SEASONS.map(s=>`<option value="${s}" ${s===currentSeason?'selected':''}>${s}</option>`).join('')}
-       </select></div>
-     <div style="font-size:11px;color:var(--text3);background:var(--surface2);padding:8px 10px;border-radius:6px">전환하면 해당 학기의 기본 시간표로 즉시 변경됩니다. 주간 예외(미사용/추가)는 별도 관리됩니다.</div>`,
+       <select class="field-select" id="newSeason">${SEASONS.map(s=>`<option value="${s}" ${s===currentSeason?'selected':''}>${s}</option>`).join('')}</select></div>
+     <div style="font-size:11px;color:var(--text3);background:var(--surface2);padding:8px 10px;border-radius:6px">해당 학기의 기본 시간표로 즉시 변경됩니다.</div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">취소</button>
      <button class="btn btn-primary" id="seasonSubmit" onclick="submitSeasonChange()">전환</button>`
   );
@@ -660,8 +775,7 @@ window.submitSeasonChange=async function(){
   btn.disabled=true; btn.textContent='전환 중...';
   try{
     await setConfig('current_season',season);
-    currentSeason=season;
-    baseSlots=await fetchBaseSlots(currentSeason);
+    currentSeason=season; baseSlots=await fetchBaseSlots(currentSeason);
     merged=mergeSchedule(baseSlots,exceptions);
     closeModal(); showToast(`${season}으로 전환됐습니다`,'success'); render();
   }catch(e){showToast(e.message,'error');btn.disabled=false;btn.textContent='전환';}
@@ -670,7 +784,6 @@ window.submitSeasonChange=async function(){
 // ── TEAM MANAGER ─────────────────────────────────────────────────────
 window.openTeamManagerModal=function(){
   const groups=['합주','스쿨','이외'];
-
   const teamRows=groups.map(g=>{
     const list=korSort(teams.filter(t=>t.type===g),'name');
     if(!list.length) return '';
@@ -681,26 +794,25 @@ window.openTeamManagerModal=function(){
         <div style="padding:8px 0;border-bottom:1px solid var(--border)">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
             <span class="team-dot" style="background:${teamColor(t)}"></span>
-            <input class="field-input" style="padding:4px 8px;font-size:12px;flex:1" value="${t.name}" id="tname-${t.id}" placeholder="팀 이름"/>
+            <input class="field-input" style="padding:4px 8px;font-size:13px;flex:1" value="${t.name}" id="tname-${t.id}"/>
             <button class="btn btn-secondary btn-sm" onclick="saveTeamName(${t.id})">이름</button>
             <button class="btn btn-danger btn-sm" onclick="handleDeleteTeam(${t.id})">삭제</button>
           </div>
           <div style="display:flex;gap:6px">
-            <input class="field-input" style="padding:4px 8px;font-size:12px" value="${t.info||''}" id="info-${t.id}" placeholder="${infoLabel}" onkeydown="if(event.key==='Enter')saveTeamInfo(${t.id})"/>
+            <input class="field-input" style="padding:4px 8px;font-size:13px" value="${t.info||''}" id="info-${t.id}" placeholder="${infoLabel}" onkeydown="if(event.key==='Enter')saveTeamInfo(${t.id})"/>
             <button class="btn btn-secondary btn-sm" onclick="saveTeamInfo(${t.id})">저장</button>
           </div>
         </div>`).join('')}
     </div>`;
   }).join('');
 
-  const paletteSwatches=COLORS.map(c=>`
+  const swatches=COLORS.map(c=>`
     <div onclick="selectPaletteColor('${c}')" id="sw-${c.replace('#','')}"
-      style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid transparent;transition:border-color .15s"></div>`).join('');
+      style="width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;border:2px solid transparent;transition:border-color .15s;flex-shrink:0"></div>`).join('');
 
   showModal('팀 관리',
-    `<!-- 새 팀 추가 (최상단) -->
-     <div style="padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-       <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text)">새 팀 추가</div>
+    `<div style="padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:4px">
+       <div style="font-size:12px;font-weight:700;margin-bottom:10px">새 팀 추가</div>
        <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;margin-bottom:8px">
          <div><div class="field-label">팀 이름</div><input class="field-input" id="newTeamName" placeholder="팀 이름"/></div>
          <div><div class="field-label">분류</div>
@@ -708,14 +820,13 @@ window.openTeamManagerModal=function(){
              <option>합주</option><option>스쿨</option><option>이외</option>
            </select></div>
        </div>
-       <div id="colorPickerArea" style="display:none">
+       <div id="colorPickerArea" style="display:none;margin-bottom:6px">
          <div class="field-label">컬러</div>
-         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${paletteSwatches}</div>
+         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${swatches}</div>
          <input type="hidden" id="newTeamColor" value="${COLORS[0]}"/>
        </div>
        <div id="grayNotice" style="font-size:11px;color:var(--text3)">합주 팀은 자동으로 회색 표시됩니다</div>
      </div>
-     <!-- 팀 목록 -->
      ${teamRows}`,
     `<button class="btn btn-secondary" onclick="closeModal()">닫기</button>
      <button class="btn btn-primary" onclick="submitNewTeam()">팀 추가</button>`
@@ -724,15 +835,13 @@ window.openTeamManagerModal=function(){
 };
 
 window.onTeamTypeChange=function(){
-  const t=document.getElementById('newTeamType').value;
-  const colored=t!=='합주';
+  const t=document.getElementById('newTeamType').value, colored=t!=='합주';
   document.getElementById('colorPickerArea').style.display=colored?'block':'none';
   document.getElementById('grayNotice').style.display=colored?'none':'block';
 };
 
 window.selectPaletteColor=function(color){
-  const inp=document.getElementById('newTeamColor');
-  if(inp) inp.value=color;
+  const inp=document.getElementById('newTeamColor'); if(inp) inp.value=color;
   COLORS.forEach(c=>{
     const el=document.getElementById('sw-'+c.replace('#',''));
     if(el) el.style.borderColor=c===color?'#fff':'transparent';
@@ -790,6 +899,9 @@ function syncModeUI(){
   document.getElementById('btnUser').classList.toggle('active',mode==='user');
   document.getElementById('btnAdmin').classList.toggle('active',mode==='admin');
   document.getElementById('btnAdmin').textContent=mode==='admin'?'로그아웃':'관리자';
+  document.getElementById('tabAdminLabel').textContent=mode==='admin'?'로그아웃':'관리자';
+  document.getElementById('tab-admin').classList.toggle('active',mode==='admin');
+  renderPending(); // 관리자 여부에 따라 승인 버튼 토글
 }
 
 window.handleUserClick=function(){
@@ -798,6 +910,7 @@ window.handleUserClick=function(){
 
 window.handleAdminClick=function(){
   if(mode==='admin'){ logoutAdmin(); mode='user'; syncModeUI(); render(); return; }
+  // 모바일에서 admin 탭 누르면 로그인 모달 후 schedule 탭으로
   showModal('관리자 로그인',
     `<div><div class="field-label">비밀번호</div>
        <input class="field-input" id="adminPw" type="password" placeholder="관리자 비밀번호"
@@ -816,6 +929,7 @@ window.submitAdminLogin=async function(){
     await loginAdmin(pw);
     mode='admin'; closeModal(); syncModeUI(); render();
     showToast('관리자로 로그인됐습니다','success');
+    switchTab('schedule');
   }catch(e){showToast(e.message,'error');btn.disabled=false;btn.textContent='로그인';}
 };
 
