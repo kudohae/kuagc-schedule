@@ -206,12 +206,13 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 <div id="adminUI" style="display:none">
 
 <header>
-  <div class="logo">BAND <span class="logo-sub">관리자</span></div>
+  <a class="logo" href="https://kuagc.com" target="_blank" style="text-decoration:none">BAND <span class="logo-sub">관리자</span></a>
   <div class="nav">
-    <button class="nb active" id="nb-sch"     onclick="showPage('sch')">시간표</button>
-    <button class="nb"        id="nb-teams"   onclick="showPage('teams')">팀 관리</button>
-    <button class="nb"        id="nb-apply"   onclick="showPage('apply')">시간신청</button>
-    <button class="nb"        id="nb-notices" onclick="showPage('notices')">공지</button>
+    <button class="nb active" id="nb-sch"      onclick="showPage('sch')">시간표</button>
+    <button class="nb"        id="nb-teams"    onclick="showPage('teams')">팀 관리</button>
+    <button class="nb"        id="nb-apply"    onclick="showPage('apply')">시간신청</button>
+    <button class="nb"        id="nb-notices"  onclick="showPage('notices')">공지</button>
+    <button class="nb"        id="nb-contacts" onclick="showPage('contacts')">연락처</button>
   </div>
   <div class="hdr-r">
     <select class="season-sel" id="seasonSel" onchange="changeSeason(this.value)">
@@ -280,6 +281,15 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
   <div id="noticesContent" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;"></div>
 </div>
 
+<!-- CONTACTS -->
+<div class="page" id="pgContacts">
+  <div class="section-hdr">
+    <div class="section-title">회장단 연락처</div>
+    <button class="btn btn-p btn-xs" onclick="openAddContactModal()">+ 추가</button>
+  </div>
+  <div id="contactsContent" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;margin-top:4px;"></div>
+</div>
+
 </div><!-- /adminUI -->
 
 <!-- MODAL -->
@@ -303,7 +313,8 @@ import {
   fetchRequests, approveRequest, rejectRequest,
   fetchNotices, createNotice, deleteNotice,
   fetchActiveRound, createRound, updateRound,
-  fetchApplications, deleteApplication, runAssignment, approveDraft
+  fetchApplications, deleteApplication, runAssignment, approveDraft,
+  fetchContacts, upsertContact, deleteContact
 } from './js/schedule.js';
 
 const ADMIN_PW = 'kuagc513';
@@ -323,7 +334,7 @@ function weekLabel(off){
 }
 
 let weekOff=0, season='1학기';
-let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[];
+let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let merged=[], round=null, applications=[];
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
@@ -360,9 +371,9 @@ if(isLoggedIn()){
 async function loadAll(){
   season=await getConfig('current_season').catch(()=>'1학기');
   document.getElementById('seasonSel').value=season;
-  [teams,baseSlots,exceptions,requests,notices]=await Promise.all([
+  [teams,baseSlots,exceptions,requests,notices,contacts]=await Promise.all([
     fetchTeams(),fetchBaseSlots(season),fetchExceptions(weekOff),
-    fetchRequests(weekOff),fetchNotices()
+    fetchRequests(weekOff),fetchNotices(),fetchContacts()
   ]);
   teams=korSort(teams,'name');
   merged=mergeSchedule(baseSlots,exceptions);
@@ -376,16 +387,15 @@ function render(){
   document.getElementById('weekLbl').textContent=wl;
   document.getElementById('schTitle').textContent=`${wl} 동아리방 사용 시간표`;
   document.getElementById('schSeason').textContent=season;
-  renderSchedule();
-  renderPending();
-  renderTeams();
-  renderApply();
-  renderNotices();
+  const pend=requests.filter(r=>r.status==='pending').length;
+  const badge=document.getElementById('pendBadge');
+  badge.textContent=pend; badge.style.display=pend?'':'none';
+  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts();
 }
 
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
 window.showPage=function(pg){
-  ['sch','teams','apply','notices'].forEach(p=>{
+  ['sch','teams','apply','notices','contacts'].forEach(p=>{
     document.getElementById('pg'+p.charAt(0).toUpperCase()+p.slice(1))?.classList.toggle('active',p===pg);
     document.getElementById('nb-'+p)?.classList.toggle('active',p===pg);
   });
@@ -812,6 +822,73 @@ window.delNotice=async function(id){
   try{
     await deleteNotice(id); notices=notices.filter(n=>n.id!==id);
     toast('공지가 삭제됐습니다'); renderNotices();
+  }catch(e){toast(e.message,'err');}
+};
+
+// ── CONTACTS ──────────────────────────────────────────────────────────
+function renderContacts(){
+  const el=document.getElementById('contactsContent');
+  if(!el) return;
+  if(!contacts.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:12px">등록된 연락처가 없습니다</div>';
+    return;
+  }
+  el.innerHTML=contacts.map(c=>`
+    <div class="ncard">
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--text2);min-width:60px">${c.role}</span>
+          <span style="font-size:13px;font-weight:700">${c.name}</span>
+          ${c.phone?`<span style="font-size:12px;color:var(--text2)">${c.phone}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn btn-s btn-xs" onclick="openEditContactModal(${c.id})">수정</button>
+        <button class="btn btn-d btn-xs" onclick="delContact(${c.id})">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+window.openAddContactModal=function(){
+  showModal('연락처 추가',
+    `<div><div class="fl">역할 (예: 회장, 부회장)</div><input class="fi" id="cRole" placeholder="역할" maxlength="20"/></div>
+     <div><div class="fl">이름</div><input class="fi" id="cName" placeholder="이름" maxlength="20"/></div>
+     <div><div class="fl">연락처 (선택)</div><input class="fi" id="cPhone" placeholder="010-xxxx-xxxx" maxlength="20"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="cBtn" onclick="saveContact()">추가</button>`
+  );
+};
+
+window.openEditContactModal=function(id){
+  const c=contacts.find(c=>c.id===id);
+  showModal('연락처 수정',
+    `<div><div class="fl">역할</div><input class="fi" id="cRole" value="${c.role}" maxlength="20"/></div>
+     <div><div class="fl">이름</div><input class="fi" id="cName" value="${c.name}" maxlength="20"/></div>
+     <div><div class="fl">연락처</div><input class="fi" id="cPhone" value="${c.phone||''}" maxlength="20"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="cBtn" onclick="saveContact(${id})">저장</button>`
+  );
+};
+
+window.saveContact=async function(id){
+  const role=document.getElementById('cRole').value.trim();
+  const name=document.getElementById('cName').value.trim();
+  const phone=document.getElementById('cPhone').value.trim();
+  if(!role||!name){toast('역할과 이름을 입력해주세요','err');return;}
+  const btn=document.getElementById('cBtn'); btn.disabled=true;
+  try{
+    const c=await upsertContact({id,role,name,phone});
+    if(id) { const idx=contacts.findIndex(x=>x.id===id); if(idx>=0) contacts[idx]=c; }
+    else contacts.push(c);
+    toast('저장됐습니다','ok'); closeModal(); renderContacts();
+  }catch(e){toast(e.message,'err');btn.disabled=false;}
+};
+
+window.delContact=async function(id){
+  if(!confirm('연락처를 삭제할까요?')) return;
+  try{
+    await deleteContact(id); contacts=contacts.filter(c=>c.id!==id);
+    toast('삭제됐습니다'); renderContacts();
   }catch(e){toast(e.message,'err');}
 };
 
