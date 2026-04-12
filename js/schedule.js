@@ -62,7 +62,7 @@ export async function fetchExceptions(weekOffset) {
 }
 export async function createException({ team_id, day, hour, week_offset, exception_type = 'absent' }) {
   const { data, error } = await supabase.from('slot_exceptions')
-    .insert({ team_id, day, hour, week_offset, exception_type, slot_type: exception_type, status: exception_type === 'absent' ? 'absent' : 'normal' })
+    .insert({ team_id, day, hour, week_offset, exception_type, status: exception_type === 'absent' ? 'absent' : 'normal' })
     .select('*, teams(*)').single();
   if (error) throw error;
   return data;
@@ -281,4 +281,26 @@ export async function approveDraft(round, applications, season) {
 
   await supabase.from('application_rounds')
     .update({ draft_approved: true }).eq('id', round.id);
+}
+
+// ─── CONTACTS ────────────────────────────────────────────────────────
+export async function fetchContacts() {
+  const { data, error } = await supabase.from('contacts').select('*').order('id');
+  if (error) throw error;
+  return data;
+}
+export async function upsertContact({ id, role, name, phone }) {
+  if (id) {
+    const { data, error } = await supabase.from('contacts').update({ role, name, phone }).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase.from('contacts').insert({ role, name, phone }).select().single();
+    if (error) throw error;
+    return data;
+  }
+}
+export async function deleteContact(id) {
+  const { error } = await supabase.from('contacts').delete().eq('id', id);
+  if (error) throw error;
 }
