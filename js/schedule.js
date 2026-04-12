@@ -128,3 +128,21 @@ export function subscribeChanges(onBase, onException, onRequest) {
   const c3 = supabase.channel('req-ch').on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, onRequest).subscribe();
   return () => { supabase.removeChannel(c1); supabase.removeChannel(c2); supabase.removeChannel(c3); };
 }
+
+// ─── NOTICES ─────────────────────────────────────────────────────────
+export async function fetchNotices() {
+  const { data, error } = await supabase
+    .from('notices').select('*').order('created_at', { ascending: false }).limit(5);
+  if (error) throw error;
+  return data;
+}
+export async function createNotice(content) {
+  const { data, error } = await supabase
+    .from('notices').insert({ content }).select().single();
+  if (error) throw error;
+  return data;
+}
+export async function deleteNotice(id) {
+  const { error } = await supabase.from('notices').delete().eq('id', id);
+  if (error) throw error;
+}
