@@ -85,10 +85,13 @@
   .slot{height:48px;border-bottom:1px solid var(--border);position:relative;cursor:pointer;transition:background .1s;}
   .slot:last-child{border-bottom:none;}
   .slot:hover{background:var(--surface2);}
-  .slot-block{position:absolute;inset:2px;border-radius:5px;display:flex;align-items:center;padding:0 8px;gap:6px;overflow:hidden;cursor:pointer;transition:opacity .15s,transform .1s;}
+  .slot-block{position:absolute;inset:2px;border-radius:5px;display:flex;flex-direction:column;overflow:hidden;cursor:pointer;transition:opacity .15s,transform .1s;}
   .slot-block:hover{opacity:.85;transform:scale(.98);}
-  .slot-block-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#000;}
-  .slot-block-tag{font-size:9px;font-weight:700;background:rgba(0,0,0,.2);color:#000;padding:1px 4px;border-radius:3px;flex-shrink:0;}
+  .slot-block-top{flex:1;display:flex;align-items:center;padding:0 7px;gap:5px;border-bottom:1px solid rgba(0,0,0,.15);}
+  .slot-block-bottom{flex:1;display:flex;align-items:center;padding:0 7px;}
+  .slot-block-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .slot-block-info{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.8;}
+  .slot-block-tag{font-size:9px;font-weight:700;background:rgba(0,0,0,.2);padding:1px 4px;border-radius:3px;flex-shrink:0;margin-left:auto;}
   .slot-block.absent{opacity:.35;}
   .slot-block.extra{outline:2px solid var(--accent2);}
   .slot-block.pending-block{opacity:.6;}
@@ -375,13 +378,19 @@ function renderSchedule() {
       if (slot) {
         const t=slot.teams, absent=slot.status==='absent', extra=slot.slot_type==='extra';
         const displayColor = teamColor(t.type, t.color);
+        const textColor = absent ? displayColor : '#000';
         const blk=document.createElement('div');
         blk.className=`slot-block${absent?' absent':''}${extra?' extra':''}`;
         blk.style.background = absent?'transparent':displayColor;
         if(absent) blk.style.border=`1px dashed ${displayColor}`;
         blk.innerHTML=`
-          <span class="slot-block-name" style="color:${absent?displayColor:'#000'}">${t.name}</span>
-          <span class="slot-block-tag" style="color:${absent?displayColor:'#000'};background:${absent?'transparent':'rgba(0,0,0,.15)'}">${absent?'미사용':t.type}</span>`;
+          <div class="slot-block-top">
+            <span class="slot-block-name" style="color:${textColor}">${t.name}</span>
+            <span class="slot-block-tag" style="color:${textColor};background:${absent?'transparent':'rgba(0,0,0,.15)'}">${absent?'미사용':t.type}</span>
+          </div>
+          <div class="slot-block-bottom">
+            <span class="slot-block-info" style="color:${textColor}">${t.info||''}</span>
+          </div>`;
         blk.onclick=()=>openSlotModal(slot);
         cell.appendChild(blk);
       } else if (pendingExtra) {
@@ -390,7 +399,14 @@ function renderSchedule() {
         const blk=document.createElement('div');
         blk.className='slot-block pending-block';
         blk.style.cssText=`background:${displayColor}33;border:1px dashed ${displayColor}`;
-        blk.innerHTML=`<span class="slot-block-name" style="color:${displayColor}">${t.name}</span><span class="slot-block-tag" style="color:${displayColor}">대기</span>`;
+        blk.innerHTML=`
+          <div class="slot-block-top">
+            <span class="slot-block-name" style="color:${displayColor}">${t.name}</span>
+            <span class="slot-block-tag" style="color:${displayColor}">대기</span>
+          </div>
+          <div class="slot-block-bottom">
+            <span class="slot-block-info" style="color:${displayColor}">${t.info||''}</span>
+          </div>`;
         blk.onclick=()=>openRequestDetailModal(pendingExtra);
         cell.appendChild(blk);
       } else {
@@ -609,15 +625,22 @@ window.openTeamManagerModal = function() {
   const rows = groups.map(g => {
     const list = teams.filter(t=>t.type===g);
     if(!list.length) return '';
+    const infoLabel = g==='스쿨' ? '선생님' : g==='합주' ? '합주곡' : '추가정보';
     return `<div style="margin-bottom:2px">
       <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;padding:8px 0 4px">${g}</div>
       ${list.map(t=>`
-        <div class="info-row">
-          <span style="display:flex;align-items:center;gap:8px">
-            <span class="team-dot" style="background:${teamColor(t.type,t.color)}"></span>
-            <span style="font-weight:600">${t.name}</span>
-          </span>
-          <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" onclick="handleDeleteTeam(${t.id})">삭제</button>
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="display:flex;align-items:center;gap:8px">
+              <span class="team-dot" style="background:${teamColor(t.type,t.color)}"></span>
+              <span style="font-weight:600">${t.name}</span>
+            </span>
+            <button class="btn btn-secondary" style="padding:3px 10px;font-size:11px" onclick="handleDeleteTeam(${t.id})">삭제</button>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="field-input" style="padding:5px 8px;font-size:12px" placeholder="${infoLabel} 입력" value="${t.info||''}" id="info-${t.id}" onkeydown="if(event.key==='Enter')saveTeamInfo(${t.id})"/>
+            <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px;white-space:nowrap" onclick="saveTeamInfo(${t.id})">저장</button>
+          </div>
         </div>`).join('')}
     </div>`;
   }).join('');
@@ -688,6 +711,17 @@ window.handleDeleteTeam = async function(id) {
     slots=slots.filter(s=>s.team_id!==id);
     showToast('팀이 삭제됐습니다');
     openTeamManagerModal(); render();
+  } catch(e){ showToast(e.message,'error'); }
+};
+
+window.saveTeamInfo = async function(id) {
+  const val = document.getElementById('info-'+id)?.value.trim() ?? '';
+  try {
+    await updateTeam(id, {info: val});
+    const t = teams.find(t=>t.id===id);
+    if(t) t.info = val;
+    showToast('저장됐습니다','success');
+    render();
   } catch(e){ showToast(e.message,'error'); }
 };
 
