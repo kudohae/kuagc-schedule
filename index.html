@@ -246,8 +246,41 @@
   /* 데스크탑에서 탭바 숨김 */
   @media(min-width:701px){
     .tab-bar{display:none;}
-    #mobileTeamPanel,#mobilePendingPanel{display:none !important;}
+    #mobileTeamPanel,#mobilePendingPanel,#mobileApplyPanel{display:none !important;}
   }
+
+  /* ── DESKTOP NAV ── */
+  .desktop-nav{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+  .desktop-nav-btn{padding:5px 14px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap;}
+  .desktop-nav-btn:hover{color:var(--text);background:var(--surface2);}
+  .desktop-nav-btn.active{background:var(--surface2);color:var(--text);font-weight:700;}
+
+  /* ── APPLY PANEL ── */
+  .apply-panel{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;}
+  .apply-status-card{border-radius:var(--radius);padding:20px 24px;display:flex;flex-direction:column;gap:8px;}
+  .apply-status-card.open{background:rgba(232,255,71,.06);border:1px solid rgba(232,255,71,.25);}
+  .apply-status-card.closed{background:var(--surface);border:1px solid var(--border);}
+  .apply-status-card.finished{background:rgba(71,197,255,.06);border:1px solid rgba(71,197,255,.2);}
+  .apply-status-title{font-size:16px;font-weight:700;}
+  .apply-status-sub{font-size:12px;color:var(--text2);}
+  .apply-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+  .apply-form-title{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--text);}
+  .apply-pref-row{display:grid;grid-template-columns:60px 1fr 1fr;gap:8px;align-items:center;margin-bottom:10px;}
+  .apply-pref-label{font-size:12px;font-weight:700;color:var(--text2);}
+  .apply-pref-label.pref1{color:var(--accent);}
+  .apply-pref-label.pref2{color:var(--accent2);}
+  .apply-pref-label.pref3{color:var(--text2);}
+  .apply-result-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .apply-result-table th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);}
+  .apply-result-table td{padding:9px 12px;border-bottom:1px solid var(--border);}
+  .apply-result-table tr:last-child td{border-bottom:none;}
+  .pref-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;}
+  .pref-badge.p1{background:rgba(232,255,71,.15);color:var(--accent);}
+  .pref-badge.p2{background:rgba(71,197,255,.15);color:var(--accent2);}
+  .pref-badge.p3{background:rgba(255,170,71,.15);color:var(--warn);}
+  .pref-badge.none{background:rgba(255,71,71,.1);color:var(--danger);}
+  .admin-apply-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
+  .admin-apply-section-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
 </style>
 </head>
 <body>
@@ -259,6 +292,10 @@
 <header>
   <div class="logo">BAND<span>동아리방 시간표</span></div>
   <div class="header-right">
+    <div class="desktop-nav">
+      <button class="desktop-nav-btn active" id="dnav-schedule" onclick="switchDesktopTab('schedule')">시간표</button>
+      <button class="desktop-nav-btn" id="dnav-apply" onclick="switchDesktopTab('apply')">시간 신청</button>
+    </div>
     <div class="season-badge" id="seasonBadge">—</div>
     <div class="week-nav">
       <button onclick="changeWeek(-1)">‹</button>
@@ -325,6 +362,12 @@
     <div class="sidebar-section-title" id="mobilePendingTitle">대기 중 신청</div>
     <div class="pending-list" id="mobilePendingList"></div>
   </div>
+
+  <!-- 시간 신청 패널 (데스크탑+모바일 공용) -->
+  <div class="apply-panel" id="applyPanel" style="display:none"></div>
+
+  <!-- 모바일 시간 신청 패널 -->
+  <div id="mobileApplyPanel" style="padding:10px;padding-bottom:calc(var(--tab-h)+10px);overflow-y:auto;flex:1;display:none;flex-direction:column;gap:10px"></div>
 </div>
 
 <!-- 모바일 하단 탭바 -->
@@ -340,7 +383,11 @@
   <button class="tab-btn" id="tab-pending" onclick="switchTab('pending')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     <span id="tabPendingBadge"></span>
-    신청
+    알림
+  </button>
+  <button class="tab-btn" id="tab-apply" onclick="switchTab('apply')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    시간신청
   </button>
   <button class="tab-btn" id="tab-admin" onclick="handleAdminClick()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
@@ -407,7 +454,10 @@ import {
   fetchExceptions, createException, deleteException, mergeSchedule,
   fetchRequests, createRequest, approveRequest, rejectRequest,
   subscribeChanges,
-  fetchNotices, createNotice, deleteNotice
+  fetchNotices, createNotice, deleteNotice,
+  fetchActiveRound, createRound, updateRound,
+  fetchApplications, submitApplication, deleteApplication,
+  runAssignment, approveDraft
 } from './js/schedule.js';
 
 const DAYS  = ['월','화','수','목','금','토','일'];
@@ -418,6 +468,7 @@ const GRAY = '#888888';
 
 let weekOffset=0, mode='user', currentSeason='1학기';
 let teams=[], baseSlots=[], exceptions=[], requests=[], merged=[], notices=[];
+let currentRound=null, applications=[];
 
 // ── HELPERS ──────────────────────────────────────────────────────────
 const teamColor = t => t.type==='합주' ? GRAY : (t.color||GRAY);
@@ -432,16 +483,43 @@ function getWeekLabel(offset){
   return `${month}월 ${weekNum}주차`;
 }
 
-// ── MOBILE TAB ───────────────────────────────────────────────────────
+// ── DESKTOP/MOBILE TAB ───────────────────────────────────────────────
+let currentDesktopTab = 'schedule';
 let currentTab = 'schedule';
+
+window.switchDesktopTab = function(tab){
+  currentDesktopTab = tab;
+  ['schedule','apply'].forEach(t=>{
+    document.getElementById('dnav-'+t)?.classList.toggle('active', t===tab);
+  });
+  const sidebar = document.querySelector('.sidebar');
+  const mainPanel = document.getElementById('mainPanel');
+  const applyPanel = document.getElementById('applyPanel');
+  const weekNav = document.querySelector('.week-nav');
+  if(tab==='schedule'){
+    if(sidebar) sidebar.style.display='';
+    mainPanel.style.display='flex';
+    applyPanel.style.display='none';
+    if(weekNav) weekNav.style.display='';
+  } else {
+    if(sidebar) sidebar.style.display='none';
+    mainPanel.style.display='none';
+    applyPanel.style.display='flex';
+    if(weekNav) weekNav.style.display='none';
+    renderApplyPanel();
+  }
+};
 window.switchTab = function(tab){
   currentTab=tab;
-  ['schedule','teams','pending','admin'].forEach(t=>{
+  ['schedule','teams','pending','apply','admin'].forEach(t=>{
     document.getElementById('tab-'+t)?.classList.toggle('active',t===tab);
   });
-  document.getElementById('mainPanel').style.display        = tab==='schedule'?'flex':'none';
-  document.getElementById('mobileTeamPanel').classList.toggle('active',  tab==='teams');
-  document.getElementById('mobilePendingPanel').classList.toggle('active',tab==='pending');
+  document.getElementById('mainPanel').style.display = tab==='schedule'?'flex':'none';
+  document.getElementById('mobileTeamPanel').classList.toggle('active', tab==='teams');
+  document.getElementById('mobilePendingPanel').classList.toggle('active', tab==='pending');
+  const applyMob = document.getElementById('mobileApplyPanel');
+  if(tab==='apply'){ applyMob.style.display='flex'; renderApplyPanel(true); }
+  else applyMob.style.display='none';
   if(tab==='admin') handleAdminClick();
 };
 
@@ -468,8 +546,38 @@ async function init(){
   subscribeChanges(
     async()=>{ baseSlots=await fetchBaseSlots(currentSeason); merged=mergeSchedule(baseSlots,exceptions); render(); },
     async()=>{ exceptions=await fetchExceptions(weekOffset); merged=mergeSchedule(baseSlots,exceptions); render(); },
-    async()=>{ requests=await fetchRequests(weekOffset); renderPending(); renderStats(); }
+    async()=>{ requests=await fetchRequests(weekOffset); renderPending(); renderStats(); },
+    async()=>{
+      // application_rounds 변경 → 라운드 상태 갱신
+      currentRound = await fetchActiveRound(currentSeason);
+      if(currentRound) applications = await fetchApplications(currentRound.id);
+      renderApplyPanel(); renderApplyPanel(true);
+    },
+    async()=>{
+      // time_applications 변경 → 신청 현황 실시간 갱신
+      if(currentRound) applications = await fetchApplications(currentRound.id);
+      renderApplyPanel(); renderApplyPanel(true);
+    }
   );
+
+  // 자동 오픈 폴링: 30초마다 open_at 시각 체크
+  // 어느 접속자라도 시각이 지났으면 DB를 업데이트 → Realtime으로 전파
+  setInterval(async()=>{
+    if(!currentRound || currentRound.status !== 'closed' || !currentRound.open_at) return;
+    if(new Date(currentRound.open_at) <= new Date()){
+      try{
+        await updateRound(currentRound.id, { status: 'open' });
+        // Realtime 구독이 갱신을 받아 처리하므로 여기선 별도 렌더 불필요
+      }catch(e){ /* 다른 탭이 이미 업데이트했을 수 있음 — 무시 */ }
+    }
+    // 자동 마감 체크
+    if(currentRound.close_at && currentRound.status === 'open' && new Date(currentRound.close_at) <= new Date()){
+      try{
+        applications = await fetchApplications(currentRound.id);
+        await runAssignment(currentRound, applications, currentSeason);
+      }catch(e){ /* 이미 처리된 경우 무시 */ }
+    }
+  }, 30000);
   // 현재 시간 라인 1분마다 갱신
   setInterval(()=>{ if(weekOffset===0) renderSchedule(); }, 60000);
 }
@@ -482,6 +590,8 @@ async function loadAll(){
   ]);
   teams = korSort(teams,'name');
   merged = mergeSchedule(baseSlots,exceptions);
+  currentRound = await fetchActiveRound(currentSeason);
+  if(currentRound) applications = await fetchApplications(currentRound.id);
   render();
 }
 
@@ -1046,6 +1156,265 @@ window.handleDeleteTeam=async function(id){
     showToast('팀이 삭제됐습니다');
     openTeamManagerModal(); render();
   }catch(e){showToast(e.message,'error');}
+};
+
+// ── APPLY PANEL ──────────────────────────────────────────────────────
+function renderApplyPanel(mobile=false){
+  const el = document.getElementById(mobile ? 'mobileApplyPanel' : 'applyPanel');
+  if(!el) return;
+  el.innerHTML = buildApplyHTML();
+}
+
+function buildApplyHTML(){
+  const r = currentRound;
+  const isOpen = r && r.status === 'open';
+  const isFinished = r && (r.status === 'finished' || r.draft_approved);
+
+  // 자동 열기 예약 시각 확인
+  let scheduledOpenStr = '';
+  if(r && r.status === 'closed' && r.open_at){
+    const d = new Date(r.open_at);
+    scheduledOpenStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')} 자동 열림 예정`;
+  }
+
+  const statusCard = `
+    <div class="apply-status-card ${isOpen?'open':isFinished?'finished':'closed'}">
+      <div class="apply-status-title">
+        ${isOpen ? '🟢 신청 진행 중' : isFinished ? '🔵 신청 마감 — 배정 완료' : '⭕ 신청 기간이 아닙니다'}
+      </div>
+      <div class="apply-status-sub">
+        ${isOpen && r.close_at ? '마감: '+new Date(r.close_at).toLocaleString('ko-KR') : ''}
+        ${!isOpen && !isFinished && scheduledOpenStr ? scheduledOpenStr : ''}
+        ${!isOpen && !isFinished && !scheduledOpenStr && !r ? '관리자가 신청을 열면 여기서 신청할 수 있습니다.' : ''}
+      </div>
+    </div>`;
+
+  const dayOpts = DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
+  const hourOpts = HOURS.map(h=>`<option value="${h}">${timeLabel(h)}</option>`).join('');
+  const teamOpts = korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+
+  const form = isOpen ? `
+    <div class="apply-form">
+      <div class="apply-form-title">시간 신청</div>
+      <div style="margin-bottom:12px">
+        <div class="field-label">팀 선택</div>
+        <select class="field-select" id="applyTeam">${teamOpts}</select>
+      </div>
+      <div class="apply-pref-row" style="margin-bottom:6px">
+        <div></div><div style="font-size:10px;font-weight:700;color:var(--text3)">요일</div><div style="font-size:10px;font-weight:700;color:var(--text3)">시간</div>
+      </div>
+      <div class="apply-pref-row">
+        <div class="apply-pref-label pref1">1지망</div>
+        <select class="field-select" id="applyDay1">${dayOpts}</select>
+        <select class="field-select" id="applyHour1">${hourOpts}</select>
+      </div>
+      <div class="apply-pref-row">
+        <div class="apply-pref-label pref2">2지망</div>
+        <select class="field-select" id="applyDay2"><option value="">—</option>${dayOpts}</select>
+        <select class="field-select" id="applyHour2"><option value="">—</option>${hourOpts}</select>
+      </div>
+      <div class="apply-pref-row">
+        <div class="apply-pref-label pref3">3지망</div>
+        <select class="field-select" id="applyDay3"><option value="">—</option>${dayOpts}</select>
+        <select class="field-select" id="applyHour3"><option value="">—</option>${hourOpts}</select>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-primary" onclick="submitApply()">신청 제출</button>
+      </div>
+    </div>` : '';
+
+  // 신청 현황 테이블
+  let resultTable = '';
+  if(r && applications.length){
+    const prefColor = p => p===1?'p1':p===2?'p2':p===3?'p3':'none';
+    const prefLabel = p => p?`${p}지망`:'미배정';
+    resultTable = `
+      <div class="apply-form">
+        <div class="apply-form-title">${isFinished?'배정 결과':'신청 현황'} (${applications.length}팀)</div>
+        <table class="apply-result-table">
+          <thead><tr>
+            <th>팀</th>
+            <th>1지망</th><th>2지망</th><th>3지망</th>
+            ${isFinished?'<th>배정 결과</th>':''}
+            ${mode==='admin'&&!isFinished?'<th></th>':''}
+          </tr></thead>
+          <tbody>
+            ${applications.map(a=>`<tr>
+              <td style="font-weight:600">${a.teams.name}</td>
+              <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
+              <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
+              <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
+              ${isFinished?`<td>${a.assigned_day!=null
+                ?`<span class="pref-badge ${prefColor(a.assigned_pref)}">${prefLabel(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`
+                :`<span class="pref-badge none">미배정</span>`}</td>`:''}
+              ${mode==='admin'&&!isFinished?`<td><button class="btn btn-secondary btn-sm" onclick="handleDeleteApp(${a.id})">취소</button></td>`:''}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  // 관리자 제어 섹션
+  let adminSection = '';
+  if(mode === 'admin'){
+    if(!r || r.status === 'closed'){
+      adminSection = `
+        <div class="admin-apply-section">
+          <div class="admin-apply-section-title">신청 관리</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="openRoundNow()">지금 신청 열기</button>
+            <button class="btn btn-secondary" onclick="openScheduleRoundModal()">자동 열기 예약</button>
+          </div>
+        </div>`;
+    } else if(r.status === 'open'){
+      adminSection = `
+        <div class="admin-apply-section">
+          <div class="admin-apply-section-title">신청 관리</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-danger" onclick="closeRoundNow()">신청 마감</button>
+          </div>
+        </div>`;
+    } else if(r.status === 'finished' && !r.draft_approved){
+      adminSection = `
+        <div class="admin-apply-section">
+          <div class="admin-apply-section-title">배정 결과 확정</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px">배정 결과를 검토하고 확정하면 기본 시간표(${currentSeason})에 반영됩니다. 기존 시간표는 덮어씌워집니다.</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary" onclick="rerunAssignment()">재배정 실행</button>
+            <button class="btn btn-primary" onclick="confirmApproveDraft()">시간표 확정</button>
+          </div>
+        </div>`;
+    } else if(r.draft_approved){
+      adminSection = `
+        <div class="admin-apply-section">
+          <div class="admin-apply-section-title">신청 관리</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px">이번 시즌 시간표가 확정됐습니다. 새 신청 회차를 열 수 있습니다.</div>
+          <button class="btn btn-secondary" onclick="openRoundNow()">새 신청 열기</button>
+        </div>`;
+    }
+  }
+
+  return statusCard + adminSection + form + resultTable;
+}
+
+// ── APPLY ACTIONS ─────────────────────────────────────────────────────
+window.submitApply = async function(){
+  if(!currentRound || currentRound.status !== 'open'){
+    showToast('현재 신청 기간이 아닙니다','error'); return;
+  }
+  const team_id  = parseInt(document.getElementById('applyTeam').value);
+  const p1d = parseInt(document.getElementById('applyDay1').value);
+  const p1h = parseInt(document.getElementById('applyHour1').value);
+  const p2d = document.getElementById('applyDay2').value;
+  const p2h = document.getElementById('applyHour2').value;
+  const p3d = document.getElementById('applyDay3').value;
+  const p3h = document.getElementById('applyHour3').value;
+
+  try{
+    await submitApplication({
+      round_id: currentRound.id, team_id,
+      pref1_day: p1d, pref1_hour: p1h,
+      pref2_day: p2d!==''?parseInt(p2d):null, pref2_hour: p2h!==''?parseInt(p2h):null,
+      pref3_day: p3d!==''?parseInt(p3d):null, pref3_hour: p3h!==''?parseInt(p3h):null,
+    });
+    applications = await fetchApplications(currentRound.id);
+    showToast('신청이 제출됐습니다','success');
+    renderApplyPanel(); renderApplyPanel(true);
+  }catch(e){ showToast(e.message,'error'); }
+};
+
+window.handleDeleteApp = async function(id){
+  if(!confirm('이 신청을 취소할까요?')) return;
+  try{
+    await deleteApplication(id);
+    applications = applications.filter(a=>a.id!==id);
+    showToast('신청이 취소됐습니다');
+    renderApplyPanel(); renderApplyPanel(true);
+  }catch(e){ showToast(e.message,'error'); }
+};
+
+// ── ROUND ADMIN ───────────────────────────────────────────────────────
+window.openRoundNow = async function(){
+  try{
+    if(currentRound && !currentRound.draft_approved){
+      currentRound = await updateRound(currentRound.id, {status:'open', open_at: new Date().toISOString()});
+    } else {
+      currentRound = await createRound({season: currentSeason});
+    }
+    applications = [];
+    showToast('신청이 열렸습니다','success');
+    renderApplyPanel(); renderApplyPanel(true);
+  }catch(e){ showToast(e.message,'error'); }
+};
+
+window.closeRoundNow = async function(){
+  if(!currentRound) return;
+  if(!confirm('신청을 마감하고 배정을 실행할까요?')) return;
+  try{
+    showToast('배정 실행 중...');
+    await runAssignment(currentRound, applications, currentSeason);
+    currentRound = await fetchActiveRound(currentSeason);
+    applications = await fetchApplications(currentRound.id);
+    showToast('배정이 완료됐습니다','success');
+    renderApplyPanel(); renderApplyPanel(true);
+  }catch(e){ showToast(e.message,'error'); }
+};
+
+window.rerunAssignment = async function(){
+  if(!currentRound) return;
+  if(!confirm('배정을 다시 실행할까요? 기존 배정 결과가 초기화됩니다.')) return;
+  try{
+    showToast('재배정 실행 중...');
+    await runAssignment(currentRound, applications, currentSeason);
+    currentRound = await fetchActiveRound(currentSeason);
+    applications = await fetchApplications(currentRound.id);
+    showToast('재배정이 완료됐습니다','success');
+    renderApplyPanel(); renderApplyPanel(true);
+  }catch(e){ showToast(e.message,'error'); }
+};
+
+window.confirmApproveDraft = async function(){
+  if(!confirm(`배정 결과를 ${currentSeason} 기본 시간표에 반영할까요? 기존 시간표가 덮어씌워집니다.`)) return;
+  try{
+    await approveDraft(currentRound, applications, currentSeason);
+    baseSlots = await fetchBaseSlots(currentSeason);
+    merged = mergeSchedule(baseSlots, exceptions);
+    currentRound = await fetchActiveRound(currentSeason);
+    showToast('시간표가 확정됐습니다','success');
+    renderApplyPanel(); renderApplyPanel(true); render();
+  }catch(e){ showToast(e.message,'error'); }
+};
+
+window.openScheduleRoundModal = function(){
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const defaultDT = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  showModal('자동 열기 예약',
+    `<div><div class="field-label">신청 시작 일시</div>
+       <input class="field-input" type="datetime-local" id="schedOpenAt" value="${defaultDT}"/></div>
+     <div><div class="field-label">신청 마감 일시 (선택)</div>
+       <input class="field-input" type="datetime-local" id="schedCloseAt"/></div>
+     <div style="font-size:11px;color:var(--text3);background:var(--surface2);padding:8px 10px;border-radius:6px">설정한 시각에 자동으로 신청이 열립니다. 마감 일시를 설정하면 자동 마감 후 배정이 실행됩니다.</div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">취소</button>
+     <button class="btn btn-primary" onclick="submitScheduleRound()">예약</button>`
+  );
+};
+
+window.submitScheduleRound = async function(){
+  const openAt  = document.getElementById('schedOpenAt').value;
+  const closeAt = document.getElementById('schedCloseAt').value;
+  if(!openAt){ showToast('시작 일시를 입력해주세요','error'); return; }
+  try{
+    currentRound = await createRound({
+      season: currentSeason,
+      open_at: new Date(openAt).toISOString(),
+      close_at: closeAt ? new Date(closeAt).toISOString() : null,
+    });
+    applications = [];
+    closeModal();
+    showToast('자동 열기가 예약됐습니다 (최대 30초 이내 자동 적용)','success');
+    renderApplyPanel(); renderApplyPanel(true);
+  }catch(e){ showToast(e.message,'error'); }
 };
 
 // ── NOTICES ──────────────────────────────────────────────────────────
