@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>동아리방 관리자</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+:root{
+  --bg:#0e0e0f;--surface:#18181b;--surface2:#222226;--border:#2e2e34;
+  --accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;
+  --text:#f0f0f0;--text2:#888;--text3:#444;--radius:6px;--hh:44px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:32px;width:320px;display:flex;flex-direction:column;gap:16px;}
+.login-title{font-family:'Space Mono',monospace;font-size:14px;color:var(--accent);margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--text2);}
+
+/* HEADER */
+header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;position:sticky;top:0;background:rgba(14,14,15,.97);backdrop-filter:blur(8px);z-index:100;}
+.logo{font-family:'Space Mono',monospace;font-weight:700;font-size:13px;color:var(--accent);}
+.logo-sub{font-size:11px;color:var(--text3);margin-left:2px;}
+.nav{display:flex;gap:1px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+.nb{padding:4px 12px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;transition:all .12s;}
+.nb.active{background:var(--surface);color:var(--text);font-weight:700;}
+.nb:hover:not(.active){color:var(--text);}
+.hdr-r{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.season-sel{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--accent2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;outline:none;}
+.week-nav{display:flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;}
+.week-nav button{background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:1px 3px;transition:color .12s;}
+.week-nav button:hover{color:var(--accent);}
+.week-lbl{font-family:'Space Mono',monospace;font-size:10px;color:var(--text);white-space:nowrap;min-width:70px;text-align:center;}
+.logout-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.logout-btn:hover{color:var(--danger);border-color:var(--danger);}
+
+/* PAGES */
+.page{display:none;height:calc(100vh - var(--hh));overflow:hidden;}
+.page.active{display:flex;}
+
+/* SCHEDULE PAGE */
+#pgSch{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:8px;}
+.admin-bar{background:rgba(232,255,71,.05);border:1px solid rgba(232,255,71,.18);border-radius:var(--radius);padding:7px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.admin-bar-label{font-size:11px;color:var(--accent);font-weight:500;margin-right:4px;}
+.sch-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.sch-title-row{padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sch-title{font-size:12px;font-weight:700;}
+.sch-season{font-size:10px;color:var(--text2);}
+.sch-hdr{display:grid;grid-template-columns:42px repeat(7,1fr);border-bottom:1px solid var(--border);}
+.sch-day{padding:5px 2px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);border-right:1px solid var(--border);}
+.sch-day:last-child{border-right:none;}
+.sch-day.today{color:var(--accent);background:rgba(232,255,71,.04);}
+.sch-body{display:flex;}
+.sch-times{width:42px;flex-shrink:0;border-right:1px solid var(--border);}
+.sch-time{height:58px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:4px;font-family:'Space Mono',monospace;font-size:8px;color:var(--text3);border-bottom:1px solid var(--border);line-height:1.3;}
+.sch-time:last-child{border-bottom:none;}
+.sch-time-next{font-size:7px;opacity:.5;}
+.sch-grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);}
+.sch-col{border-right:1px solid var(--border);position:relative;}
+.sch-col:last-child{border-right:none;}
+.sch-col.today{background:rgba(232,255,71,.02);}
+.sch-slot{height:58px;border-bottom:1px solid var(--border);position:relative;}
+.sch-slot:last-child{border-bottom:none;}
+.sch-slot:hover{background:rgba(255,255,255,.02);}
+.blk{position:absolute;inset:2px;border-radius:4px;display:flex;flex-direction:column;overflow:hidden;cursor:pointer;transition:opacity .12s,transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.35);}
+.blk:hover{opacity:.88;transform:scale(.97);}
+.blk-top{flex:1;display:flex;align-items:center;padding:0 5px;gap:3px;}
+.blk-div{height:1px;background:rgba(0,0,0,.18);margin:0 3px;}
+.blk-bot{flex:1;display:flex;align-items:center;padding:0 5px;}
+.blk-name{font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.blk-info{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;}
+.blk-tag{font-size:7px;font-weight:700;background:rgba(0,0,0,.2);padding:1px 3px;border-radius:2px;flex-shrink:0;margin-left:auto;}
+.blk.absent{box-shadow:none;}
+.blk.extra{box-shadow:0 0 0 1.5px var(--accent2);}
+.blk-empty{position:absolute;inset:2px;border-radius:4px;border:1px dashed rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);cursor:pointer;transition:all .12s;}
+.blk-empty:hover{border-color:rgba(232,255,71,.4);color:var(--accent);background:rgba(232,255,71,.04);}
+.now-line{position:absolute;left:0;right:0;height:2px;background:var(--danger);z-index:10;pointer-events:none;}
+.now-line::before{content:'';position:absolute;left:-1px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--danger);}
+
+/* PENDING PAGE */
+#pgPending{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:8px;}
+.pending-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+.pcard.absent{border-left:3px solid var(--danger);}
+.pcard.extra{border-left:3px solid var(--accent2);}
+.pcard-name{font-size:13px;font-weight:700;}
+.pcard-detail{font-size:11px;color:var(--text2);}
+.pcard-actions{display:flex;gap:6px;margin-top:2px;}
+.pa-btn{flex:1;padding:5px;border-radius:4px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:'Noto Sans KR',sans-serif;}
+.pa-ok{background:var(--accent);color:#000;}
+.pa-no{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+
+/* TEAMS PAGE */
+#pgTeams{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:8px;}
+.teams-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;}
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+.tcard-hdr{display:flex;align-items:center;gap:7px;}
+.tcard-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.tcard-name{font-size:13px;font-weight:700;flex:1;}
+.tcard-type{font-size:10px;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:3px;border:1px solid var(--border);}
+
+/* APPLY PAGE */
+#pgApply{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:8px;}
+.apply-status{border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.apply-status.open{background:rgba(232,255,71,.06);border:1px solid rgba(232,255,71,.2);}
+.apply-status.closed{background:var(--surface);border:1px solid var(--border);}
+.apply-status.finished{background:rgba(71,197,255,.06);border:1px solid rgba(71,197,255,.2);}
+.apply-status-left{display:flex;align-items:center;gap:10px;}
+.apply-status-icon{font-size:18px;}
+.apply-status-texts{display:flex;flex-direction:column;gap:2px;}
+.apply-status-title{font-size:13px;font-weight:700;}
+.apply-status-sub{font-size:11px;color:var(--text2);}
+.apply-status-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.apply-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.apply-tbl th{padding:6px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);}
+.apply-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);}
+.apply-tbl tr:last-child td{border-bottom:none;}
+.apply-tbl tr:hover td{background:rgba(255,255,255,.02);}
+.pbadge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;}
+.pbadge.p1{background:rgba(232,255,71,.15);color:var(--accent);}
+.pbadge.p2{background:rgba(71,197,255,.15);color:var(--accent2);}
+.pbadge.p3{background:rgba(255,170,71,.15);color:var(--warn);}
+.pbadge.none{background:rgba(255,71,71,.1);color:var(--danger);}
+
+/* NOTICES PAGE */
+#pgNotices{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:8px;}
+.ncard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ncard-text{font-size:13px;flex:1;}
+.ncard-date{font-size:10px;color:var(--text3);}
+
+/* SHARED */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.section-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+
+/* MODAL */
+.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(4px);animation:fi .15s;}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:420px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;animation:su .15s;}
+@keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-hdr{padding:13px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-ttl{font-size:14px;font-weight:700;}
+.modal-x{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1;}
+.modal-x:hover{color:var(--text);}
+.modal-body{padding:13px 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;}
+.modal-foot{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:6px;justify-content:flex-end;flex-shrink:0;}
+.fl{font-size:10px;color:var(--text2);margin-bottom:4px;font-weight:500;}
+.fi,.fs{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 10px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border-color .12s;}
+.fi:focus,.fs:focus{border-color:var(--accent);}
+.fs option{background:var(--surface);}
+.btn{padding:6px 14px;border-radius:5px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .12s;white-space:nowrap;}
+.btn:hover{opacity:.8;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-p{background:var(--accent);color:#000;}
+.btn-s{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.btn-d{background:var(--danger);color:#fff;}
+.btn-xs{padding:3px 8px;font-size:11px;}
+.irow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.irow:last-child{border-bottom:none;}
+.ik{color:var(--text2);}
+.swatch-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .12s;}
+
+/* TOAST */
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 14px;font-size:12px;font-weight:500;z-index:999;white-space:nowrap;animation:fi .2s;}
+.toast.ok{border-color:var(--accent);color:var(--accent);}
+.toast.err{border-color:var(--danger);color:var(--danger);}
+.ld{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:12px;}
+.spin{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div>
+      <div class="login-title">BAND 관리자</div>
+      <div class="login-sub">동아리방 시간표 관리 시스템</div>
+    </div>
+    <div>
+      <div class="fl">관리자 비밀번호</div>
+      <input class="fi" type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn btn-p" style="width:100%;padding:9px" onclick="doLogin()">로그인</button>
+    <div style="font-size:11px;color:var(--text3);text-align:center">
+      <a href="index.html" style="color:var(--text3);text-decoration:none;">← 일반 시간표로 돌아가기</a>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN UI (hidden until login) -->
+<div id="adminUI" style="display:none">
+<div class="ld" id="ld" style="display:none"><div class="spin"></div></div>
+
+<header>
+  <div class="logo">BAND <span class="logo-sub">관리자</span></div>
+  <div class="nav">
+    <button class="nb active" id="nb-sch" onclick="showPage('sch')">시간표</button>
+    <button class="nb" id="nb-pending" onclick="showPage('pending')">신청대기 <span id="pendBadge"></span></button>
+    <button class="nb" id="nb-teams" onclick="showPage('teams')">팀 관리</button>
+    <button class="nb" id="nb-apply" onclick="showPage('apply')">시간신청</button>
+    <button class="nb" id="nb-notices" onclick="showPage('notices')">공지</button>
+  </div>
+  <div class="hdr-r">
+    <select class="season-sel" id="seasonSel" onchange="changeSeason(this.value)">
+      <option>1학기</option><option>여름방학</option><option>2학기</option><option>겨울방학</option>
+    </select>
+    <div class="week-nav" id="weekNavEl">
+      <button onclick="changeWeek(-1)">‹</button>
+      <div class="week-lbl" id="weekLbl">—</div>
+      <button onclick="changeWeek(1)">›</button>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+  </div>
+</header>
+
+<!-- SCHEDULE -->
+<div class="page active" id="pgSch">
+  <div class="admin-bar">
+    <span class="admin-bar-label">🔧 관리자</span>
+    <button class="btn btn-s btn-xs" onclick="openAddSlotModal()">+ 슬롯 추가</button>
+    <button class="btn btn-s btn-xs" onclick="openNoticeModal()">📢 공지 추가</button>
+  </div>
+  <div class="sch-wrap">
+    <div class="sch-title-row">
+      <span class="sch-title" id="schTitle">—</span>
+      <span class="sch-season" id="schSeason"></span>
+    </div>
+    <div class="sch-hdr" id="schHdr"></div>
+    <div class="sch-body">
+      <div class="sch-times" id="schTimes"></div>
+      <div class="sch-grid" id="schGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PENDING -->
+<div class="page" id="pgPending">
+  <div class="section-hdr"><div class="section-title">대기 중 신청</div></div>
+  <div class="pending-grid" id="pendingGrid"></div>
+</div>
+
+<!-- TEAMS -->
+<div class="page" id="pgTeams">
+  <div class="section-hdr">
+    <div class="section-title">팀 관리</div>
+    <button class="btn btn-p btn-xs" onclick="openAddTeamModal()">+ 팀 추가</button>
+  </div>
+  <div class="teams-grid" id="teamsGrid"></div>
+</div>
+
+<!-- APPLY -->
+<div class="page" id="pgApply">
+  <div class="section-hdr"><div class="section-title">시간 신청 관리</div></div>
+  <div id="applyContent"></div>
+</div>
+
+<!-- NOTICES -->
+<div class="page" id="pgNotices">
+  <div class="section-hdr">
+    <div class="section-title">공지사항</div>
+    <button class="btn btn-p btn-xs" onclick="openNoticeModal()">+ 공지 추가</button>
+  </div>
+  <div id="noticesContent" style="display:flex;flex-direction:column;gap:6px;"></div>
+</div>
+
+</div><!-- /adminUI -->
+
+<!-- MODAL -->
+<div class="modal-bd" id="modalBd" style="display:none" onclick="onMBd(event)">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-ttl" id="modalTtl"></div><button class="modal-x" onclick="closeModal()">×</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<script type="module">
+import { loginAdmin, logoutAdmin, isAdmin } from './js/auth.js';
+import {
+  getConfig, setConfig,
+  fetchTeams, createTeam, updateTeam, deleteTeam,
+  fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
+  fetchExceptions, createException, deleteException, mergeSchedule,
+  fetchRequests, approveRequest, rejectRequest, createRequest,
+  fetchNotices, createNotice, deleteNotice,
+  fetchActiveRound, createRound, updateRound,
+  fetchApplications, deleteApplication, runAssignment, approveDraft
+} from './js/schedule.js';
+
+const DAYS  = ['월','화','수','목','금','토','일'];
+const HOURS = Array.from({length:18},(_,i)=>i+8);
+const GRAY  = '#888888';
+const COLORS= ['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47ffea','#ffd447','#b4ff47','#ff9d47'];
+const korSort=(a,k)=>[...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
+const teamClr=t=>t.type==='합주'?GRAY:(t.color||GRAY);
+const timeStr=h=>h<24?h+':00':'0'+(h-24)+':00';
+function weekLabel(off){
+  const now=new Date(),m=new Date(now);
+  m.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);
+  const mo=m.getMonth()+1;
+  const wn=Math.ceil((m.getDate()+(new Date(m.getFullYear(),m.getMonth(),1).getDay()+6)%7)/7);
+  return `${mo}월 ${wn}주차`;
+}
+
+let weekOff=0, season='1학기';
+let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[];
+let merged=[], round=null, applications=[];
+
+// LOGIN
+window.doLogin=async function(){
+  const pw=document.getElementById('pwInput').value;
+  try{
+    await loginAdmin(pw);
+    document.getElementById('loginWrap').style.display='none';
+    document.getElementById('adminUI').style.display='block';
+    await load();
+  }catch(e){ toast(e.message,'err'); }
+};
+window.doLogout=function(){
+  logoutAdmin();
+  document.getElementById('loginWrap').style.display='flex';
+  document.getElementById('adminUI').style.display='none';
+};
+
+// check session
+if(isAdmin()){
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('adminUI').style.display='block';
+  document.getElementById('ld').style.display='flex';
+  load().then(()=>document.getElementById('ld').style.display='none');
+}
+
+async function load(){
+  season=await getConfig('current_season').catch(()=>'1학기');
+  document.getElementById('seasonSel').value=season;
+  [teams,baseSlots,exceptions,requests,notices]=await Promise.all([
+    fetchTeams(),fetchBaseSlots(season),fetchExceptions(weekOff),
+    fetchRequests(weekOff),fetchNotices()
+  ]);
+  teams=korSort(teams,'name');
+  merged=mergeSchedule(baseSlots,exceptions);
+  round=await fetchActiveRound(season);
+  if(round) applications=await fetchApplications(round.id);
+  render();
+}
+
+function render(){
+  const wl=weekLabel(weekOff);
+  document.getElementById('weekLbl').textContent=wl;
+  document.getElementById('schTitle').textContent=`${wl} 동아리방 사용 시간표`;
+  document.getElementById('schSeason').textContent=season;
+  const pend=requests.filter(r=>r.status==='pending').length;
+  document.getElementById('pendBadge').textContent=pend?`(${pend})`:'';
+  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices();
+}
+
+// PAGE SWITCH
+window.showPage=function(pg){
+  ['sch','pending','teams','apply','notices'].forEach(p=>{
+    document.getElementById('pg'+p.charAt(0).toUpperCase()+p.slice(1))?.classList.toggle('active',p===pg);
+    document.getElementById('nb-'+p)?.classList.toggle('active',p===pg);
+  });
+  document.getElementById('weekNavEl').style.display=pg==='sch'?'':'none';
+};
+
+window.changeWeek=async function(delta){
+  weekOff+=delta;
+  [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+  merged=mergeSchedule(baseSlots,exceptions); render();
+};
+
+window.changeSeason=async function(s){
+  await setConfig('current_season',s); season=s;
+  [baseSlots,exceptions]=await Promise.all([fetchBaseSlots(season),fetchExceptions(weekOff)]);
+  merged=mergeSchedule(baseSlots,exceptions);
+  round=await fetchActiveRound(season);
+  if(round) applications=await fetchApplications(round.id);
+  else applications=[];
+  render(); toast(`${s}으로 전환됐습니다`,'ok');
+};
+
+// SCHEDULE
+function renderSchedule(){
+  const todayDow=(new Date().getDay()+6)%7;
+  const nowH=new Date().getHours(),nowM=new Date().getMinutes();
+  const isNow=weekOff===0;
+  document.getElementById('schHdr').innerHTML='<div class="sch-day"></div>'+
+    DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}</div>`).join('');
+  document.getElementById('schTimes').innerHTML=HOURS.map(h=>
+    `<div class="sch-time"><span>${timeStr(h)}</span>${h>=24?`<span class="sch-time-next">익일</span>`:''}</div>`).join('');
+  const grid=document.getElementById('schGrid'); grid.innerHTML='';
+  const mm=new Map(merged.map(s=>[`${s.day}-${s.hour}`,s]));
+  const pm=new Map(requests.filter(r=>r.type==='extra'&&r.status==='pending').map(r=>[`${r.day}-${r.hour}`,r]));
+  for(let d=0;d<7;d++){
+    const col=document.createElement('div');
+    col.className='sch-col'+(isNow&&d===todayDow?' today':'');
+    if(isNow&&d===todayDow&&nowH>=HOURS[0]&&nowH<=HOURS[HOURS.length-1]){
+      const line=document.createElement('div'); line.className='now-line';
+      line.style.top=((nowH-HOURS[0])*58+(nowM/60)*58)+'px'; col.appendChild(line);
+    }
+    for(const h of HOURS){
+      const cell=document.createElement('div'); cell.className='sch-slot';
+      const s=mm.get(`${d}-${h}`),pe=pm.get(`${d}-${h}`);
+      if(s){
+        const t=s.teams,absent=s.status==='absent',isExtra=s.source==='extra',c=teamClr(t);
+        const blk=document.createElement('div');
+        blk.className=`blk${absent?' absent':''}${isExtra?' extra':''}`;
+        if(absent){
+          blk.style.cssText=`background:repeating-linear-gradient(45deg,${c}18,${c}18 3px,transparent 3px,transparent 9px);border:1.5px dashed ${c}55;`;
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}88">${t.name}</span><span class="blk-tag" style="color:${c}88">미사용</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}66">${t.info||''}</span></div>`;
+        } else {
+          blk.style.background=c;
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="color:#000">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
+        }
+        blk.onclick=()=>openSlotModal(s);
+        cell.appendChild(blk);
+      } else if(pe){
+        const t=pe.teams,c=teamClr(t);
+        const blk=document.createElement('div');
+        blk.className='blk';blk.style.cssText=`background:${c}20;border:1.5px dashed ${c}77;opacity:.6`;
+        blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}">${t.name}</span><span class="blk-tag" style="color:${c}">대기</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}88">${t.info||''}</span></div>`;
+        blk.onclick=()=>openPendingSlotModal(pe);
+        cell.appendChild(blk);
+      } else {
+        const ind=document.createElement('div'); ind.className='blk-empty';
+        ind.textContent='+'; ind.onclick=()=>openAddSlotModal(d,h);
+        cell.appendChild(ind);
+      }
+      col.appendChild(cell);
+    }
+    grid.appendChild(col);
+  }
+}
+
+function openSlotModal(s){
+  const t=s.teams,absent=s.status==='absent',isExtra=s.source==='extra',c=teamClr(t);
+  showModal(`${t.name} · ${DAYS[s.day]} ${s.hour}:00`,
+    `<div class="irow"><span class="ik">팀</span><span style="color:${c};font-weight:700">${t.name}</span></div>
+     <div class="irow"><span class="ik">시간</span><span>${DAYS[s.day]} ${s.hour}:00</span></div>
+     <div class="irow"><span class="ik">상태</span><span>${absent?'⛔ 미사용':'✅ 정상'}</span></div>
+     ${t.info?`<div class="irow"><span class="ik">정보</span><span>${t.info}</span></div>`:''}`,
+    `<button class="btn btn-s" onclick="closeModal()">닫기</button>
+     ${s.exceptionId?`<button class="btn btn-s" onclick="removeException(${s.exceptionId})">예외 제거</button>`:''}
+     ${!absent&&s.source==='base'?`<button class="btn btn-d" onclick="markAbsent(${s.team_id},${s.day},${s.hour})">이번 주 미사용</button>`:''}
+     <button class="btn btn-p" onclick="openEditSlotModal(${s.id})">수정</button>`
+  );
+}
+
+window.removeException=async function(id){
+  try{
+    await deleteException(id); exceptions=await fetchExceptions(weekOff);
+    merged=mergeSchedule(baseSlots,exceptions); closeModal(); render(); toast('예외 제거됐습니다','ok');
+  }catch(e){toast(e.message,'err');}
+};
+
+window.markAbsent=async function(teamId,day,hour){
+  try{
+    await createException({team_id:teamId,day,hour,week_offset:weekOff,exception_type:'absent'});
+    exceptions=await fetchExceptions(weekOff); merged=mergeSchedule(baseSlots,exceptions);
+    closeModal(); render(); toast('미사용 처리됐습니다','ok');
+  }catch(e){toast(e.message,'err');}
+};
+
+window.openEditSlotModal=function(slotId){
+  const s=baseSlots.find(b=>b.id===slotId);
+  const tOpts=korSort(teams,'name').map(t=>`<option value="${t.id}" ${t.id===s.team_id?'selected':''}>${t.name}</option>`).join('');
+  showModal('슬롯 수정',
+    `<div><div class="fl">팀</div><select class="fs" id="eTeam">${tOpts}</select></div>
+     <div><div class="fl">요일</div><select class="fs" id="eDay">${DAYS.map((d,i)=>`<option value="${i}" ${i===s.day?'selected':''}>${d}</option>`).join('')}</select></div>
+     <div><div class="fl">시간</div><select class="fs" id="eHour">${HOURS.map(h=>`<option value="${h}" ${h===s.hour?'selected':''}>${timeStr(h)}</option>`).join('')}</select></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-d" onclick="deleteSlot(${slotId})">삭제</button>
+     <button class="btn btn-p" id="eBtn" onclick="saveSlot(${slotId})">저장</button>`
+  );
+};
+
+window.saveSlot=async function(id){
+  const btn=document.getElementById('eBtn'); btn.disabled=true;
+  try{
+    await updateBaseSlot(id,{team_id:parseInt(document.getElementById('eTeam').value),day:parseInt(document.getElementById('eDay').value),hour:parseInt(document.getElementById('eHour').value)});
+    baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
+    closeModal(); render(); toast('슬롯이 수정됐습니다','ok');
+  }catch(e){toast(e.message,'err');btn.disabled=false;}
+};
+
+window.deleteSlot=async function(id){
+  if(!confirm('이 슬롯을 삭제할까요?')) return;
+  try{
+    await deleteBaseSlot(id); baseSlots=await fetchBaseSlots(season);
+    merged=mergeSchedule(baseSlots,exceptions); closeModal(); render(); toast('삭제됐습니다');
+  }catch(e){toast(e.message,'err');}
+};
+
+window.openAddSlotModal=function(day=0,hour=10){
+  const tOpts=korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  showModal('슬롯 추가',
+    `<div style="font-size:11px;color:var(--text2);background:var(--surface2);padding:7px 10px;border-radius:5px">${season} 기본 시간표에 추가됩니다.</div>
+     <div><div class="fl">팀</div><select class="fs" id="aTeam">${tOpts}</select></div>
+     <div><div class="fl">요일</div><select class="fs" id="aDay">${DAYS.map((d,i)=>`<option value="${i}" ${i===day?'selected':''}>${d}</option>`).join('')}</select></div>
+     <div><div class="fl">시간</div><select class="fs" id="aHour">${HOURS.map(h=>`<option value="${h}" ${h===hour?'selected':''}>${timeStr(h)}</option>`).join('')}</select></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="aBtn" onclick="addSlot()">추가</button>`
+  );
+};
+
+window.addSlot=async function(){
+  const btn=document.getElementById('aBtn'); btn.disabled=true;
+  try{
+    await createBaseSlot({team_id:parseInt(document.getElementById('aTeam').value),day:parseInt(document.getElementById('aDay').value),hour:parseInt(document.getElementById('aHour').value),season});
+    baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
+    closeModal(); render(); toast('슬롯이 추가됐습니다','ok');
+  }catch(e){toast(e.message.includes('unique')?'이미 해당 시간에 슬롯이 있습니다':e.message,'err');btn.disabled=false;}
+};
+
+// PENDING
+function renderPending(){
+  const pend=requests.filter(r=>r.status==='pending');
+  const grid=document.getElementById('pendingGrid');
+  if(!pend.length){grid.innerHTML='<div style="color:var(--text3);font-size:12px;padding:4px">대기 중인 신청이 없습니다</div>';return;}
+  grid.innerHTML=pend.map(r=>`
+    <div class="pcard ${r.type}">
+      <div class="pcard-name" style="color:${teamClr(r.teams)}">${r.teams.name}</div>
+      <div class="pcard-detail">${DAYS[r.day]} ${r.hour}:00 · ${r.type==='absent'?'미사용':'추가사용'}</div>
+      <div class="pcard-detail">${r.reason}</div>
+      ${r.requester_name?`<div class="pcard-detail">신청자: ${r.requester_name}</div>`:''}
+      <div class="pcard-actions">
+        <button class="pa-btn pa-ok" onclick="doApprove(${r.id})">승인</button>
+        <button class="pa-btn pa-no" onclick="doReject(${r.id})">거절</button>
+      </div>
+    </div>`).join('');
+}
+
+function openPendingSlotModal(req){
+  const t=req.teams;
+  showModal('추가사용 대기',
+    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${t.name}</span></div>
+     <div class="irow"><span class="ik">시간</span><span>${DAYS[req.day]} ${req.hour}:00</span></div>
+     <div class="irow"><span class="ik">사유</span><span>${req.reason}</span></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">닫기</button>
+     <button class="btn btn-d" onclick="doReject(${req.id});closeModal()">거절</button>
+     <button class="btn btn-p" onclick="doApprove(${req.id});closeModal()">승인</button>`
+  );
+}
+
+window.doApprove=async function(id){
+  const req=requests.find(r=>r.id===id); if(!req) return;
+  try{
+    await approveRequest(req,weekOff); toast('승인됐습니다','ok');
+    [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+    merged=mergeSchedule(baseSlots,exceptions); render();
+  }catch(e){toast(e.message,'err');}
+};
+
+window.doReject=async function(id){
+  try{
+    await rejectRequest(id); toast('거절됐습니다');
+    requests=await fetchRequests(weekOff); renderPending();
+    document.getElementById('pendBadge').textContent=requests.filter(r=>r.status==='pending').length?`(${requests.filter(r=>r.status==='pending').length})`:'';
+  }catch(e){toast(e.message,'err');}
+};
+
+// TEAMS
+function renderTeams(){
+  const groups=[{k:'합주'},{k:'스쿨'},{k:'이외'}];
+  document.getElementById('teamsGrid').innerHTML=groups.map(g=>{
+    const list=korSort(teams.filter(t=>t.type===g.k),'name');
+    if(!list.length) return '';
+    return `<div style="display:contents">
+      ${list.map(t=>`<div class="tcard">
+        <div class="tcard-hdr">
+          <div class="tcard-dot" style="background:${teamClr(t)}"></div>
+          <div class="tcard-name">${t.name}</div>
+          <div class="tcard-type">${t.type}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.name}" id="tname-${t.id}"/>
+          <button class="btn btn-s btn-xs" onclick="saveTeamName(${t.id})">이름</button>
+        </div>
+        <div style="display:flex;gap:4px">
+          <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.info||''}" id="tinfo-${t.id}" placeholder="${g.k==='스쿨'?'선생님':g.k==='합주'?'합주곡':'추가정보'}"/>
+          <button class="btn btn-s btn-xs" onclick="saveTeamInfo(${t.id})">저장</button>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="btn btn-d btn-xs" onclick="doDeleteTeam(${t.id})">삭제</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+window.saveTeamName=async function(id){
+  const val=document.getElementById('tname-'+id)?.value.trim();
+  if(!val){toast('이름을 입력해주세요','err');return;}
+  try{await updateTeam(id,{name:val});const t=teams.find(t=>t.id===id);if(t)t.name=val;teams=korSort(teams,'name');toast('이름이 수정됐습니다','ok');renderTeams();}
+  catch(e){toast(e.message,'err');}
+};
+
+window.saveTeamInfo=async function(id){
+  const val=document.getElementById('tinfo-'+id)?.value.trim()??'';
+  try{await updateTeam(id,{info:val});const t=teams.find(t=>t.id===id);if(t)t.info=val;toast('저장됐습니다','ok');renderSchedule();}
+  catch(e){toast(e.message,'err');}
+};
+
+window.doDeleteTeam=async function(id){
+  if(!confirm('팀을 삭제하면 해당 팀의 모든 슬롯도 삭제됩니다. 계속할까요?')) return;
+  try{
+    await deleteTeam(id); teams=teams.filter(t=>t.id!==id);
+    baseSlots=baseSlots.filter(s=>s.team_id!==id); merged=mergeSchedule(baseSlots,exceptions);
+    toast('팀이 삭제됐습니다'); render();
+  }catch(e){toast(e.message,'err');}
+};
+
+window.openAddTeamModal=function(){
+  const swatches=COLORS.map(c=>`<div class="swatch" id="sw-${c.replace('#','')}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
+  showModal('팀 추가',
+    `<div><div class="fl">팀 이름</div><input class="fi" id="nName" placeholder="팀 이름"/></div>
+     <div><div class="fl">분류</div>
+       <select class="fs" id="nType" onchange="onTypeChange()">
+         <option>합주</option><option>스쿨</option><option>이외</option>
+       </select></div>
+     <div id="colorArea" style="display:none">
+       <div class="fl">컬러</div>
+       <div class="swatch-row">${swatches}</div>
+       <input type="hidden" id="nColor" value="${COLORS[0]}"/>
+     </div>
+     <div id="grayNote" style="font-size:11px;color:var(--text3)">합주 팀은 자동으로 회색 표시됩니다</div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="nBtn" onclick="addTeam()">추가</button>`
+  );
+  pickColor(COLORS[0]);
+};
+
+window.onTypeChange=function(){
+  const t=document.getElementById('nType').value,c=t!=='합주';
+  document.getElementById('colorArea').style.display=c?'block':'none';
+  document.getElementById('grayNote').style.display=c?'none':'block';
+};
+
+window.pickColor=function(c){
+  const inp=document.getElementById('nColor'); if(inp) inp.value=c;
+  COLORS.forEach(x=>{const el=document.getElementById('sw-'+x.replace('#',''));if(el)el.style.borderColor=x===c?'#fff':'transparent';});
+};
+
+window.addTeam=async function(){
+  const name=document.getElementById('nName').value.trim();
+  const type=document.getElementById('nType').value;
+  const color=type==='합주'?GRAY:(document.getElementById('nColor')?.value||COLORS[0]);
+  if(!name){toast('팀 이름을 입력해주세요','err');return;}
+  const btn=document.getElementById('nBtn'); btn.disabled=true;
+  try{
+    const t=await createTeam({name,type,color}); teams.push(t); teams=korSort(teams,'name');
+    toast(`${name} 팀이 추가됐습니다`,'ok'); closeModal(); renderTeams();
+  }catch(e){toast(e.message,'err');btn.disabled=false;}
+};
+
+// APPLY
+function renderApply(){
+  const isOpen=round&&round.status==='open';
+  const isFin=round&&(round.status==='finished'||round.draft_approved);
+  let html=`
+    <div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
+      <div class="apply-status-left">
+        <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':'⭕'}</div>
+        <div class="apply-status-texts">
+          <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'신청 마감 — 배정 완료':'신청 기간 아님'}</div>
+          <div class="apply-status-sub">${isOpen&&round.close_at?'마감: '+new Date(round.close_at).toLocaleString('ko-KR'):''}</div>
+        </div>
+      </div>
+      <div class="apply-status-actions">`;
+  if(!round||round.status==='closed'||round.draft_approved){
+    html+=`<button class="btn btn-p btn-xs" onclick="openRoundNow()">지금 신청 열기</button>
+           <button class="btn btn-s btn-xs" onclick="openScheduleRoundModal()">자동 열기 예약</button>`;
+  } else if(isOpen){
+    html+=`<button class="btn btn-d btn-xs" onclick="closeRoundNow()">신청 마감 + 배정 실행</button>`;
+  } else if(isFin&&!round.draft_approved){
+    html+=`<button class="btn btn-s btn-xs" onclick="rerunAssignment()">재배정</button>
+           <button class="btn btn-p btn-xs" onclick="confirmDraft()">시간표 확정</button>`;
+  }
+  html+=`</div></div>`;
+
+  if(round&&applications.length){
+    const pc=p=>p===1?'p1':p===2?'p2':p===3?'p3':'none';
+    const pl=p=>p?p+'지망':'미배정';
+    html+=`<div class="card" style="margin-top:0">
+      <table class="apply-tbl">
+        <thead><tr><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th></th></tr></thead>
+        <tbody>
+          ${applications.map(a=>`<tr>
+            <td style="font-weight:600">${a.teams.name}</td>
+            <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
+            <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
+            <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
+            ${isFin?`<td>${a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">미배정</span>`}</td>`:''}
+            <td><button class="btn btn-s btn-xs" onclick="delApp(${a.id})">취소</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  document.getElementById('applyContent').innerHTML=html;
+}
+
+window.openRoundNow=async function(){
+  try{
+    if(round&&!round.draft_approved) currentRound=await updateRound(round.id,{status:'open',open_at:new Date().toISOString()});
+    else round=await createRound({season});
+    applications=[]; toast('신청이 열렸습니다','ok'); renderApply();
+  }catch(e){toast(e.message,'err');}
+};
+
+window.closeRoundNow=async function(){
+  if(!confirm('신청을 마감하고 배정을 실행할까요?')) return;
+  try{
+    toast('배정 실행 중...');
+    applications=await fetchApplications(round.id);
+    await runAssignment(round,applications,season);
+    round=await fetchActiveRound(season); applications=await fetchApplications(round.id);
+    toast('배정이 완료됐습니다','ok'); renderApply();
+  }catch(e){toast(e.message,'err');}
+};
+
+window.rerunAssignment=async function(){
+  if(!confirm('재배정을 실행할까요?')) return;
+  try{
+    applications=await fetchApplications(round.id);
+    await runAssignment(round,applications,season);
+    round=await fetchActiveRound(season); applications=await fetchApplications(round.id);
+    toast('재배정 완료됐습니다','ok'); renderApply();
+  }catch(e){toast(e.message,'err');}
+};
+
+window.confirmDraft=async function(){
+  if(!confirm(`배정 결과를 ${season} 기본 시간표에 반영할까요? 기존 시간표가 덮어씌워집니다.`)) return;
+  try{
+    await approveDraft(round,applications,season);
+    baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
+    round=await fetchActiveRound(season);
+    toast('시간표가 확정됐습니다','ok'); render();
+  }catch(e){toast(e.message,'err');}
+};
+
+window.delApp=async function(id){
+  if(!confirm('이 신청을 취소할까요?')) return;
+  try{
+    await deleteApplication(id); applications=applications.filter(a=>a.id!==id);
+    toast('취소됐습니다'); renderApply();
+  }catch(e){toast(e.message,'err');}
+};
+
+window.openScheduleRoundModal=function(){
+  const now=new Date(),pad=n=>String(n).padStart(2,'0');
+  const def=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  showModal('자동 열기 예약',
+    `<div><div class="fl">신청 시작 일시</div><input class="fi" type="datetime-local" id="sOA" value="${def}"/></div>
+     <div><div class="fl">신청 마감 일시 (선택)</div><input class="fi" type="datetime-local" id="sCA"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" onclick="scheduleRound()">예약</button>`
+  );
+};
+
+window.scheduleRound=async function(){
+  const oa=document.getElementById('sOA').value,ca=document.getElementById('sCA').value;
+  if(!oa){toast('시작 일시를 입력해주세요','err');return;}
+  try{
+    round=await createRound({season,open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
+    applications=[]; closeModal(); toast('자동 열기가 예약됐습니다','ok'); renderApply();
+    const delay=new Date(oa)-Date.now();
+    if(delay>0&&delay<86400000) setTimeout(async()=>{
+      await updateRound(round.id,{status:'open'}); round=await fetchActiveRound(season);
+      toast('신청이 자동으로 열렸습니다','ok'); renderApply();
+    },delay);
+  }catch(e){toast(e.message,'err');}
+};
+
+// NOTICES
+function renderNotices(){
+  const el=document.getElementById('noticesContent');
+  if(!notices.length){el.innerHTML='<div style="color:var(--text3);font-size:12px">공지가 없습니다</div>';return;}
+  el.innerHTML=notices.map(n=>`
+    <div class="ncard">
+      <div class="ncard-text">${n.content}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <div class="ncard-date">${new Date(n.created_at).toLocaleDateString('ko-KR')}</div>
+        <button class="btn btn-d btn-xs" onclick="delNotice(${n.id})">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+window.openNoticeModal=function(){
+  showModal('공지 추가',
+    `<div><div class="fl">공지 내용</div><input class="fi" id="nContent" placeholder="공지 내용을 입력하세요"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="nBtn" onclick="addNotice()">등록</button>`
+  );
+};
+
+window.addNotice=async function(){
+  const content=document.getElementById('nContent').value.trim();
+  if(!content){toast('내용을 입력해주세요','err');return;}
+  const btn=document.getElementById('nBtn'); btn.disabled=true;
+  try{
+    await createNotice(content); notices=await fetchNotices();
+    closeModal(); toast('공지가 등록됐습니다','ok'); renderNotices();
+  }catch(e){toast(e.message,'err');btn.disabled=false;}
+};
+
+window.delNotice=async function(id){
+  try{
+    await deleteNotice(id); notices=notices.filter(n=>n.id!==id);
+    toast('공지가 삭제됐습니다'); renderNotices();
+  }catch(e){toast(e.message,'err');}
+};
+
+// MODAL
+function showModal(title,body,foot){
+  document.getElementById('modalTtl').textContent=title;
+  document.getElementById('modalBody').innerHTML=body;
+  document.getElementById('modalFoot').innerHTML=foot;
+  document.getElementById('modalBd').style.display='flex';
+}
+window.closeModal=()=>document.getElementById('modalBd').style.display='none';
+window.onMBd=e=>{if(e.target===document.getElementById('modalBd'))closeModal();};
+
+// TOAST
+let toastT;
+function toast(msg,type=''){
+  let el=document.getElementById('toast');
+  if(!el){el=document.createElement('div');el.id='toast';document.body.appendChild(el);}
+  el.className='toast'+(type?' '+type:''); el.textContent=msg; el.style.display='block';
+  clearTimeout(toastT); toastT=setTimeout(()=>el.style.display='none',2800);
+}
+</script>
+</body>
+</html>
