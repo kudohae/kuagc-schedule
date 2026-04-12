@@ -69,6 +69,7 @@
   .empty-chip:hover{border-color:var(--accent);color:var(--accent);}
   .chip-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
 
+  .schedule-title{padding:14px 18px 12px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;border-bottom:1px solid var(--border);color:var(--text);}
   /* ── SCHEDULE GRID ── */
   .schedule-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
   .schedule-header{display:grid;grid-template-columns:60px repeat(7,1fr);border-bottom:1px solid var(--border);}
@@ -182,6 +183,7 @@
     <div class="stats-bar" id="statsBar"></div>
     <div class="empty-slots-bar" id="emptySlotsBar"></div>
     <div class="schedule-wrapper">
+      <div class="schedule-title" id="scheduleTitle"></div>
       <div class="schedule-header" id="scheduleHeader"></div>
       <div class="schedule-body">
         <div class="time-col" id="timeCol"></div>
@@ -215,7 +217,7 @@ import {
 
 // ── CONSTANTS ────────────────────────────────────────────────────────
 const DAYS  = ['월','화','수','목','금','토','일'];
-const HOURS = Array.from({length:14},(_,i)=>i+10);
+const HOURS = Array.from({length:18},(_,i)=>i+8); // 08~25(익일01)
 
 // ── STATE ─────────────────────────────────────────────────────────────
 let weekOffset = 0;
@@ -263,6 +265,8 @@ window.changeWeek = async function(delta) {
 // ── RENDER ────────────────────────────────────────────────────────────
 function render() {
   document.getElementById('weekLabel').textContent = getWeekLabel(weekOffset);
+  const titleEl = document.getElementById('scheduleTitle');
+  if(titleEl) titleEl.textContent = getWeekLabel(weekOffset);
   renderTeamList();
   renderPending();
   renderStats();
@@ -272,12 +276,24 @@ function render() {
 }
 
 function renderTeamList() {
-  document.getElementById('teamList').innerHTML = teams.map(t=>`
-    <div class="team-item">
-      <div class="team-dot" style="background:${t.color}"></div>
-      <div class="team-name">${t.name}</div>
-      <div class="team-type">${t.type}</div>
-    </div>`).join('');
+  const groups = [
+    { key: '합주', label: '합주' },
+    { key: '스쿨', label: '스쿨' },
+    { key: '이외', label: '이외' },
+  ];
+  document.getElementById('teamList').innerHTML = groups.map(g => {
+    const list = teams.filter(t => t.type === g.key);
+    if (!list.length) return '';
+    return `
+      <div style="margin-bottom:4px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:1.2px;color:var(--text3);text-transform:uppercase;padding:6px 8px 4px">${g.label}</div>
+        ${list.map(t=>`
+          <div class="team-item">
+            <div class="team-dot" style="background:${t.color}"></div>
+            <div class="team-name">${t.name}</div>
+          </div>`).join('')}
+      </div>`;
+  }).join('');
 }
 
 function renderPending() {
@@ -342,7 +358,7 @@ function renderEmptySlots() {
 function renderSchedule() {
   document.getElementById('scheduleHeader').innerHTML =
     '<div class="day-header"></div>'+DAYS.map(d=>`<div class="day-header">${d}</div>`).join('');
-  document.getElementById('timeCol').innerHTML = HOURS.map(h=>`<div class="time-cell">${h}:00</div>`).join('');
+  document.getElementById('timeCol').innerHTML = HOURS.map(h=>`<div class="time-cell">${h<24?h+':00':(h-24<10?'0'+(h-24):h-24)+':00'}<br><span style="font-size:8px;color:var(--text3)">${h>=24?'익일':''}</span></div>`).join('');
 
   const grid = document.getElementById('daysGrid');
   grid.innerHTML='';
@@ -358,21 +374,23 @@ function renderSchedule() {
 
       if (slot) {
         const t=slot.teams, absent=slot.status==='absent', extra=slot.slot_type==='extra';
+        const displayColor = teamColor(t.type, t.color);
         const blk=document.createElement('div');
         blk.className=`slot-block${absent?' absent':''}${extra?' extra':''}`;
-        blk.style.background = absent?'transparent':t.color;
-        if(absent) blk.style.border=`1px dashed ${t.color}`;
+        blk.style.background = absent?'transparent':displayColor;
+        if(absent) blk.style.border=`1px dashed ${displayColor}`;
         blk.innerHTML=`
-          <span class="slot-block-name" style="color:${absent?t.color:'#000'}">${t.name}</span>
-          <span class="slot-block-tag" style="color:${absent?t.color:'#000'};background:${absent?'transparent':'rgba(0,0,0,.15)'}">${absent?'미사용':t.type}</span>`;
+          <span class="slot-block-name" style="color:${absent?displayColor:'#000'}">${t.name}</span>
+          <span class="slot-block-tag" style="color:${absent?displayColor:'#000'};background:${absent?'transparent':'rgba(0,0,0,.15)'}">${absent?'미사용':t.type}</span>`;
         blk.onclick=()=>openSlotModal(slot);
         cell.appendChild(blk);
       } else if (pendingExtra) {
         const t=pendingExtra.teams;
+        const displayColor = teamColor(t.type, t.color);
         const blk=document.createElement('div');
         blk.className='slot-block pending-block';
-        blk.style.cssText=`background:${t.color}33;border:1px dashed ${t.color}`;
-        blk.innerHTML=`<span class="slot-block-name" style="color:${t.color}">${t.name}</span><span class="slot-block-tag" style="color:${t.color}">대기</span>`;
+        blk.style.cssText=`background:${displayColor}33;border:1px dashed ${displayColor}`;
+        blk.innerHTML=`<span class="slot-block-name" style="color:${displayColor}">${t.name}</span><span class="slot-block-tag" style="color:${displayColor}">대기</span>`;
         blk.onclick=()=>openRequestDetailModal(pendingExtra);
         cell.appendChild(blk);
       } else {
@@ -579,38 +597,80 @@ window.handleReject = async function(reqId) {
 };
 
 // ── TEAM MANAGER (admin) ──────────────────────────────────────────────
-const COLORS=['#e8ff47','#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47ffea','#ffd447','#b4ff47'];
+const COLORS=['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47ffea','#ffd447','#b4ff47','#ff9d47'];
+const GRAY_COLOR = '#888888';
+
+function teamColor(type, color) {
+  return type === '합주' ? GRAY_COLOR : color;
+}
 
 window.openTeamManagerModal = function() {
-  const rows=teams.map(t=>`
-    <div class="info-row" id="teamrow-${t.id}">
-      <span style="display:flex;align-items:center;gap:8px">
-        <span class="team-dot" style="background:${t.color}"></span>
-        <span style="font-weight:600">${t.name}</span>
-        <span style="color:var(--text3);font-size:11px">${t.type}</span>
-      </span>
-      <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" onclick="handleDeleteTeam(${t.id})">삭제</button>
-    </div>`).join('');
-  const colorOpts=COLORS.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const groups = ['합주','스쿨','이외'];
+  const rows = groups.map(g => {
+    const list = teams.filter(t=>t.type===g);
+    if(!list.length) return '';
+    return `<div style="margin-bottom:2px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;padding:8px 0 4px">${g}</div>
+      ${list.map(t=>`
+        <div class="info-row">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="team-dot" style="background:${teamColor(t.type,t.color)}"></span>
+            <span style="font-weight:600">${t.name}</span>
+          </span>
+          <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" onclick="handleDeleteTeam(${t.id})">삭제</button>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  const paletteSwatches = COLORS.map(c=>`
+    <div onclick="selectPaletteColor('${c}')" style="width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;border:2px solid transparent;transition:border-color .15s" id="swatch-${c.replace('#','')}"></div>
+  `).join('');
+
   showModal('팀 관리',
     `${rows}
      <div style="margin-top:8px;padding-top:12px;border-top:1px solid var(--border)">
-       <div class="field-label" style="font-size:12px;font-weight:700;margin-bottom:10px">새 팀 추가</div>
-       <div style="display:grid;grid-template-columns:1fr 80px 80px;gap:8px;align-items:end">
+       <div style="font-size:12px;font-weight:700;margin-bottom:12px;color:var(--text)">새 팀 추가</div>
+       <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;margin-bottom:10px">
          <div><div class="field-label">팀 이름</div><input class="field-input" id="newTeamName" placeholder="팀 이름"/></div>
-         <div><div class="field-label">종류</div><select class="field-select" id="newTeamType"><option>합주</option><option>스쿨</option></select></div>
-         <div><div class="field-label">컬러</div><select class="field-select" id="newTeamColor">${colorOpts}</select></div>
+         <div><div class="field-label">분류</div>
+           <select class="field-select" id="newTeamType" onchange="onTeamTypeChange()">
+             <option>합주</option><option>스쿨</option><option>이외</option>
+           </select>
+         </div>
        </div>
+       <div id="colorPickerArea" style="display:none">
+         <div class="field-label">컬러</div>
+         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">${paletteSwatches}</div>
+         <input type="hidden" id="newTeamColor" value="${COLORS[0]}"/>
+       </div>
+       <div id="grayNotice" style="font-size:11px;color:var(--text3);margin-top:4px">합주 팀은 자동으로 회색으로 표시됩니다</div>
      </div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">닫기</button>
      <button class="btn btn-primary" onclick="submitNewTeam()">팀 추가</button>`
   );
+  // init swatch selection
+  selectPaletteColor(COLORS[0]);
+};
+
+window.onTeamTypeChange = function() {
+  const type = document.getElementById('newTeamType').value;
+  const isColored = type !== '합주';
+  document.getElementById('colorPickerArea').style.display = isColored ? 'block' : 'none';
+  document.getElementById('grayNotice').style.display = isColored ? 'none' : 'block';
+};
+
+window.selectPaletteColor = function(color) {
+  document.getElementById('newTeamColor').value = color;
+  COLORS.forEach(c => {
+    const el = document.getElementById('swatch-'+c.replace('#',''));
+    if(el) el.style.borderColor = c === color ? '#fff' : 'transparent';
+  });
 };
 
 window.submitNewTeam = async function() {
   const name=document.getElementById('newTeamName').value.trim();
   const type=document.getElementById('newTeamType').value;
-  const color=document.getElementById('newTeamColor').value;
+  const color= type==='합주' ? GRAY_COLOR : (document.getElementById('newTeamColor')?.value || COLORS[0]);
   if(!name){showToast('팀 이름을 입력해주세요','error');return;}
   try {
     const t=await createTeam({name,type,color});
