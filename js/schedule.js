@@ -122,11 +122,13 @@ export async function rejectRequest(id) {
 }
 
 // ─── REALTIME ────────────────────────────────────────────────────────
-export function subscribeChanges(onBase, onException, onRequest) {
+export function subscribeChanges(onBase, onException, onRequest, onRound, onApplication) {
   const c1 = supabase.channel('base-ch').on('postgres_changes', { event: '*', schema: 'public', table: 'base_slots' }, onBase).subscribe();
   const c2 = supabase.channel('ex-ch').on('postgres_changes', { event: '*', schema: 'public', table: 'slot_exceptions' }, onException).subscribe();
   const c3 = supabase.channel('req-ch').on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, onRequest).subscribe();
-  return () => { supabase.removeChannel(c1); supabase.removeChannel(c2); supabase.removeChannel(c3); };
+  const c4 = supabase.channel('round-ch').on('postgres_changes', { event: '*', schema: 'public', table: 'application_rounds' }, onRound).subscribe();
+  const c5 = supabase.channel('app-ch').on('postgres_changes', { event: '*', schema: 'public', table: 'time_applications' }, onApplication).subscribe();
+  return () => { supabase.removeChannel(c1); supabase.removeChannel(c2); supabase.removeChannel(c3); supabase.removeChannel(c4); supabase.removeChannel(c5); };
 }
 
 // ─── NOTICES ─────────────────────────────────────────────────────────
@@ -145,4 +147,138 @@ export async function createNotice(content) {
 export async function deleteNotice(id) {
   const { error } = await supabase.from('notices').delete().eq('id', id);
   if (error) throw error;
+}
+
+// ─── APPLICATION ROUNDS ──────────────────────────────────────────────
+export async function fetchActiveRound(season) {
+  const { data } = await supabase
+    .from('application_rounds')
+    .select('*')
+    .eq('season', season)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+export async function fetchRound(id) {
+  const { data, error } = await supabase
+    .from('application_rounds').select('*').eq('id', id).single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createRound({ season, open_at = null, close_at = null }) {
+  const { data, error } = await supabase
+    .from('application_rounds')
+    .insert({ season, status: open_at ? 'closed' : 'open', open_at, close_at })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateRound(id, fields) {
+  const { data, error } = await supabase
+    .from('application_rounds').update(fields).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ─── TIME APPLICATIONS ───────────────────────────────────────────────
+export async function fetchApplications(roundId) {
+  const { data, error } = await supabase
+    .from('time_applications')
+    .select('*, teams(*)')
+    .eq('round_id', roundId)
+    .order('submitted_at');
+  if (error) throw error;
+  return data;
+}
+
+export async function submitApplication({ round_id, team_id, pref1_day, pref1_hour, pref2_day = null, pref2_hour = null, pref3_day = null, pref3_hour = null }) {
+  const { data, error } = await supabase
+    .from('time_applications')
+    .upsert({ round_id, team_id, pref1_day, pref1_hour, pref2_day, pref2_hour, pref3_day, pref3_hour, assigned_day: null, assigned_hour: null, assigned_pref: null, submitted_at: new Date().toISOString() },
+      { onConflict: 'round_id,team_id' })
+    .select('*, teams(*)').single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteApplication(id) {
+  const { error } = await supabase.from('time_applications').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ─── ASSIGNMENT LOGIC ────────────────────────────────────────────────
+// 신청 마감 후 관리자가 호출 — base_slots 초안 생성
+export async function runAssignment(round, applications, season) {
+  // 1. 배정 초기화
+  const assigned = new Map(); // "day-hour" → team_id
+  const results  = [];       // { id, assigned_day, assigned_hour, assigned_pref }
+
+  // 신청 시각 순으로 정렬 (선착순)
+  const sorted = [...applications].sort((a, b) =>
+    new Date(a.submitted_at) - new Date(b.submitted_at)
+  );
+
+  // 2. 지망 순서대로 배정
+  for (const pref of [1, 2, 3]) {
+    for (const app of sorted) {
+      if (results.find(r => r.id === app.id)) continue; // 이미 배정됨
+      const day  = app[`pref${pref}_day`];
+      const hour = app[`pref${pref}_hour`];
+      if (day == null || hour == null) continue;
+      const key = `${day}-${hour}`;
+      if (!assigned.has(key)) {
+        assigned.set(key, app.team_id);
+        results.push({ id: app.id, assigned_day: day, assigned_hour: hour, assigned_pref: pref });
+      }
+    }
+  }
+
+  // 미배정 처리
+  for (const app of sorted) {
+    if (!results.find(r => r.id === app.id)) {
+      results.push({ id: app.id, assigned_day: null, assigned_hour: null, assigned_pref: null });
+    }
+  }
+
+  // 3. time_applications에 배정 결과 저장
+  for (const r of results) {
+    await supabase.from('time_applications').update({
+      assigned_day: r.assigned_day,
+      assigned_hour: r.assigned_hour,
+      assigned_pref: r.assigned_pref,
+    }).eq('id', r.id);
+  }
+
+  // 4. round status → finished
+  await supabase.from('application_rounds')
+    .update({ status: 'finished' }).eq('id', round.id);
+
+  return results;
+}
+
+// 5. 관리자가 초안 확정 → base_slots에 반영
+export async function approveDraft(round, applications, season) {
+  // 기존 해당 시즌 base_slots 삭제 후 재생성
+  await supabase.from('base_slots').delete().eq('season', season);
+
+  const toInsert = applications
+    .filter(a => a.assigned_day != null)
+    .map(a => ({
+      team_id: a.team_id,
+      day: a.assigned_day,
+      hour: a.assigned_hour,
+      season,
+    }));
+
+  if (toInsert.length) {
+    const { error } = await supabase.from('base_slots').insert(toInsert);
+    if (error) throw error;
+  }
+
+  await supabase.from('application_rounds')
+    .update({ draft_approved: true }).eq('id', round.id);
 }
