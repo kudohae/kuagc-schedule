@@ -60,6 +60,19 @@
   .admin-bar-text{font-size:12px;color:var(--accent);font-weight:500;}
   .admin-bar-actions{display:flex;gap:6px;flex-wrap:wrap;}
   .stats-bar{display:flex;gap:8px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;flex:1;display:flex;align-items:center;gap:10px;}
+  .stat-icon{font-size:20px;line-height:1;flex-shrink:0;}
+  .stat-texts{display:flex;flex-direction:column;gap:1px;}
+  .stat-label{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;}
+  .stat-value{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;line-height:1.1;}
+
+  /* ── NOTICE BAR ── */
+  .notice-bar-inner{display:flex;align-items:flex-start;gap:10px;background:rgba(71,197,255,.07);border:1px solid rgba(71,197,255,.25);border-radius:var(--radius);padding:10px 14px;}
+  .notice-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+  .notice-content{flex:1;display:flex;flex-direction:column;gap:4px;}
+  .notice-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--text);gap:8px;}
+  .notice-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;}
+  .notice-del:hover{color:var(--danger);}
 
   /* ── SCHEDULE ── */
   .schedule-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
@@ -172,7 +185,8 @@
 
     /* 통계 카드 2x2 */
     .stats-bar{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-    .stat-card{padding:8px 10px;}
+    .stat-card{padding:8px 10px;gap:8px;}
+    .stat-icon{font-size:16px;}
     .stat-value{font-size:16px;}
 
     /* 빈 시간대 바 */
@@ -270,12 +284,17 @@
     <div class="admin-bar" id="adminBar" style="display:none">
       <div class="admin-bar-text">🔧 관리자 모드</div>
       <div class="admin-bar-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openNoticeModal()">📢 공지</button>
         <button class="btn btn-secondary btn-sm" onclick="openSeasonModal()">학기 전환</button>
         <button class="btn btn-secondary btn-sm" onclick="openTeamManagerModal()">팀 관리</button>
         <button class="btn btn-primary btn-sm" onclick="openAddSlotModal()">+ 슬롯 추가</button>
       </div>
     </div>
-    <div class="stats-bar" id="statsBar"></div>
+    <div id="noticeBar" style="display:none"></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="stats-bar" id="statsBar" style="flex:1"></div>
+      <button class="btn btn-secondary btn-sm" onclick="openHistoryModal()" style="white-space:nowrap;height:fit-content">📋 신청 내역</button>
+    </div>
     <div class="schedule-wrapper">
       <div class="schedule-title">
         <span id="scheduleTitleText">—</span>
@@ -381,7 +400,8 @@ import {
   fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
   fetchExceptions, createException, deleteException, mergeSchedule,
   fetchRequests, createRequest, approveRequest, rejectRequest,
-  subscribeChanges
+  subscribeChanges,
+  fetchNotices, createNotice, deleteNotice
 } from './js/schedule.js';
 
 const DAYS  = ['월','화','수','목','금','토','일'];
@@ -391,7 +411,7 @@ const COLORS = ['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47
 const GRAY = '#888888';
 
 let weekOffset=0, mode='user', currentSeason='1학기';
-let teams=[], baseSlots=[], exceptions=[], requests=[], merged=[];
+let teams=[], baseSlots=[], exceptions=[], requests=[], merged=[], notices=[];
 
 // ── HELPERS ──────────────────────────────────────────────────────────
 const teamColor = t => t.type==='합주' ? GRAY : (t.color||GRAY);
@@ -447,11 +467,11 @@ async function init(){
 }
 
 async function loadAll(){
-  [teams,baseSlots,exceptions,requests] = await Promise.all([
+  [teams,baseSlots,exceptions,requests,notices] = await Promise.all([
     fetchTeams(), fetchBaseSlots(currentSeason),
     fetchExceptions(weekOffset), fetchRequests(weekOffset),
+    fetchNotices(),
   ]);
-  // 클라이언트 측 한글 정렬 (DB 정렬 보완)
   teams = korSort(teams,'name');
   merged = mergeSchedule(baseSlots,exceptions);
   render();
@@ -472,25 +492,35 @@ function render(){
   document.getElementById('scheduleTitleSeason').textContent=currentSeason;
   document.getElementById('adminBar').style.display=mode==='admin'?'flex':'none';
   renderTeamList();
+  renderNotices();
   renderPending();
   renderStats();
   renderSchedule();
 }
+
+// 접기 상태 저장
+const collapsedGroups = new Set();
 
 function teamListHTML(){
   const groups=[{key:'합주'},{key:'스쿨'},{key:'이외'}];
   return groups.map(g=>{
     const list=korSort(teams.filter(t=>t.type===g.key),'name');
     if(!list.length) return '';
+    const collapsed=collapsedGroups.has(g.key);
     return `<div>
-      <div class="team-group-label">${g.key}</div>
-      ${list.map(t=>`<div class="team-item">
-        <div class="team-dot" style="background:${teamColor(t)}"></div>
-        <div style="flex:1;min-width:0">
-          <div class="team-name">${t.name}</div>
-          ${t.info?`<div class="team-info-small">${t.info}</div>`:''}
-        </div>
-      </div>`).join('')}
+      <div class="team-group-label" onclick="toggleGroup('${g.key}')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding-right:8px">
+        <span>${g.key} <span style="color:var(--text3);font-weight:400">(${list.length})</span></span>
+        <span style="font-size:10px;transition:transform .2s;display:inline-block;transform:rotate(${collapsed?'0':'90'}deg)">›</span>
+      </div>
+      <div id="group-${g.key}" style="display:${collapsed?'none':'flex'};flex-direction:column;gap:1px">
+        ${list.map(t=>`<div class="team-item">
+          <div class="team-dot" style="background:${teamColor(t)}"></div>
+          <div style="flex:1;min-width:0">
+            <div class="team-name">${t.name}</div>
+            ${t.info?`<div class="team-info-small">${t.info}</div>`:''}
+          </div>
+        </div>`).join('')}
+      </div>
     </div>`;
   }).join('');
 }
@@ -499,6 +529,30 @@ function renderTeamList(){
   const html=teamListHTML();
   document.getElementById('teamList').innerHTML=html;
   document.getElementById('mobileTeamList').innerHTML=html;
+}
+
+window.toggleGroup=function(key){
+  if(collapsedGroups.has(key)) collapsedGroups.delete(key);
+  else collapsedGroups.add(key);
+  renderTeamList();
+};
+
+function renderNotices(){
+  const el=document.getElementById('noticeBar');
+  if(!el) return;
+  if(!notices.length && mode!=='admin'){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.innerHTML=`<div class="notice-bar-inner">
+    <span class="notice-icon">📢</span>
+    <div class="notice-content">
+      ${notices.length ? notices.map(n=>`
+        <div class="notice-item">
+          <span>${n.content}</span>
+          ${mode==='admin'?`<button class="notice-del" onclick="handleDeleteNotice(${n.id})">×</button>`:''}
+        </div>`).join('') : `<div style="font-size:12px;color:var(--text3)">공지 없음</div>`}
+    </div>
+    ${mode==='admin'?`<button class="btn btn-secondary btn-sm" onclick="openNoticeModal()" style="flex-shrink:0">+ 공지</button>`:''}
+  </div>`;
 }
 
 function pendingHTML(isAdmin){
@@ -539,10 +593,22 @@ function renderStats(){
   const extra=exceptions.filter(e=>e.exception_type==='extra').length;
   const pending=requests.filter(r=>r.status==='pending').length;
   document.getElementById('statsBar').innerHTML=`
-    <div class="stat-card"><div class="stat-label">기본 배정</div><div class="stat-value">${baseSlots.length}</div></div>
-    <div class="stat-card"><div class="stat-label">미사용</div><div class="stat-value" style="color:var(--danger)">${absent}</div></div>
-    <div class="stat-card"><div class="stat-label">추가</div><div class="stat-value" style="color:var(--accent2)">${extra}</div></div>
-    <div class="stat-card"><div class="stat-label">대기</div><div class="stat-value" style="color:var(--warn)">${pending}</div></div>`;
+    <div class="stat-card">
+      <div class="stat-icon">📋</div>
+      <div class="stat-texts"><div class="stat-label">기본 배정</div><div class="stat-value">${baseSlots.length}</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔕</div>
+      <div class="stat-texts"><div class="stat-label">이번 주 미사용</div><div class="stat-value" style="color:var(--danger)">${absent}</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">➕</div>
+      <div class="stat-texts"><div class="stat-label">이번 주 추가</div><div class="stat-value" style="color:var(--accent2)">${extra}</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🕐</div>
+      <div class="stat-texts"><div class="stat-label">대기 신청</div><div class="stat-value" style="color:var(--warn)">${pending}</div></div>
+    </div>`;
 }
 
 function renderSchedule(){
@@ -931,6 +997,78 @@ window.handleDeleteTeam=async function(id){
     showToast('팀이 삭제됐습니다');
     openTeamManagerModal(); render();
   }catch(e){showToast(e.message,'error');}
+};
+
+// ── NOTICES ──────────────────────────────────────────────────────────
+window.openNoticeModal=function(){
+  showModal('공지사항 추가',
+    `<div><div class="field-label">공지 내용</div>
+       <input class="field-input" id="noticeContent" placeholder="공지 내용을 입력하세요"/></div>
+     ${notices.length?`<div>
+       <div class="field-label">현재 공지</div>
+       ${notices.map(n=>`<div class="info-row">
+         <span style="font-size:13px">${n.content}</span>
+         <button class="btn btn-danger btn-sm" onclick="handleDeleteNotice(${n.id});closeModal()">삭제</button>
+       </div>`).join('')}
+     </div>`:''}`,
+    `<button class="btn btn-secondary" onclick="closeModal()">닫기</button>
+     <button class="btn btn-primary" id="noticeSubmit" onclick="submitNotice()">등록</button>`
+  );
+};
+
+window.submitNotice=async function(){
+  const content=document.getElementById('noticeContent').value.trim();
+  if(!content){showToast('내용을 입력해주세요','error');return;}
+  const btn=document.getElementById('noticeSubmit');
+  btn.disabled=true; btn.textContent='등록 중...';
+  try{
+    await createNotice(content);
+    notices=await fetchNotices();
+    closeModal(); showToast('공지가 등록됐습니다','success'); renderNotices();
+  }catch(e){showToast(e.message,'error');btn.disabled=false;btn.textContent='등록';}
+};
+
+window.handleDeleteNotice=async function(id){
+  try{
+    await deleteNotice(id);
+    notices=notices.filter(n=>n.id!==id);
+    showToast('공지가 삭제됐습니다'); renderNotices();
+  }catch(e){showToast(e.message,'error');}
+};
+
+// ── HISTORY ──────────────────────────────────────────────────────────
+window.openHistoryModal=function(){
+  showModal('신청 내역 조회',
+    `<div><div class="field-label">팀 선택</div>
+       <select class="field-select" id="historyTeam" onchange="renderHistoryResults()">
+         <option value="">— 팀을 선택하세요 —</option>
+         ${korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}
+       </select></div>
+     <div id="historyResults"></div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">닫기</button>`
+  );
+};
+
+window.renderHistoryResults=async function(){
+  const teamId=document.getElementById('historyTeam').value;
+  const el=document.getElementById('historyResults');
+  if(!teamId){el.innerHTML='';return;}
+  el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">불러오는 중...</div>';
+  try{
+    const {data}=await supabase.from('requests').select('*').eq('team_id',teamId).order('created_at',{ascending:false}).limit(30);
+    if(!data.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">신청 내역이 없습니다</div>';return;}
+    const statusLabel={pending:'🕐 대기',approved:'✅ 승인',rejected:'❌ 거절'};
+    const typeLabel={absent:'미사용 신고',extra:'추가 사용'};
+    el.innerHTML=data.map(r=>`
+      <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <div style="display:flex;justify-content:space-between;width:100%">
+          <span style="font-size:12px;font-weight:700">${typeLabel[r.type]} · ${DAYS[r.day]} ${r.hour}:00</span>
+          <span style="font-size:11px">${statusLabel[r.status]||r.status}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2)">${r.reason}</div>
+        <div style="font-size:10px;color:var(--text3)">${new Date(r.created_at).toLocaleDateString('ko-KR')} ${r.requester_name?'· '+r.requester_name:''}</div>
+      </div>`).join('');
+  }catch(e){el.innerHTML=`<div style="color:var(--danger);font-size:12px">${e.message}</div>`;}
 };
 
 // ── AUTH ─────────────────────────────────────────────────────────────
