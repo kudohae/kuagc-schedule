@@ -13,4 +13,4 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL      = 'https://pykefpswgcrledboybca.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5a2VmcHN3Z2NybGVkYm95YmNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NzMxMzksImV4cCI6MjA5MTU0OTEzOX0.J1baEnHuYceleExIftNNDHk0xuEfQD0KlwvRKSHKSFg';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(https://pykefpswgcrledboybca.supabase.co, eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5a2VmcHN3Z2NybGVkYm95YmNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NzMxMzksImV4cCI6MjA5MTU0OTEzOX0.J1baEnHuYceleExIftNNDHk0xuEfQD0KlwvRKSHKSFg);
