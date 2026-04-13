@@ -53,6 +53,8 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 
 .hdr-contacts-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 9px;font-size:11px;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s;white-space:nowrap;}
 .hdr-contacts-btn:hover{color:var(--text);border-color:var(--accent2);}
+.hdr-ensemble-btn{background:rgba(232,255,71,.08);border:1px solid rgba(232,255,71,.25);border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;transition:all .12s;}
+.hdr-ensemble-btn:hover{background:rgba(232,255,71,.15);border-color:var(--accent);}
 
 /* NOTICE BAR */
 .notice-bar{background:rgba(71,197,255,.06);border:1px solid rgba(71,197,255,.2);border-radius:var(--radius);padding:7px 12px;display:flex;align-items:center;gap:8px;font-size:12px;}
@@ -238,11 +240,12 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
     <button class="nav-btn active" id="nb-schedule" onclick="showPage('schedule')">시간표</button>
     <button class="nav-btn" id="nb-apply" onclick="showPage('apply')">시간 신청</button>
   </div>
+  <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
+  <a class="hdr-ensemble-btn" href="ensemble.html">🎸 합주신청</a>
   <div class="hdr-right">
     <input class="hdr-search desktop-only" id="searchInput" placeholder="팀 검색..." oninput="onSearch(this.value)"/>
     <div class="season-chip desktop-only" id="seasonChip">—</div>
     <button class="hdr-contacts-btn desktop-only" onclick="openContactsModal()">📞 연락처</button>
-    <a class="hdr-contacts-btn" href="ensemble.html" style="text-decoration:none">🎸 합주신청</a>
     <div class="week-nav" id="weekNavEl">
       <button onclick="changeWeek(-1)">‹</button>
       <div class="week-lbl" id="weekLbl">—</div>
