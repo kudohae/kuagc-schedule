@@ -175,6 +175,47 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 14px;font-size:12px;font-weight:500;z-index:999;white-space:nowrap;animation:fi .2s;}
 .toast.ok{border-color:var(--accent);color:var(--accent);}
 .toast.err{border-color:var(--danger);color:var(--danger);}
+
+/* ── CENTERED PAGE (공지/연락처) ── */
+.page-centered{align-items:center;justify-content:center;overflow-y:auto;}
+.centered-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:520px;max-width:94%;display:flex;flex-direction:column;gap:0;overflow:hidden;}
+.centered-card-hdr{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.centered-card-title{font-size:14px;font-weight:700;}
+.centered-card-body{padding:16px 20px;display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;}
+.centered-card-foot{padding:12px 20px;border-top:1px solid var(--border);}
+
+/* ── ENSEMBLE 2-COL ── */
+.ensemble-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow-y:auto;min-height:0;}
+.ensemble-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;overflow:hidden;}
+.ensemble-col-hdr{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ensemble-col-title{font-size:12px;font-weight:700;}
+.ensemble-phase{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.ensemble-phase.closed{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.ensemble-phase.song{background:rgba(232,255,71,.15);color:var(--accent);}
+.ensemble-phase.session{background:rgba(71,197,255,.15);color:var(--accent2);}
+.ensemble-col-ctrl{padding:8px 13px;border-bottom:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;}
+.ensemble-col-meta{padding:6px 13px;border-bottom:1px solid var(--border);font-size:10px;color:var(--text3);flex-shrink:0;}
+.ensemble-col-body{overflow-y:auto;flex:1;}
+.e-song-item{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+.e-song-item:last-child{border-bottom:none;}
+.e-song-hdr{display:flex;align-items:center;gap:6px;}
+.e-song-num{font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);flex-shrink:0;}
+.e-song-title{font-size:12px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.e-song-artist{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.e-song-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;flex-shrink:0;}
+.e-song-status.confirmed{background:rgba(232,255,71,.15);color:var(--accent);}
+.e-song-status.pending{background:rgba(255,170,71,.1);color:var(--warn);}
+.e-song-status.rejected{background:rgba(255,71,71,.1);color:var(--danger);}
+.e-song-meta{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.e-song-actions{display:flex;gap:4px;}
+.e-sess-list{background:var(--surface2);border-radius:3px;padding:5px 8px;display:flex;flex-direction:column;gap:3px;}
+.e-sess-row{display:flex;align-items:center;gap:6px;font-size:11px;}
+.e-sess-name{font-weight:600;flex:1;}
+.e-sess-tags{display:flex;gap:3px;flex-wrap:wrap;}
+.e-sess-tag{font-size:9px;padding:1px 4px;border-radius:2px;background:rgba(71,197,255,.1);border:1px solid rgba(71,197,255,.2);color:var(--accent2);}
+.e-sess-tag.confirmed{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.2);color:var(--accent);}
+.e-sess-actions{display:flex;gap:3px;flex-shrink:0;}
+
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
@@ -211,9 +252,9 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
     <button class="nb active" id="nb-sch"      onclick="showPage('sch')">시간표</button>
     <button class="nb"        id="nb-teams"    onclick="showPage('teams')">팀 관리</button>
     <button class="nb"        id="nb-apply"    onclick="showPage('apply')">시간신청</button>
+    <button class="nb"        id="nb-ensemble" onclick="showPage('ensemble')">합주신청</button>
     <button class="nb"        id="nb-notices"  onclick="showPage('notices')">공지</button>
-    <button class="nb"        id="nb-contacts"  onclick="showPage('contacts')">연락처</button>
-    <button class="nb"        id="nb-ensemble"  onclick="showPage('ensemble')">합주신청</button>
+    <button class="nb"        id="nb-contacts" onclick="showPage('contacts')">연락처</button>
   </div>
   <div class="hdr-r">
     <select class="season-sel" id="seasonSel" onchange="changeSeason(this.value)">
@@ -274,34 +315,53 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 </div>
 
 <!-- NOTICES -->
-<div class="page" id="pgNotices">
-  <div class="section-hdr">
-    <div class="section-title">공지사항</div>
-    <button class="btn btn-p btn-xs" onclick="openNoticeModal()">+ 공지 추가</button>
+<div class="page page-centered" id="pgNotices">
+  <div class="centered-card">
+    <div class="centered-card-hdr">
+      <div class="centered-card-title">📢 공지사항</div>
+      <button class="btn btn-p btn-xs" onclick="openNoticeModal()">+ 추가</button>
+    </div>
+    <div class="centered-card-body" id="noticesContent">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:16px 0">불러오는 중...</div>
+    </div>
   </div>
-  <div id="noticesContent" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;"></div>
-</div>
-
-<!-- ENSEMBLE -->
-<div class="page" id="pgEnsemble">
-  <div class="section-hdr">
-    <div class="section-title">합주 신청 관리</div>
-    <a href="ensemble.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">→ 신청 페이지</a>
-  </div>
-  <div style="display:flex;gap:6px;margin-top:2px;flex-shrink:0">
-    <button class="btn btn-s btn-xs" id="etb-regular" onclick="switchEType('regular')" style="font-weight:700;border-color:var(--accent);color:var(--accent)">일반 합주</button>
-    <button class="btn btn-s btn-xs" id="etb-busking" onclick="switchEType('busking')">버스킹 합주</button>
-  </div>
-  <div id="ensembleContent" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;min-height:0;"></div>
 </div>
 
 <!-- CONTACTS -->
-<div class="page" id="pgContacts">
-  <div class="section-hdr">
-    <div class="section-title">회장단 연락처</div>
-    <button class="btn btn-p btn-xs" onclick="openAddContactModal()">+ 추가</button>
+<div class="page page-centered" id="pgContacts">
+  <div class="centered-card">
+    <div class="centered-card-hdr">
+      <div class="centered-card-title">📞 회장단 연락처</div>
+      <button class="btn btn-p btn-xs" onclick="openAddContactModal()">+ 추가</button>
+    </div>
+    <div class="centered-card-body" id="contactsContent">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:16px 0">불러오는 중...</div>
+    </div>
   </div>
-  <div id="contactsContent" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;margin-top:4px;"></div>
+</div>
+
+<!-- ENSEMBLE -->
+<div class="page" id="pgEnsemble" style="flex-direction:column;overflow:hidden;">
+  <div style="padding:8px 10px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;">합주 신청 관리</div>
+    <a href="ensemble.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">→ 신청 페이지</a>
+  </div>
+  <div class="ensemble-cols" style="padding:10px;" id="ensembleCols">
+    <div class="ensemble-col" id="ensembleRegular">
+      <div class="ensemble-col-hdr">
+        <span class="ensemble-col-title">일반 합주</span>
+        <span class="ensemble-phase closed" id="ephaseRegular">닫힘</span>
+      </div>
+      <div class="ensemble-col-body" id="ensembleRegularBody"></div>
+    </div>
+    <div class="ensemble-col" id="ensembleBusking">
+      <div class="ensemble-col-hdr">
+        <span class="ensemble-col-title">버스킹 합주</span>
+        <span class="ensemble-phase closed" id="ephaseBusking">닫힘</span>
+      </div>
+      <div class="ensemble-col-body" id="ensembleBuskingBody"></div>
+    </div>
+  </div>
 </div>
 
 </div><!-- /adminUI -->
@@ -809,12 +869,16 @@ window.scheduleRound=async function(){
 // ── NOTICES ───────────────────────────────────────────────────────────
 function renderNotices(){
   const el=document.getElementById('noticesContent');
-  if(!notices.length){el.innerHTML='<div style="color:var(--text3);font-size:12px">공지가 없습니다</div>';return;}
+  if(!el) return;
+  if(!notices.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px 0">공지가 없습니다</div>';
+    return;
+  }
   el.innerHTML=notices.map(n=>`
-    <div class="ncard">
-      <div class="ncard-text">${n.content}</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <div class="ncard-date">${new Date(n.created_at).toLocaleDateString('ko-KR')}</div>
+    <div class="irow">
+      <span style="font-size:13px;flex:1">${n.content}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:12px">
+        <span style="font-size:10px;color:var(--text3)">${new Date(n.created_at).toLocaleDateString('ko-KR')}</span>
         <button class="btn btn-d btn-xs" onclick="delNotice(${n.id})">삭제</button>
       </div>
     </div>`).join('');
@@ -847,19 +911,17 @@ function renderContacts(){
   const el=document.getElementById('contactsContent');
   if(!el) return;
   if(!contacts.length){
-    el.innerHTML='<div style="color:var(--text3);font-size:12px">등록된 연락처가 없습니다</div>';
+    el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px 0">등록된 연락처가 없습니다</div>';
     return;
   }
   el.innerHTML=contacts.map(c=>`
-    <div class="ncard">
-      <div style="display:flex;flex-direction:column;gap:3px;flex:1">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--text2);min-width:60px">${c.role}</span>
-          <span style="font-size:13px;font-weight:700">${c.name}</span>
-          ${c.phone?`<span style="font-size:12px;color:var(--text2)">${c.phone}</span>`:''}
-        </div>
+    <div class="irow">
+      <div style="display:flex;align-items:center;gap:10px;flex:1">
+        <span style="font-size:11px;color:var(--text2);min-width:56px">${c.role}</span>
+        <span style="font-size:13px;font-weight:700">${c.name}</span>
+        ${c.phone?`<span style="font-size:12px;color:var(--text2)">${c.phone}</span>`:''}
       </div>
-      <div style="display:flex;gap:5px;flex-shrink:0">
+      <div style="display:flex;gap:5px;flex-shrink:0;margin-left:10px">
         <button class="btn btn-s btn-xs" onclick="openEditContactModal(${c.id})">수정</button>
         <button class="btn btn-d btn-xs" onclick="delContact(${c.id})">삭제</button>
       </div>
@@ -916,14 +978,81 @@ let eRounds={regular:null,busking:null};
 let eSongs={regular:[],busking:[]};
 let eSessionMap={};
 
-window.switchEType=function(t){
-  eType=t;
-  ['regular','busking'].forEach(x=>{
-    const btn=document.getElementById('etb-'+x);
-    if(btn){ btn.style.fontWeight=x===t?'700':'500'; btn.style.borderColor=x===t?'var(--accent)':''; btn.style.color=x===t?'var(--accent)':''; }
+function renderEnsemble(){
+  ['regular','busking'].forEach(type=>{
+    const r=eRounds[type];
+    const songList=eSongs[type]||[];
+    const typeName=type==='regular'?'일반 합주':'버스킹 합주';
+    const phaseMap={closed:{label:'닫힘',cls:'closed'},song:{label:'곡 신청 중',cls:'song'},session:{label:'세션 신청 중',cls:'session'}};
+    const phase=r?.phase||'closed';
+    const pm=phaseMap[phase];
+
+    // phase badge
+    const badge=document.getElementById(`ephase${type==='regular'?'Regular':'Busking'}`);
+    if(badge){ badge.textContent=pm.label; badge.className=`ensemble-phase ${pm.cls}`; }
+
+    // controls + body
+    const bodyEl=document.getElementById(`ensemble${type==='regular'?'Regular':'Busking'}Body`);
+    if(!bodyEl) return;
+
+    let ctrl='';
+    if(!r||phase==='closed'){
+      ctrl=`<button class="btn btn-p btn-xs" onclick="openCreateRoundModal('${type}')">회차 생성</button>`;
+    } else if(phase==='song'){
+      ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
+            <button class="btn btn-p btn-xs" onclick="openSessionPhase(${r.id})">→ 세션신청</button>
+            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+    } else if(phase==='session'){
+      ctrl=`<button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+    }
+
+    const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 곡${r.max_songs_per_person} · 세션${r.max_sessions_per_person}</div>`:'';
+    const ctrlHtml=`<div class="ensemble-col-ctrl">${ctrl}</div>`;
+
+    let songsHtml='';
+    const active=songList.filter(s=>s.status!=='rejected');
+    if(!active.length){
+      songsHtml=`<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">신청된 곡이 없습니다</div>`;
+    } else {
+      songsHtml=active.map((s,i)=>{
+        const sessApps=eSessionMap[s.id]||[];
+        const sessHtml=sessApps.length?`<div class="e-sess-list">
+          ${sessApps.map(a=>`<div class="e-sess-row">
+            <span class="e-sess-name">${a.applicant_name}</span>
+            <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${x}</span>`).join('')}</div>
+            <div class="e-sess-actions">
+              ${a.status==='pending'
+                ?`<button class="btn btn-s btn-xs" onclick="confirmSession(${a.id})">확</button><button class="btn btn-d btn-xs" onclick="rejectSession(${a.id})">✕</button>`
+                :`<span style="font-size:9px;font-weight:700;color:${a.status==='confirmed'?'var(--accent)':'var(--danger)'}">${a.status==='confirmed'?'확정':'거절'}</span>`}
+            </div>
+          </div>`).join('')}
+        </div>`:'';
+        const actions=r&&phase!=='closed'?`<div class="e-song-actions">
+          ${s.status!=='confirmed'?`<button class="btn btn-p btn-xs" onclick="confirmSong(${s.id})">확정</button>`:''}
+          ${s.status!=='rejected'?`<button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">거절</button>`:''}
+        </div>`:'';
+        return `<div class="e-song-item">
+          <div class="e-song-hdr">
+            <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
+            <div style="flex:1;min-width:0">
+              <div class="e-song-title">${s.title}</div>
+              <div class="e-song-artist">${s.artist}</div>
+            </div>
+            <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
+          </div>
+          <div class="e-song-meta">
+            <span>${s.applicant_name}</span>
+            <span style="color:var(--text3)">${s.sessions.join(' · ')}</span>
+          </div>
+          ${sessHtml}
+          ${actions}
+        </div>`;
+      }).join('');
+    }
+
+    bodyEl.innerHTML=ctrlHtml+meta+songsHtml;
   });
-  renderEnsemble();
-};
+}
 
 async function loadEnsemble(){
   const {data:rds}=await supabase.from('ensemble_rounds').select('*').order('created_at',{ascending:false});
