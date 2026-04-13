@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>합주 신청 — 그루터기</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
@@ -178,6 +178,7 @@ function fmtTime(ts){
   const d=new Date(ts);
   return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
+const errMsg=e=>{const m=e?.message||'';if(m.includes('unique')||m.includes('duplicate'))return'이미 동일한 신청이 존재합니다';if(m.includes('network')||m.includes('fetch'))return'네트워크 오류가 발생했습니다. 다시 시도해주세요';if(m.includes('JWT')||m.includes('auth'))return'인증 오류입니다. 새로고침 후 시도해주세요';return m||'오류가 발생했습니다';};
 
 // ── INIT ─────────────────────────────────────────────────────────────
 async function init(){
@@ -461,7 +462,7 @@ window.submitSong=async function(){
     });
     toast('곡 신청이 완료됐습니다','ok');
     await loadAll();
-  }catch(e){toast(e.message,'err');}
+  }catch(e){toast(errMsg(e),'err');}
 };
 
 // ── SUBMIT SESSION (from form) ────────────────────────────────────────
@@ -531,7 +532,7 @@ async function doSubmitSession(songId,r,name,sid,sessions){
     });
     toast('세션 신청이 완료됐습니다','ok');
     closeModal(); await loadAll(); return true;
-  }catch(e){toast(e.message,'err');return false;}
+  }catch(e){toast(errMsg(e),'err');return false;}
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────
@@ -540,8 +541,9 @@ function showModal(title,body,foot){
   document.getElementById('modalBody').innerHTML=body;
   document.getElementById('modalFoot').innerHTML=foot;
   document.getElementById('modalBd').style.display='flex';
+  document.body.style.overflow='hidden';
 }
-window.closeModal=()=>document.getElementById('modalBd').style.display='none';
+window.closeModal=()=>{document.getElementById('modalBd').style.display='none';document.body.style.overflow='';};
 window.onMBd=e=>{if(e.target===document.getElementById('modalBd'))closeModal();};
 
 let toastT;
