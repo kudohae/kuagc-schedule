@@ -400,12 +400,16 @@ const COLORS= ['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47f
 const korSort=(a,k)=>[...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
 const teamClr=t=>t.type==='합주'?GRAY:(t.color||GRAY);
 const timeStr=h=>h<24?h+':00':'0'+(h-24)+':00';
+const fmtTime=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
 function weekLabel(off){
   const now=new Date(),m=new Date(now);
   m.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);
   const mo=m.getMonth()+1;
   const wn=Math.ceil((m.getDate()+(new Date(m.getFullYear(),m.getMonth(),1).getDay()+6)%7)/7);
   return `${mo}월 ${wn}주차`;
+}
+function weekLabelWithThis(off){
+  return weekLabel(off)+(off===0?' (이번주)':'');
 }
 
 let weekOff=0, season='1학기';
@@ -600,8 +604,19 @@ window.deleteSlot=async function(id){
 };
 window.openAddSlotModal=function(day=0,hour=10){
   const tOpts=korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  // ±4주 범위 옵션 생성
+  const weekOpts=Array.from({length:9},(_,i)=>i-4).map(off=>{
+    const label=weekLabelWithThis(off);
+    return `<option value="week_${off}" ${off===weekOff?'selected':''}>${label}</option>`;
+  }).join('');
   showModal('슬롯 추가',
-    `<div style="font-size:11px;color:var(--text2);background:var(--surface2);padding:6px 9px;border-radius:5px">${season} 기본 시간표에 추가됩니다.</div>
+    `<div>
+       <div class="fl">추가 대상</div>
+       <select class="fs" id="aTarget">
+         <option value="base">${season} 기본 시간표</option>
+         ${weekOpts}
+       </select>
+     </div>
      <div><div class="fl">팀</div><select class="fs" id="aTeam">${tOpts}</select></div>
      <div><div class="fl">요일</div><select class="fs" id="aDay">${DAYS.map((d,i)=>`<option value="${i}" ${i===day?'selected':''}>${d}</option>`).join('')}</select></div>
      <div><div class="fl">시간</div><select class="fs" id="aHour">${HOURS.map(h=>`<option value="${h}" ${h===hour?'selected':''}>${timeStr(h)}</option>`).join('')}</select></div>`,
@@ -611,9 +626,20 @@ window.openAddSlotModal=function(day=0,hour=10){
 };
 window.addSlot=async function(){
   const btn=document.getElementById('aBtn'); btn.disabled=true;
+  const target=document.getElementById('aTarget').value;
+  const team_id=parseInt(document.getElementById('aTeam').value);
+  const day=parseInt(document.getElementById('aDay').value);
+  const hour=parseInt(document.getElementById('aHour').value);
   try{
-    await createBaseSlot({team_id:parseInt(document.getElementById('aTeam').value),day:parseInt(document.getElementById('aDay').value),hour:parseInt(document.getElementById('aHour').value),season});
-    baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
+    if(target==='base'){
+      await createBaseSlot({team_id,day,hour,season});
+      baseSlots=await fetchBaseSlots(season);
+    } else {
+      const off=parseInt(target.replace('week_',''));
+      await createException({team_id,day,hour,week_offset:off,exception_type:'extra'});
+      exceptions=await fetchExceptions(weekOff);
+    }
+    merged=mergeSchedule(baseSlots,exceptions);
     closeModal(); renderSchedule(); toast('슬롯이 추가됐습니다','ok');
   }catch(e){toast(e.message.includes('unique')?'이미 해당 시간에 슬롯이 있습니다':e.message,'err');btn.disabled=false;}
 };
@@ -631,6 +657,7 @@ function renderPending(){
       <div class="pcard-detail">${DAYS[r.day]} ${r.hour}:00 · ${r.type==='absent'?'미사용':'추가사용'}</div>
       <div class="pcard-detail">${r.reason}</div>
       ${r.requester_name?`<div class="pcard-detail">신청자: ${r.requester_name}</div>`:''}
+      <div class="pcard-detail" style="color:var(--text3)">${fmtTime(r.created_at)}</div>
       <div class="pcard-actions">
         <button class="pa-ok" onclick="doApprove(${r.id})">승인</button>
         <button class="pa-no" onclick="doReject(${r.id})">거절</button>
@@ -1018,8 +1045,9 @@ function renderEnsemble(){
         const sessApps=eSessionMap[s.id]||[];
         const sessHtml=sessApps.length?`<div class="e-sess-list">
           ${sessApps.map(a=>`<div class="e-sess-row">
-            <span class="e-sess-name">${a.applicant_name}</span>
+            <span class="e-sess-name">${a.applicant_name} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
             <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${x}</span>`).join('')}</div>
+            <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
             <div class="e-sess-actions">
               ${a.status==='pending'
                 ?`<button class="btn btn-s btn-xs" onclick="confirmSession(${a.id})">확</button><button class="btn btn-d btn-xs" onclick="rejectSession(${a.id})">✕</button>`
@@ -1041,7 +1069,8 @@ function renderEnsemble(){
             <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
           </div>
           <div class="e-song-meta">
-            <span>${s.applicant_name}</span>
+            <span>${s.applicant_name} <span style="color:var(--text3)">${s.student_id}</span></span>
+            <span style="color:var(--text3)">${fmtTime(s.created_at)}</span>
             <span style="color:var(--text3)">${s.sessions.join(' · ')}</span>
           </div>
           ${sessHtml}
