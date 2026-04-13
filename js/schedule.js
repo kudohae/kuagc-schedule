@@ -171,7 +171,7 @@ export async function fetchRound(id) {
 export async function createRound({ season, open_at = null, close_at = null }) {
   const { data, error } = await supabase
     .from('application_rounds')
-    .insert({ season, status: open_at ? 'closed' : 'open', open_at, close_at })
+    .insert({ season, status: 'open', open_at: open_at || new Date().toISOString(), close_at })
     .select().single();
   if (error) throw error;
   return data;
