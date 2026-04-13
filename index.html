@@ -172,17 +172,18 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 .toast.err{border-color:var(--danger);color:var(--danger);}
 
 /* HELP */
-.help-bd{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px);}
-.help-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:400px;max-width:92vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;}
-.help-hdr{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
-.help-title{font-size:14px;font-weight:700;}
-.help-body{padding:12px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
-.help-sec-title{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
-.help-item{font-size:12px;color:var(--text2);line-height:1.6;padding-left:8px;border-left:2px solid var(--border);}
-.help-item strong{color:var(--text);}
-.help-foot{padding:10px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.help-chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;}
-.help-chk input{accent-color:var(--accent);}
+/* STATUS POPUP */
+.status-bd{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(6px);animation:fi .2s;}
+.status-popup{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:340px;max-width:92vw;display:flex;flex-direction:column;overflow:hidden;animation:su .2s;}
+.status-popup-main{padding:28px 24px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;}
+.status-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+.status-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
+.status-label.empty{color:var(--accent);}
+.status-label.busy{color:var(--danger);}
+.status-team{font-size:22px;font-weight:700;line-height:1.2;}
+.status-sub{font-size:12px;color:var(--text2);}
+.status-popup-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.status-popup-foot .btn{flex:1;padding:9px;font-size:13px;}
 
 /* MOBILE TAB BAR */
 .tab-bar{display:none;}
@@ -312,32 +313,13 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
   </div>
 </div>
 
-<!-- HELP -->
-<div class="help-bd" id="helpBd">
-  <div class="help-box">
-    <div class="help-hdr"><div class="help-title">📋 동아리방 시간표 사용법</div></div>
-    <div class="help-body">
-      <div>
-        <div class="help-sec-title">시간표 보기</div>
-        <div class="help-item">◀ ▶ 버튼으로 주차를 이동할 수 있습니다.</div>
-        <div class="help-item">슬롯을 클릭하면 상세 정보를 볼 수 있습니다.</div>
-      </div>
-      <div>
-        <div class="help-sec-title">미사용 신고</div>
-        <div class="help-item">이번 주 합주를 쉬는 경우 내 팀 슬롯 클릭 → <strong>미사용 신고</strong>를 제출하세요.</div>
-      </div>
-      <div>
-        <div class="help-sec-title">추가 사용 신청</div>
-        <div class="help-item">비어 있는 시간 칸의 <strong>신청</strong> 버튼을 클릭해 추가 사용을 신청하세요.</div>
-      </div>
-      <div>
-        <div class="help-sec-title">시간 신청</div>
-        <div class="help-item">학기 초 <strong>시간 신청</strong> 탭에서 1~3지망으로 정기 합주 시간을 신청할 수 있습니다.</div>
-      </div>
-    </div>
-    <div class="help-foot">
-      <label class="help-chk"><input type="checkbox" id="helpChk"> 다시 열지 않음</label>
-      <button class="btn btn-p" onclick="closeHelp()">확인</button>
+<!-- STATUS POPUP -->
+<div class="status-bd" id="statusBd" style="display:none">
+  <div class="status-popup">
+    <div class="status-popup-main" id="statusMain"></div>
+    <div class="status-popup-foot">
+      <button class="btn btn-s" onclick="closeStatus()">닫기</button>
+      <button class="btn btn-p" onclick="closeStatus()">시간표 보기</button>
     </div>
   </div>
 </div>
@@ -384,9 +366,9 @@ let merged=[], round=null, applications=[];
 let searchQ='', collapsed=new Set();
 
 async function init(){
-  initHelp();
   season = await getConfig('current_season').catch(()=>'1학기');
   await loadAll();
+  showStatus();
   // 현재 시각 라인만 1분마다 갱신 (전체 재렌더 아님)
   setInterval(()=>{ if(weekOff===0) updateNowLine(); },60000);
 }
@@ -796,13 +778,42 @@ window.closeModal=()=>{
 };
 window.onMBd=e=>{ if(e.target===document.getElementById('modalBd')) closeModal(); };
 
-// ── HELP ──────────────────────────────────────────────────────────────
-function initHelp(){
-  if(localStorage.getItem('help_ok')==='1') document.getElementById('helpBd').style.display='none';
+// ── STATUS POPUP ──────────────────────────────────────────────────────
+function showStatus(){
+  const now = new Date();
+  const dow = (now.getDay()+6)%7; // 0=월
+  const h   = now.getHours();
+  // 현재 시간에 해당하는 슬롯 찾기 (정각 기준, 1시간 블록)
+  const slot = merged.find(s => s.day===dow && s.hour===h && s.status!=='absent');
+  const el = document.getElementById('statusMain');
+  const bd = document.getElementById('statusBd');
+  if(!el||!bd) return;
+  if(slot){
+    const t = slot.teams;
+    const c = teamClr(t);
+    el.innerHTML=`
+      <div style="width:52px;height:52px;border-radius:50%;background:${c}22;border:2px solid ${c};display:flex;align-items:center;justify-content:center;font-size:22px">🎸</div>
+      <div>
+        <div class="status-label busy">현재 동아리방 사용 중</div>
+        <div class="status-team" style="color:${c}">${t.name}</div>
+        ${t.info?`<div class="status-sub">${t.info}</div>`:''}
+        <div class="status-sub" style="margin-top:4px">${['월','화','수','목','금','토','일'][dow]} ${h}:00 — ${h+1}:00</div>
+      </div>`;
+  } else {
+    el.innerHTML=`
+      <div style="width:52px;height:52px;border-radius:50%;background:rgba(232,255,71,.1);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px">✅</div>
+      <div>
+        <div class="status-label empty">현재 동아리방 비어 있음</div>
+        <div class="status-team">사용 가능</div>
+        <div class="status-sub" style="margin-top:4px">${['월','화','수','목','금','토','일'][dow]} ${h}:00 기준</div>
+      </div>`;
+  }
+  bd.style.display='flex';
+  document.body.style.overflow='hidden';
 }
-window.closeHelp=function(){
-  if(document.getElementById('helpChk').checked) localStorage.setItem('help_ok','1');
-  document.getElementById('helpBd').style.display='none';
+window.closeStatus=function(){
+  document.getElementById('statusBd').style.display='none';
+  document.body.style.overflow='';
 };
 
 // ── TOAST ─────────────────────────────────────────────────────────────
