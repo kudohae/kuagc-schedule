@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>동아리방 시간표</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
@@ -361,6 +361,14 @@ const korSort = (a,k) => [...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{num
 const teamClr = t => t.type==='합주'?GRAY:(t.color||GRAY);
 const timeStr = h => h<24?h+':00':'0'+(h-24)+':00';
 const fmtTime = ts => { if(!ts) return ''; const d=new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+const errMsg = e => {
+  const m = e?.message||'';
+  if(m.includes('unique')||m.includes('duplicate')) return '이미 해당 시간에 신청이 존재합니다';
+  if(m.includes('foreign key')) return '참조 데이터가 존재하지 않습니다';
+  if(m.includes('network')||m.includes('fetch')) return '네트워크 오류가 발생했습니다. 다시 시도해주세요';
+  if(m.includes('JWT')||m.includes('auth')) return '인증 오류가 발생했습니다. 새로고침 후 시도해주세요';
+  return m || '오류가 발생했습니다';
+};
 function weekLabel(off){
   const now=new Date(),m=new Date(now);
   m.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);
@@ -379,7 +387,8 @@ async function init(){
   initHelp();
   season = await getConfig('current_season').catch(()=>'1학기');
   await loadAll();
-  setInterval(()=>{ if(weekOff===0) renderSchedule(); },60000);
+  // 현재 시각 라인만 1분마다 갱신 (전체 재렌더 아님)
+  setInterval(()=>{ if(weekOff===0) updateNowLine(); },60000);
 }
 
 async function loadAll(){
@@ -571,6 +580,14 @@ function renderSchedule(){
   }
 }
 
+// 현재 시각 라인만 갱신 (전체 재렌더 없이)
+function updateNowLine(){
+  const todayDow=(new Date().getDay()+6)%7;
+  const nowH=new Date().getHours(), nowM=new Date().getMinutes();
+  const line=document.querySelector('.now-line');
+  if(line) line.style.top=((nowH-HOURS[0])*58+(nowM/60)*58)+'px';
+}
+
 // ── WEEK NAV ─────────────────────────────────────────────────────────
 window.changeWeek=async function(delta){
   weekOff+=delta;
@@ -625,7 +642,7 @@ window.submitAbsence=async function(teamId,day,hour){
     await createRequest({type:'absent',team_id:teamId,day,hour,week_offset:weekOff,reason,requester_name:document.getElementById('absName').value.trim()});
     closeModal(); toast('미사용 신고가 제출됐습니다');
     requests=await fetchRequests(weekOff); renderStats();
-  }catch(e){toast(e.message,'err');btn.disabled=false;btn.textContent='신고 제출';}
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 제출';}
 };
 
 function openClaimModal(day,hour){
@@ -646,7 +663,7 @@ window.cancelRequest=async function(reqId){
     await supabase.from('requests').delete().eq('id',reqId);
     requests=requests.filter(r=>r.id!==reqId);
     closeModal(); toast('신청이 취소됐습니다'); renderStats(); renderSchedule();
-  }catch(e){toast(e.message,'err');btn.disabled=false;btn.textContent='신고 취소';}
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 취소';}
 };
 window.submitClaim=async function(day,hour){
   const reason=document.getElementById('clReason').value.trim();
@@ -656,7 +673,7 @@ window.submitClaim=async function(day,hour){
     await createRequest({type:'extra',team_id:parseInt(document.getElementById('clTeam').value),day,hour,week_offset:weekOff,reason,requester_name:document.getElementById('clName').value.trim()});
     closeModal(); toast('추가 사용 신청이 제출됐습니다');
     requests=await fetchRequests(weekOff); renderStats();
-  }catch(e){toast(e.message,'err');btn.disabled=false;btn.textContent='신청 제출';}
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신청 제출';}
 };
 
 function openReqDetail(req){
@@ -742,7 +759,7 @@ window.submitApply=async function(){
       pref3_day:p3d?parseInt(p3d):null,pref3_hour:p3h?parseInt(p3h):null});
     applications=await fetchApplications(round.id);
     toast('신청이 제출됐습니다','ok'); renderApply();
-  }catch(e){toast(e.message,'err');}
+  }catch(e){toast(errMsg(e),'err');}
 };
 
 // ── CONTACTS MODAL ────────────────────────────────────────────────────
@@ -771,8 +788,12 @@ function showModal(title,body,foot){
   document.getElementById('modalBody').innerHTML=body;
   document.getElementById('modalFoot').innerHTML=foot;
   document.getElementById('modalBd').style.display='flex';
+  document.body.style.overflow='hidden';
 }
-window.closeModal=()=>{ document.getElementById('modalBd').style.display='none'; };
+window.closeModal=()=>{
+  document.getElementById('modalBd').style.display='none';
+  document.body.style.overflow='';
+};
 window.onMBd=e=>{ if(e.target===document.getElementById('modalBd')) closeModal(); };
 
 // ── HELP ──────────────────────────────────────────────────────────────
