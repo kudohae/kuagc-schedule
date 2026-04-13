@@ -63,7 +63,7 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 /* ── SCHEDULE GRID ── */
 .admin-bar{background:rgba(232,255,71,.05);border:1px solid rgba(232,255,71,.18);border-radius:var(--radius);padding:6px 10px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .admin-bar-label{font-size:11px;color:var(--accent);font-weight:500;}
-.sch-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.sch-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
 .sch-title-row{padding:6px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .sch-title{font-size:12px;font-weight:700;}
 .sch-season{font-size:10px;color:var(--text2);}
@@ -790,37 +790,49 @@ window.addTeam=async function(){
 function renderApply(){
   const isOpen=round&&round.status==='open';
   const isFin=round&&(round.status==='finished'||round.draft_approved);
+  const isClosed=round&&round.status==='closed'&&!round.draft_approved;
+
   let html=`<div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
     <div class="apply-status-left">
-      <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':'⭕'}</div>
+      <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':isClosed?'🟡':'⭕'}</div>
       <div>
-        <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'신청 마감 — 배정 완료':'신청 기간 아님'}</div>
+        <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'배정 완료':isClosed?'신청 마감됨 — 배정 대기':'신청 기간 아님'}</div>
         <div class="apply-status-sub">${isOpen&&round.close_at?'마감: '+new Date(round.close_at).toLocaleString('ko-KR'):''}</div>
       </div>
     </div>
     <div class="apply-status-actions">`;
-  if(!round||round.status==='closed'||round.draft_approved){
-    html+=`<button class="btn btn-p btn-xs" onclick="openRoundNow()">지금 신청 열기</button>
-           <button class="btn btn-s btn-xs" onclick="openScheduleRoundModal()">자동 열기 예약</button>`;
+
+  if(!round||round.draft_approved){
+    // 상태: 없음 또는 완전히 완료 → 새 회차 시작 가능
+    html+=`<button class="btn btn-p btn-xs" onclick="openRoundNow()">신청 시작</button>`;
   } else if(isOpen){
-    html+=`<button class="btn btn-d btn-xs" onclick="closeRoundNow()">신청 마감 + 배정 실행</button>`;
-  } else if(isFin&&!round.draft_approved){
-    html+=`<button class="btn btn-s btn-xs" onclick="rerunAssignment()">재배정</button>
-           <button class="btn btn-p btn-xs" onclick="confirmDraft()">시간표 확정</button>`;
+    // 상태: 신청 중 → 마감
+    html+=`<button class="btn btn-d btn-xs" onclick="closeRoundNow()">신청 마감</button>`;
+  } else if(isClosed){
+    // 상태: 마감됨 → 배정 실행 또는 재오픈
+    html+=`<button class="btn btn-s btn-xs" onclick="reopenRound()">신청 재오픈</button>
+           <button class="btn btn-p btn-xs" onclick="runAndConfirm()">배정 및 확정</button>`;
   }
+  // 언제든 새 회차 시작 버튼 (완료 상태 제외)
+  if(round&&!round.draft_approved){
+    html+=`<button class="btn btn-s btn-xs" onclick="if(confirm('현재 회차를 종료하고 새 신청을 시작할까요?'))startNewRound()">새 신청 시작</button>`;
+  }
+
   html+=`</div></div>`;
+
   if(round&&applications.length){
     const pc=p=>p===1?'p1':p===2?'p2':p===3?'p3':'none';
     const pl=p=>p?p+'지망':'미배정';
     html+=`<div class="card">
       <table class="apply-tbl">
-        <thead><tr><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th></th></tr></thead>
+        <thead><tr><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
         <tbody>${applications.map(a=>`<tr>
           <td style="font-weight:600">${a.teams.name}</td>
           <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
           <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
           <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
           ${isFin?`<td>${a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">미배정</span>`}</td>`:''}
+          <td style="font-size:11px;color:var(--text3)">${fmtTime(a.submitted_at)}</td>
           <td><button class="btn btn-s btn-xs" onclick="delApp(${a.id})">취소</button></td>
         </tr>`).join('')}</tbody>
       </table>
@@ -828,39 +840,51 @@ function renderApply(){
   }
   document.getElementById('applyContent').innerHTML=html;
 }
+
 window.openRoundNow=async function(){
   try{
-    if(round&&!round.draft_approved) round=await updateRound(round.id,{status:'open',open_at:new Date().toISOString()});
-    else round=await createRound({season});
-    applications=[]; toast('신청이 열렸습니다','ok'); renderApply();
+    round=await createRound({season});
+    applications=[]; toast('신청이 시작됐습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
+
 window.closeRoundNow=async function(){
-  if(!confirm('신청을 마감하고 배정을 실행할까요?')) return;
+  if(!confirm('신청을 마감할까요? 이후 배정을 실행할 수 있습니다.')) return;
+  try{
+    round=await updateRound(round.id,{status:'closed'});
+    toast('신청이 마감됐습니다','ok'); renderApply();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.reopenRound=async function(){
+  if(!confirm('신청을 다시 열까요?')) return;
+  try{
+    round=await updateRound(round.id,{status:'open'});
+    toast('신청이 재오픈됐습니다','ok'); renderApply();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.runAndConfirm=async function(){
+  if(!confirm('배정을 실행하고 시간표에 반영할까요?')) return;
   try{
     toast('배정 실행 중...');
     applications=await fetchApplications(round.id);
     await runAssignment(round,applications,season);
     round=await fetchActiveRound(season); applications=await fetchApplications(round.id);
-    toast('배정이 완료됐습니다','ok'); renderApply();
-  }catch(e){toast(errMsg(e),'err');}
-};
-window.rerunAssignment=async function(){
-  if(!confirm('재배정을 실행할까요?')) return;
-  try{
-    applications=await fetchApplications(round.id);
-    await runAssignment(round,applications,season);
-    round=await fetchActiveRound(season); applications=await fetchApplications(round.id);
-    toast('재배정 완료됐습니다','ok'); renderApply();
-  }catch(e){toast(errMsg(e),'err');}
-};
-window.confirmDraft=async function(){
-  if(!confirm(`배정 결과를 ${season} 기본 시간표에 반영할까요? 기존 시간표가 덮어씌워집니다.`)) return;
-  try{
+    // 즉시 확정
     await approveDraft(round,applications,season);
     baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
     round=await fetchActiveRound(season);
-    toast('시간표가 확정됐습니다','ok'); renderSchedule(); renderApply();
+    toast('배정 및 시간표 확정 완료','ok'); renderSchedule(); renderApply();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.startNewRound=async function(){
+  try{
+    // 기존 회차 강제 종료
+    if(round) await updateRound(round.id,{status:'closed',draft_approved:true});
+    round=await createRound({season});
+    applications=[]; toast('새 신청이 시작됐습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.delApp=async function(id){
