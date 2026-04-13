@@ -70,7 +70,7 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 .stat-val{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;line-height:1.1;}
 
 /* SCHEDULE GRID */
-.sch-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.sch-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
 .sch-title-row{padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .sch-title{font-size:12px;font-weight:700;}
 .sch-season{font-size:10px;color:var(--text2);}
@@ -118,11 +118,42 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 .apply-status-sub{font-size:11px;color:var(--text2);}
 .apply-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
 .apply-card-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;}
-.pref-grid{display:grid;grid-template-columns:52px 1fr 1fr;gap:6px;align-items:center;margin-bottom:8px;}
-.pref-lbl{font-size:11px;font-weight:700;}
-.pref-lbl.p1{color:var(--accent);}
-.pref-lbl.p2{color:var(--accent2);}
-.pref-lbl.p3{color:var(--text2);}
+/* 지망 선택 현황 표시 */
+.pref-status{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.pref-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);}
+.pref-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;min-width:36px;text-align:center;}
+.pref-badge.p1{background:rgba(232,255,71,.2);color:var(--accent);}
+.pref-badge.p2{background:rgba(71,197,255,.2);color:var(--accent2);}
+.pref-badge.p3{background:rgba(255,170,71,.2);color:var(--warn);}
+.pref-val{font-size:12px;flex:1;}
+.pref-val.empty{color:var(--text3);}
+.pref-clear{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;}
+.pref-clear:hover{color:var(--danger);}
+/* 신청용 시간표 그리드 — 슬롯 클릭 가능 */
+.apply-sch-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+.apply-sch-hdr{display:grid;grid-template-columns:42px repeat(7,1fr);border-bottom:1px solid var(--border);}
+.apply-sch-day{padding:5px 2px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);border-right:1px solid var(--border);}
+.apply-sch-day:last-child{border-right:none;}
+.apply-sch-body{display:flex;}
+.apply-sch-times{width:42px;flex-shrink:0;border-right:1px solid var(--border);}
+.apply-sch-time{height:36px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:9px;color:var(--text3);border-bottom:1px solid var(--border);}
+.apply-sch-time:last-child{border-bottom:none;}
+.apply-sch-grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);}
+.apply-sch-col{border-right:1px solid var(--border);}
+.apply-sch-col:last-child{border-right:none;}
+.apply-cell{height:36px;border-bottom:1px solid var(--border);position:relative;cursor:pointer;transition:background .1s;}
+.apply-cell:last-child{border-bottom:none;}
+.apply-cell:hover{background:rgba(255,255,255,.04);}
+.apply-cell.occupied{background:rgba(255,255,255,.02);cursor:not-allowed;}
+.apply-cell.pref1{background:rgba(232,255,71,.18);cursor:pointer;}
+.apply-cell.pref2{background:rgba(71,197,255,.18);cursor:pointer;}
+.apply-cell.pref3{background:rgba(255,170,71,.18);cursor:pointer;}
+.apply-cell-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;pointer-events:none;}
+.apply-cell-label.p1{color:var(--accent);}
+.apply-cell-label.p2{color:var(--accent2);}
+.apply-cell-label.p3{color:var(--warn);}
+.apply-cell-occ{position:absolute;inset:1px;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--text3);pointer-events:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px;}
+/* 신청 현황 테이블 */
 .apply-tbl{width:100%;border-collapse:collapse;font-size:12px;}
 .apply-tbl th{padding:6px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);}
 .apply-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);}
@@ -673,12 +704,15 @@ function openReqDetail(req){
 }
 
 // ── APPLY PAGE ────────────────────────────────────────────────────────
+// 지망 상태: {1: {day,hour}, 2: {day,hour}, 3: {day,hour}}
+let applyPrefs = {};
+let applyTeamId = null;
+
 function renderApply(){
   const isOpen=round&&round.status==='open';
   const isFin=round&&(round.status==='finished'||round.draft_approved);
-  const dayOpts=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
-  const hourOpts=HOURS.map(h=>`<option value="${h}">${timeStr(h)}</option>`).join('');
   const teamOpts=korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+
   let html=`
     <div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
       <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':'⭕'}</div>
@@ -689,14 +723,34 @@ function renderApply(){
     </div>`;
 
   if(isOpen){
+    const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
+    const prefLabel=(p)=>p?`${DAYS[p.day]} ${p.hour}:00`:null;
     html+=`
     <div class="apply-card">
-      <div class="apply-card-title">시간 신청</div>
-      <div style="margin-bottom:10px"><div class="fl">팀 선택</div><select class="fs" id="apTeam">${teamOpts}</select></div>
-      <div class="pref-grid" style="margin-bottom:4px"><div></div><div style="font-size:9px;color:var(--text3);font-weight:700">요일</div><div style="font-size:9px;color:var(--text3);font-weight:700">시간</div></div>
-      <div class="pref-grid"><div class="pref-lbl p1">1지망</div><select class="fs" id="apD1">${dayOpts}</select><select class="fs" id="apH1">${hourOpts}</select></div>
-      <div class="pref-grid"><div class="pref-lbl p2">2지망</div><select class="fs" id="apD2"><option value="">—</option>${dayOpts}</select><select class="fs" id="apH2"><option value="">—</option>${hourOpts}</select></div>
-      <div class="pref-grid"><div class="pref-lbl p3">3지망</div><select class="fs" id="apD3"><option value="">—</option>${dayOpts}</select><select class="fs" id="apH3"><option value="">—</option>${hourOpts}</select></div>
+      <div class="apply-card-title">시간 신청 — 팀 선택 후 시간표에서 클릭</div>
+      <div style="margin-bottom:12px">
+        <div class="fl">팀 선택</div>
+        <select class="fs" id="apTeam" onchange="onApplyTeamChange(this.value)">${teamOpts}</select>
+      </div>
+      <div class="pref-status">
+        <div class="pref-row">
+          <span class="pref-badge p1">1지망</span>
+          <span class="pref-val ${p1?'':'empty'}">${prefLabel(p1)||'시간표에서 클릭해서 선택'}</span>
+          ${p1?`<button class="pref-clear" onclick="clearPref(1)">×</button>`:''}
+        </div>
+        <div class="pref-row">
+          <span class="pref-badge p2">2지망</span>
+          <span class="pref-val ${p2?'':'empty'}">${prefLabel(p2)||'시간표에서 클릭해서 선택 (선택사항)'}</span>
+          ${p2?`<button class="pref-clear" onclick="clearPref(2)">×</button>`:''}
+        </div>
+        <div class="pref-row">
+          <span class="pref-badge p3">3지망</span>
+          <span class="pref-val ${p3?'':'empty'}">${prefLabel(p3)||'시간표에서 클릭해서 선택 (선택사항)'}</span>
+          ${p3?`<button class="pref-clear" onclick="clearPref(3)">×</button>`:''}
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">아래 시간표에서 원하는 시간을 클릭하면 순서대로 1→2→3지망이 선택됩니다. 이미 배정된 시간도 신청할 수 있습니다.</div>
+      ${renderApplyGrid()}
       <div style="display:flex;justify-content:flex-end;margin-top:12px">
         <button class="btn btn-p" onclick="submitApply()">신청 제출</button>
       </div>
@@ -726,20 +780,100 @@ function renderApply(){
   }
 
   document.getElementById('applyContent').innerHTML=html;
+  // 팀 select 값 복원
+  const sel=document.getElementById('apTeam');
+  if(sel&&applyTeamId) sel.value=applyTeamId;
+}
+
+function renderApplyGrid(){
+  const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
+  const prefMap={};
+  if(p1) prefMap[`${p1.day}-${p1.hour}`]=1;
+  if(p2) prefMap[`${p2.day}-${p2.hour}`]=2;
+  if(p3) prefMap[`${p3.day}-${p3.hour}`]=3;
+  const occMap=new Map(merged.filter(s=>s.status!=='absent').map(s=>[`${s.day}-${s.hour}`,s.teams.name]));
+
+  let html=`<div class="apply-sch-wrap">
+    <div class="apply-sch-hdr"><div class="apply-sch-day"></div>${DAYS.map(d=>`<div class="apply-sch-day">${d}</div>`).join('')}</div>
+    <div class="apply-sch-body">
+      <div class="apply-sch-times">${HOURS.map(h=>`<div class="apply-sch-time">${h}</div>`).join('')}</div>
+      <div class="apply-sch-grid">`;
+  for(let d=0;d<7;d++){
+    html+=`<div class="apply-sch-col">`;
+    for(const h of HOURS){
+      const key=`${d}-${h}`;
+      const pn=prefMap[key];
+      const occ=occMap.get(key);
+      html+=`<div class="apply-cell${pn?' pref'+pn:''}" onclick="toggleApplyCell(${d},${h})">`;
+      if(pn) html+=`<div class="apply-cell-label p${pn}">${pn}지망</div>`;
+      else if(occ) html+=`<div class="apply-cell-occ">${occ}</div>`;
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }
+  html+=`</div></div></div>`;
+  return html;
+}
+
+window.onApplyTeamChange=function(val){
+  applyTeamId=parseInt(val);
+};
+
+window.toggleApplyCell=function(day,hour){
+  if(!round||round.status!=='open') return;
+  const key=`${day}-${hour}`;
+  // 이미 선택된 지망인지 확인
+  for(let n=1;n<=3;n++){
+    const p=applyPrefs[n];
+    if(p&&p.day===day&&p.hour===hour){ delete applyPrefs[n]; renderApplyInplace(); return; }
+  }
+  // 다음 빈 지망 번호 찾기
+  const next=[1,2,3].find(n=>!applyPrefs[n]);
+  if(!next){ toast('이미 3지망까지 모두 선택됐습니다. 취소하려면 선택된 칸을 다시 클릭하세요'); return; }
+  applyPrefs[next]={day,hour};
+  renderApplyInplace();
+};
+
+window.clearPref=function(n){
+  delete applyPrefs[n];
+  // 빈 자리 채우기 (2 삭제 시 3→2로 당기기)
+  if(n===1&&applyPrefs[2]){ applyPrefs[1]=applyPrefs[2]; delete applyPrefs[2]; }
+  if((n===1||n===2)&&applyPrefs[3]){ applyPrefs[2]=applyPrefs[3]; delete applyPrefs[3]; }
+  renderApplyInplace();
+};
+
+function renderApplyInplace(){
+  // 그리드와 지망 현황만 업데이트
+  const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
+  const prefLabel=(p)=>p?`${DAYS[p.day]} ${p.hour}:00`:null;
+  // pref-status 업데이트
+  const rows=document.querySelectorAll('.pref-row');
+  [[1,p1,'p1'],[2,p2,'p2'],[3,p3,'p3']].forEach(([n,p,cls],i)=>{
+    if(!rows[i]) return;
+    rows[i].innerHTML=`
+      <span class="pref-badge ${cls}">${n}지망</span>
+      <span class="pref-val ${p?'':'empty'}">${prefLabel(p)||(n===1?'시간표에서 클릭해서 선택':'시간표에서 클릭해서 선택 (선택사항)')}</span>
+      ${p?`<button class="pref-clear" onclick="clearPref(${n})">×</button>`:''}`;
+  });
+  // 그리드 업데이트
+  const gridWrap=document.querySelector('.apply-sch-wrap');
+  if(gridWrap) gridWrap.outerHTML=renderApplyGrid();
 }
 
 window.submitApply=async function(){
   if(!round||round.status!=='open'){toast('현재 신청 기간이 아닙니다','err');return;}
-  const team_id=parseInt(document.getElementById('apTeam').value);
-  const p1d=parseInt(document.getElementById('apD1').value);
-  const p1h=parseInt(document.getElementById('apH1').value);
-  const p2d=document.getElementById('apD2').value; const p2h=document.getElementById('apH2').value;
-  const p3d=document.getElementById('apD3').value; const p3h=document.getElementById('apH3').value;
+  const selEl=document.getElementById('apTeam');
+  const team_id=applyTeamId||parseInt(selEl?.value);
+  if(!team_id||isNaN(team_id)){toast('팀을 선택해주세요','err');return;}
+  if(!applyPrefs[1]){toast('1지망을 선택해주세요','err');return;}
+  const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
   try{
-    await submitApplication({round_id:round.id,team_id,pref1_day:p1d,pref1_hour:p1h,
-      pref2_day:p2d?parseInt(p2d):null,pref2_hour:p2h?parseInt(p2h):null,
-      pref3_day:p3d?parseInt(p3d):null,pref3_hour:p3h?parseInt(p3h):null});
+    await submitApplication({round_id:round.id,team_id,
+      pref1_day:p1.day,pref1_hour:p1.hour,
+      pref2_day:p2?p2.day:null,pref2_hour:p2?p2.hour:null,
+      pref3_day:p3?p3.day:null,pref3_hour:p3?p3.hour:null});
     applications=await fetchApplications(round.id);
+    applyPrefs={}; applyTeamId=null;
     toast('신청이 제출됐습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
