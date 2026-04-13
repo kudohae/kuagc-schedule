@@ -7,123 +7,141 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
 :root{
-  --bg:#0e0e0f;--surface:#18181b;--surface2:#222226;--border:#2e2e34;
+  --bg:#f4f4f5;--surface:#ffffff;--surface2:#f0f0f2;--border:#dddde0;
+  --accent:#5c9e00;--accent2:#0077cc;--danger:#d93025;--warn:#c8760a;
+  --text:#111111;--text2:#555555;--text3:#999999;--radius:6px;--hh:48px;
+  --header-bg:rgba(244,244,245,.97);
+}
+body.dark{
+  --bg:#121212;--surface:#1e1e1e;--surface2:#2a2a2e;--border:#333338;
   --accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;
-  --text:#f0f0f0;--text2:#888;--text3:#444;--radius:6px;--hh:44px;
+  --text:#f0f0f0;--text2:#888888;--text3:#505055;
+  --header-bg:rgba(18,18,18,.97);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
-header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;position:sticky;top:0;background:rgba(14,14,15,.97);backdrop-filter:blur(8px);z-index:100;}
-.logo{font-family:'Space Mono',monospace;font-weight:700;font-size:13px;color:var(--accent);text-decoration:none;}
-.back-btn{font-size:11px;color:var(--text2);text-decoration:none;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 9px;transition:color .12s;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+
+header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;position:sticky;top:0;background:var(--header-bg);backdrop-filter:blur(8px);z-index:100;}
+.logo{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;color:var(--accent);text-decoration:none;}
+.back-btn{font-size:12px;color:var(--text2);text-decoration:none;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;transition:color .12s;}
 .back-btn:hover{color:var(--text);}
 .type-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
-.type-btn{padding:4px 14px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;transition:all .12s;}
+.type-btn{padding:5px 15px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;transition:all .12s;}
 .type-btn.active{background:var(--surface);color:var(--text);font-weight:700;}
-.hdr-right{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:7px;}
+.theme-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:14px;cursor:pointer;line-height:1;}
+.theme-btn:hover{border-color:var(--text2);}
+
 .container{max-width:860px;margin:0 auto;padding:14px;display:flex;flex-direction:column;gap:12px;}
 
 /* SEARCH */
-.search-bar{display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;}
-.search-icon{font-size:14px;flex-shrink:0;color:var(--text3);}
-.search-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;}
+.search-bar{display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 13px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.search-icon{font-size:15px;flex-shrink:0;color:var(--text3);}
+.search-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;}
 .search-input::placeholder{color:var(--text3);}
-.search-clear{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;}
+.search-clear{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;}
 .search-clear:hover{color:var(--text2);}
 
 /* STATUS */
-.status-card{border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:12px;}
+.status-card{border-radius:var(--radius);padding:13px 16px;display:flex;align-items:center;gap:12px;}
 .status-card.closed{background:var(--surface);border:1px solid var(--border);}
-.status-card.song{background:rgba(232,255,71,.06);border:1px solid rgba(232,255,71,.2);}
-.status-card.session{background:rgba(71,197,255,.06);border:1px solid rgba(71,197,255,.2);}
-.status-icon{font-size:20px;flex-shrink:0;}
-.status-texts{display:flex;flex-direction:column;gap:2px;}
-.status-title{font-size:14px;font-weight:700;}
-.status-sub{font-size:11px;color:var(--text2);}
+.status-card.song{background:rgba(92,158,0,.06);border:1px solid rgba(92,158,0,.2);}
+body.dark .status-card.song{background:rgba(232,255,71,.06);border-color:rgba(232,255,71,.2);}
+.status-card.session{background:rgba(0,119,204,.06);border:1px solid rgba(0,119,204,.2);}
+body.dark .status-card.session{background:rgba(71,197,255,.06);border-color:rgba(71,197,255,.2);}
+.status-icon{font-size:22px;flex-shrink:0;}
+.status-texts{display:flex;flex-direction:column;gap:3px;}
+.status-title{font-size:15px;font-weight:700;}
+.status-sub{font-size:12px;color:var(--text2);}
 
 /* FORM */
-.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
-.form-title{font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 17px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.form-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
 .form-row.single{grid-template-columns:1fr;}
-.fl{font-size:10px;color:var(--text2);margin-bottom:4px;font-weight:500;}
-.fi,.fs{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 10px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border-color .12s;}
+.fl{font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500;}
+.fi,.fs{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 11px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border-color .12s;}
 .fi:focus,.fs:focus{border-color:var(--accent);}
 .fs option{background:var(--surface);}
-.session-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.session-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;}
 .session-chk{display:none;}
-.session-label{display:inline-flex;align-items:center;padding:4px 10px;border-radius:4px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .12s;user-select:none;background:var(--surface2);}
+.session-label{display:inline-flex;align-items:center;padding:5px 11px;border-radius:4px;border:1px solid var(--border);font-size:13px;cursor:pointer;transition:all .12s;user-select:none;background:var(--surface2);}
 .session-chk:checked+.session-label{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
 .session-label:hover{border-color:var(--text2);}
-.form-footer{display:flex;justify-content:flex-end;margin-top:12px;}
-
-/* SESSION AREA (dynamic, appears after song select) */
-.session-area{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
-.session-area-title{font-size:10px;color:var(--text2);font-weight:500;}
-.no-song-selected{font-size:12px;color:var(--text3);padding:8px 0;}
+.form-footer{display:flex;justify-content:flex-end;margin-top:14px;}
+.session-area{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.no-song-selected{font-size:13px;color:var(--text3);padding:8px 0;}
 
 /* BUTTONS */
-.btn{padding:6px 14px;border-radius:5px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .12s;white-space:nowrap;}
+.btn{padding:7px 15px;border-radius:5px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .12s;white-space:nowrap;}
 .btn:hover{opacity:.8;}
 .btn:disabled{opacity:.35;cursor:not-allowed;}
 .btn-p{background:var(--accent);color:#000;}
 .btn-s{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
-.btn-xs{padding:3px 8px;font-size:11px;}
+.btn-xs{padding:4px 9px;font-size:12px;}
 
 /* SONG LIST */
-.list-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.list-card-hdr{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.list-card-title{font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;}
-.list-card-count{font-size:11px;color:var(--text3);}
-.song-item{padding:11px 13px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px;}
+.list-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.list-card-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.list-card-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;}
+.list-card-count{font-size:12px;color:var(--text3);}
+.song-item{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
 .song-item:last-child{border-bottom:none;}
 .song-item-hdr{display:flex;align-items:flex-start;gap:8px;}
-.song-num{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);flex-shrink:0;min-width:22px;padding-top:2px;}
+.song-num{font-family:'Space Mono',monospace;font-size:12px;color:var(--text3);flex-shrink:0;min-width:24px;padding-top:2px;}
 .song-info{flex:1;min-width:0;}
-.song-title{font-size:13px;font-weight:700;}
-.song-artist{font-size:12px;color:var(--text2);}
-.song-status{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0;}
-.song-status.confirmed{background:rgba(232,255,71,.15);color:var(--accent);}
-.song-status.pending{background:rgba(255,170,71,.1);color:var(--warn);}
-.song-status.rejected{background:rgba(255,71,71,.1);color:var(--danger);}
+.song-title{font-size:14px;font-weight:700;}
+.song-artist{font-size:13px;color:var(--text2);}
+.song-status{font-size:11px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;}
+.song-status.confirmed{background:rgba(92,158,0,.12);color:var(--accent);}
+body.dark .song-status.confirmed{background:rgba(232,255,71,.15);}
+.song-status.pending{background:rgba(200,118,10,.1);color:var(--warn);}
+body.dark .song-status.pending{background:rgba(255,170,71,.1);}
+.song-status.rejected{background:rgba(217,48,37,.1);color:var(--danger);}
+body.dark .song-status.rejected{background:rgba(255,71,71,.1);}
 .song-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.song-applicant{font-size:11px;color:var(--text3);}
-.song-ts{font-size:10px;color:var(--text3);}
+.song-applicant{font-size:12px;color:var(--text3);}
+.song-ts{font-size:11px;color:var(--text3);}
 .sessions-needed{display:flex;flex-wrap:wrap;gap:4px;}
-.sneed{font-size:10px;padding:1px 6px;border-radius:3px;border:1px solid var(--border);color:var(--text2);background:var(--surface2);}
-.sneed.filled{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,.08);}
-.session-list{background:var(--surface2);border-radius:4px;padding:7px 10px;display:flex;flex-direction:column;gap:4px;}
-.session-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+.sneed{font-size:11px;padding:2px 7px;border-radius:3px;border:1px solid var(--border);color:var(--text2);background:var(--surface2);}
+.sneed.filled{border-color:var(--accent);color:var(--accent);background:rgba(92,158,0,.08);}
+body.dark .sneed.filled{background:rgba(232,255,71,.08);}
+.session-list{background:var(--surface2);border-radius:4px;padding:8px 11px;display:flex;flex-direction:column;gap:5px;}
+.session-row{display:flex;align-items:center;gap:8px;font-size:13px;}
 .session-row-name{font-weight:600;flex:1;}
 .session-row-right{display:flex;align-items:center;gap:6px;}
 .session-row-sessions{display:flex;gap:3px;flex-wrap:wrap;}
-.sess-tag{font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(71,197,255,.1);border:1px solid rgba(71,197,255,.2);color:var(--accent2);}
-.sess-tag.confirmed{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.25);color:var(--accent);}
-.sess-ts{font-size:9px;color:var(--text3);}
+.sess-tag{font-size:11px;padding:2px 6px;border-radius:3px;background:rgba(0,119,204,.1);border:1px solid rgba(0,119,204,.2);color:var(--accent2);}
+body.dark .sess-tag{background:rgba(71,197,255,.1);border-color:rgba(71,197,255,.2);}
+.sess-tag.confirmed{background:rgba(92,158,0,.1);border-color:rgba(92,158,0,.2);color:var(--accent);}
+body.dark .sess-tag.confirmed{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.25);}
+.sess-ts{font-size:10px;color:var(--text3);}
 
 /* MODAL */
-.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(4px);animation:fi .15s;}
+.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(4px);animation:fi .15s;}
+body.dark .modal-bd{background:rgba(0,0,0,.7);}
 @keyframes fi{from{opacity:0}to{opacity:1}}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:420px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;animation:su .15s;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:420px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;animation:su .15s;box-shadow:0 8px 32px rgba(0,0,0,.1);}
+body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 @keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal-hdr{padding:12px 15px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.modal-ttl{font-size:14px;font-weight:700;}
-.modal-x{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1;}
+.modal-hdr{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-ttl{font-size:15px;font-weight:700;}
+.modal-x{background:none;border:none;color:var(--text2);cursor:pointer;font-size:22px;line-height:1;}
 .modal-x:hover{color:var(--text);}
-.modal-body{padding:12px 15px;display:flex;flex-direction:column;gap:9px;overflow-y:auto;flex:1;}
-.modal-foot{padding:9px 15px;border-top:1px solid var(--border);display:flex;gap:6px;justify-content:flex-end;flex-shrink:0;}
-.irow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.modal-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;}
+.modal-foot{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:6px;justify-content:flex-end;flex-shrink:0;}
+.irow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .irow:last-child{border-bottom:none;}
 .ik{color:var(--text2);}
 
-.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 14px;font-size:12px;font-weight:500;z-index:999;white-space:nowrap;animation:fi .2s;}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 16px;font-size:13px;font-weight:500;z-index:999;white-space:nowrap;animation:fi .2s;box-shadow:0 2px 12px rgba(0,0,0,.1);}
 .toast.ok{border-color:var(--accent);color:var(--accent);}
 .toast.err{border-color:var(--danger);color:var(--danger);}
 .ld{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:12px;}
 .spin{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-.empty-search{font-size:13px;color:var(--text3);text-align:center;padding:24px 0;}
+.empty-search{font-size:14px;color:var(--text3);text-align:center;padding:24px 0;}
 
 @media(max-width:600px){
   .form-row{grid-template-columns:1fr;}
@@ -149,6 +167,7 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
   </div>
   <div class="hdr-right">
     <a class="back-btn" href="index.html">← 시간표</a>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="다크/라이트 모드 전환">🌙</button>
   </div>
 </header>
 
@@ -167,6 +186,20 @@ import { supabase } from './js/supabase.js';
 
 const SESSIONS = ['보컬1','보컬2','기타1','기타2','베이스','키보드1','키보드2','드럼','이외 악기'];
 
+// ── THEME ─────────────────────────────────────────────────────────────
+(function initTheme(){
+  const saved=localStorage.getItem('theme');
+  if(saved==='dark') document.body.classList.add('dark');
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent=document.body.classList.contains('dark')?'☀️':'🌙';
+})();
+window.toggleTheme=function(){
+  document.body.classList.toggle('dark');
+  localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent=document.body.classList.contains('dark')?'☀️':'🌙';
+};
+
 let currentType = 'regular';
 let rounds = {regular:null, busking:null};
 let songs = {regular:[], busking:[]};
@@ -180,7 +213,6 @@ function fmtTime(ts){
 }
 const errMsg=e=>{const m=e?.message||'';if(m.includes('unique')||m.includes('duplicate'))return'이미 동일한 신청이 존재합니다';if(m.includes('network')||m.includes('fetch'))return'네트워크 오류가 발생했습니다. 다시 시도해주세요';if(m.includes('JWT')||m.includes('auth'))return'인증 오류입니다. 새로고침 후 시도해주세요';return m||'오류가 발생했습니다';};
 
-// ── INIT ─────────────────────────────────────────────────────────────
 async function init(){
   try{
     await loadAll();
@@ -193,8 +225,8 @@ async function init(){
   }catch(e){
     document.getElementById('ld').innerHTML=`
       <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
-        <div style="color:var(--danger);font-size:14px">불러오기 실패</div>
-        <div style="color:var(--text2);font-size:12px">${e.message}</div>
+        <div style="color:var(--danger);font-size:15px">불러오기 실패</div>
+        <div style="color:var(--text2);font-size:13px">${e.message}</div>
         <button class="btn btn-p" onclick="location.reload()">다시 시도</button>
       </div>`;
   }
@@ -221,7 +253,6 @@ async function loadAll(){
   render();
 }
 
-// ── TYPE SWITCH ───────────────────────────────────────────────────────
 window.switchType=function(t){
   currentType=t; searchQ='';
   document.getElementById('tb-regular').classList.toggle('active',t==='regular');
@@ -229,7 +260,6 @@ window.switchType=function(t){
   render();
 };
 
-// ── SEARCH ───────────────────────────────────────────────────────────
 window.onSearchInput=function(v){
   searchQ=v.trim().toLowerCase();
   renderList();
@@ -241,21 +271,18 @@ window.clearSearch=function(){
   renderList();
 };
 
-// ── RENDER ────────────────────────────────────────────────────────────
 function render(){
   const r=rounds[currentType];
   const phase=r?.phase||'closed';
   const typeName=currentType==='regular'?'일반 합주':'버스킹 합주';
   let html='';
 
-  // 검색바
   html+=`<div class="search-bar">
     <span class="search-icon">🔍</span>
     <input class="search-input" id="searchInput" placeholder="곡 제목 또는 세션으로 검색..." value="${searchQ}" oninput="onSearchInput(this.value)"/>
     <button class="search-clear" onclick="clearSearch()" style="${searchQ?'':'display:none'}">×</button>
   </div>`;
 
-  // 상태 카드
   const si={
     closed:{icon:'⭕',title:'신청 기간이 아닙니다',sub:'관리자가 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed'},
     song:{icon:'🎵',title:'곡 신청 진행 중',sub:r?`최대 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡`:'',cls:'song'},
@@ -269,7 +296,6 @@ function render(){
     </div>
   </div>`;
 
-  // 곡 신청 폼
   if(phase==='song'){
     const active=songs[currentType].filter(s=>s.status!=='rejected');
     const remaining=r.max_songs-active.length;
@@ -293,7 +319,6 @@ function render(){
     </div>`;
   }
 
-  // 세션 신청 폼
   if(phase==='session'){
     const confirmedSongs=songs[currentType].filter(s=>s.status==='confirmed');
     html+=`<div class="form-card">
@@ -318,9 +343,7 @@ function render(){
     </div>`;
   }
 
-  // 곡 목록 (검색 결과 포함)
   html+=`<div id="songListEl"></div>`;
-
   document.getElementById('mainContainer').innerHTML=html;
   renderList();
 }
@@ -330,7 +353,6 @@ function renderList(){
   const phase=r?.phase||'closed';
   const songList=songs[currentType]||[];
   const active=songList.filter(s=>s.status!=='rejected');
-
   let filtered=active;
   if(searchQ){
     filtered=active.filter(s=>
@@ -339,17 +361,14 @@ function renderList(){
       s.sessions.some(sess=>sess.toLowerCase().includes(searchQ))
     );
   }
-
   const el=document.getElementById('songListEl');
   if(!el) return;
   if(!active.length){el.innerHTML='';return;}
-
   let html=`<div class="list-card">
     <div class="list-card-hdr">
       <div class="list-card-title">${phase==='song'?'신청 현황':'곡 목록'}</div>
       <div class="list-card-count">${searchQ?`${filtered.length}/${active.length}곡`:active.length+'곡'}</div>
     </div>`;
-
   if(!filtered.length){
     html+=`<div class="empty-search">검색 결과가 없습니다</div>`;
   } else {
@@ -377,7 +396,6 @@ function renderSongItem(s,num,phase){
           </div>
         </div>`).join('')}
     </div>`:'';
-
   return `<div class="song-item">
     <div class="song-item-hdr">
       <span class="song-num">${String(num).padStart(2,'0')}</span>
@@ -400,7 +418,6 @@ function renderSongItem(s,num,phase){
   </div>`;
 }
 
-// ── SESSION SELECT (곡 선택 시 세션 필터) ────────────────────────────
 window.onSongSelect=function(){
   const sel=document.getElementById('ssSong');
   const area=document.getElementById('sessionSelectArea');
@@ -426,7 +443,6 @@ window.onSongSelect=function(){
     </div>`;
 };
 
-// ── SUBMIT SONG ───────────────────────────────────────────────────────
 window.submitSong=async function(){
   const r=rounds[currentType];
   if(!r||r.phase!=='song'){toast('현재 곡 신청 기간이 아닙니다','err');return;}
@@ -437,8 +453,6 @@ window.submitSong=async function(){
   const sessions=[...document.querySelectorAll('[id^="ns_"]:checked')].map(c=>c.value);
   if(!name||!sid||!title||!artist){toast('모든 필드를 입력해주세요','err');return;}
   if(!sessions.length){toast('필요 세션을 하나 이상 선택해주세요','err');return;}
-
-  // 중복 곡 확인 (제목+아티스트 동일)
   const titleNorm=title.trim().toLowerCase();
   const artistNorm=artist.trim().toLowerCase();
   const dup=songs[currentType].find(s=>
@@ -447,15 +461,10 @@ window.submitSong=async function(){
     s.artist.trim().toLowerCase()===artistNorm
   );
   if(dup){toast('이미 동일한 곡이 신청되어 있습니다','err');return;}
-
-  // 인당 제한
   const myCount=songs[currentType].filter(s=>s.student_id===sid&&s.status!=='rejected').length;
   if(myCount>=r.max_songs_per_person){toast(`인당 최대 ${r.max_songs_per_person}곡까지 신청 가능합니다`,'err');return;}
-
-  // 총 곡수
   const totalCount=songs[currentType].filter(s=>s.status!=='rejected').length;
   if(totalCount>=r.max_songs){toast('신청 가능한 곡 수가 초과됐습니다','err');return;}
-
   try{
     await supabase.from('song_applications').insert({
       round_id:r.id,applicant_name:name,student_id:sid,title,artist,sessions,status:'pending'
@@ -465,7 +474,6 @@ window.submitSong=async function(){
   }catch(e){toast(errMsg(e),'err');}
 };
 
-// ── SUBMIT SESSION (from form) ────────────────────────────────────────
 window.submitSession=async function(){
   const r=rounds[currentType];
   if(!r||r.phase!=='session'){toast('현재 세션 신청 기간이 아닙니다','err');return;}
@@ -473,18 +481,13 @@ window.submitSession=async function(){
   const sid=document.getElementById('ssStudentId').value.trim();
   const songId=document.getElementById('ssSong').value;
   if(!name||!sid||!songId){toast('모든 필드를 입력해주세요','err');return;}
-
-  // 선택된 세션 (필요 세션 기반)
   const sessions=[...document.querySelectorAll('[id^="sss_"]:checked')].map(c=>c.value);
   if(!sessions.length){toast('참여할 세션을 하나 이상 선택해주세요','err');return;}
-
   await doSubmitSession(parseInt(songId),r,name,sid,sessions);
 };
 
-// ── SESSION MODAL (from song list) ────────────────────────────────────
 window.openSessionModal=function(songId){
   const song=songs[currentType].find(s=>s.id===songId);
-  const r=rounds[currentType];
   const neededSessions=song.sessions||[];
   showModal(`세션 신청 — ${song.title}`,
     `<div class="irow"><span class="ik">곡</span><span style="font-weight:700">${song.title}</span></div>
@@ -517,13 +520,11 @@ window.submitSessionModal=async function(songId){
 };
 
 async function doSubmitSession(songId,r,name,sid,sessions){
-  // 인당 참여 곡수 확인
   const allSess=Object.values(sessionMap).flat();
   const mySongs=new Set(allSess.filter(a=>a.student_id===sid&&a.round_id===r.id&&a.status!=='rejected').map(a=>a.song_id));
   if(!mySongs.has(songId)&&mySongs.size>=r.max_sessions_per_person){
     toast(`인당 최대 ${r.max_sessions_per_person}곡까지 참여 가능합니다`,'err');return false;
   }
-  // 중복 신청 확인
   const existing=(sessionMap[songId]||[]).find(a=>a.student_id===sid&&a.status!=='rejected');
   if(existing){toast('이미 이 곡에 세션을 신청했습니다','err');return false;}
   try{
@@ -535,7 +536,6 @@ async function doSubmitSession(songId,r,name,sid,sessions){
   }catch(e){toast(errMsg(e),'err');return false;}
 }
 
-// ── MODAL ─────────────────────────────────────────────────────────────
 function showModal(title,body,foot){
   document.getElementById('modalTtl').textContent=title;
   document.getElementById('modalBody').innerHTML=body;
