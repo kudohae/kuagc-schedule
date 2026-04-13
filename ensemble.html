@@ -143,13 +143,49 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 
 .empty-search{font-size:14px;color:var(--text3);text-align:center;padding:24px 0;}
 
-@media(max-width:600px){
+@media(max-width:700px){
+  body{font-size:15px;}
   .form-row{grid-template-columns:1fr;}
-  .container{padding:10px;}
+  .container{padding:10px;gap:10px;}
+
+  /* 헤더 */
+  header{padding:0 12px;gap:8px;}
+  .type-btn{padding:6px 12px;font-size:13px;min-height:40px;}
+  .back-btn{font-size:12px;padding:5px 10px;min-height:36px;}
+  .theme-btn{min-height:36px;}
+
+  /* 폼 */
+  .form-card{padding:14px;}
+  .fi,.fs{font-size:16px;min-height:44px;padding:10px 12px;}
+  .fl{font-size:13px;}
+  .btn{min-height:44px;padding:10px 16px;font-size:14px;}
+  .btn-xs{min-height:40px;padding:8px 12px;font-size:13px;}
+
+  /* session-label 간격 확대 */
+  .session-grid{gap:10px;}
+  .session-label{min-height:44px;padding:10px 14px;font-size:14px;}
+
+  /* 모달 바텀시트 */
   .modal-bd{align-items:flex-end;}
-  .modal{border-radius:12px 12px 0 0;width:100%;max-width:100%;max-height:85vh;}
-  .modal::before{content:'';display:block;width:32px;height:3px;background:var(--border);border-radius:2px;margin:8px auto 0;}
-  .fi,.fs{font-size:16px;}
+  .modal{border-radius:16px 16px 0 0;width:100%;max-width:100%;max-height:88vh;}
+  .modal::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;}
+
+  /* 곡 목록 여백 확대 */
+  .song-item{padding:16px 14px;gap:10px;}
+  .song-title{font-size:16px;}
+  .song-artist{font-size:14px;}
+  .song-applicant,.song-ts{font-size:12px;}
+  .sneed{font-size:12px;padding:3px 9px;min-height:28px;}
+  .sessions-needed{gap:6px;}
+  .session-list{padding:10px 12px;gap:7px;}
+  .session-row{font-size:13px;}
+  .sess-tag{font-size:12px;padding:3px 8px;}
+  .sess-ts{font-size:11px;}
+  .song-num{font-size:13px;}
+  .song-status{font-size:12px;padding:3px 8px;}
+  .list-card-hdr{padding:12px 14px;}
+  .list-card-title{font-size:12px;}
+  .list-card-count{font-size:12px;}
 }
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -536,12 +572,26 @@ async function doSubmitSession(songId,r,name,sid,sessions){
   }catch(e){toast(errMsg(e),'err');return false;}
 }
 
+const isMobile=()=>window.innerWidth<=700;
+
 function showModal(title,body,foot){
   document.getElementById('modalTtl').textContent=title;
   document.getElementById('modalBody').innerHTML=body;
   document.getElementById('modalFoot').innerHTML=foot;
   document.getElementById('modalBd').style.display='flex';
   document.body.style.overflow='hidden';
+  if(isMobile()){
+    const modal=document.querySelector('#modalBd .modal');
+    if(!modal) return;
+    let startY=0,isDragging=false;
+    modal.style.transform='';
+    const onStart=e=>{startY=e.touches[0].clientY;isDragging=true;modal.style.transition='none';};
+    const onMove=e=>{if(!isDragging)return;const dy=e.touches[0].clientY-startY;if(dy>0)modal.style.transform=`translateY(${dy}px)`;};
+    const onEnd=e=>{if(!isDragging)return;isDragging=false;const dy=e.changedTouches[0].clientY-startY;modal.style.transition='transform .2s';if(dy>100){modal.style.transform=`translateY(100%)`;setTimeout(closeModal,200);}else{modal.style.transform='';}};
+    modal.addEventListener('touchstart',onStart,{passive:true});
+    modal.addEventListener('touchmove',onMove,{passive:true});
+    modal.addEventListener('touchend',onEnd);
+  }
 }
 window.closeModal=()=>{document.getElementById('modalBd').style.display='none';document.body.style.overflow='';};
 window.onMBd=e=>{if(e.target===document.getElementById('modalBd'))closeModal();};
