@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>합주 신청 — 그루터기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+:root{
+  --bg:#0e0e0f;--surface:#18181b;--surface2:#222226;--border:#2e2e34;
+  --accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;
+  --text:#f0f0f0;--text2:#888;--text3:#444;--radius:6px;--hh:44px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
+
+header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;position:sticky;top:0;background:rgba(14,14,15,.97);backdrop-filter:blur(8px);z-index:100;}
+.logo{font-family:'Space Mono',monospace;font-weight:700;font-size:13px;color:var(--accent);text-decoration:none;}
+.back-btn{font-size:11px;color:var(--text2);text-decoration:none;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 9px;transition:color .12s;}
+.back-btn:hover{color:var(--text);}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.type-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+.type-btn{padding:4px 14px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;transition:all .12s;}
+.type-btn.active{background:var(--surface);color:var(--text);font-weight:700;}
+
+.container{max-width:860px;margin:0 auto;padding:16px 14px;display:flex;flex-direction:column;gap:14px;}
+
+/* STATUS CARD */
+.status-card{border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.status-card.closed{background:var(--surface);border:1px solid var(--border);}
+.status-card.song{background:rgba(232,255,71,.06);border:1px solid rgba(232,255,71,.2);}
+.status-card.session{background:rgba(71,197,255,.06);border:1px solid rgba(71,197,255,.2);}
+.status-icon{font-size:22px;flex-shrink:0;}
+.status-texts{display:flex;flex-direction:column;gap:3px;}
+.status-title{font-size:15px;font-weight:700;}
+.status-sub{font-size:11px;color:var(--text2);}
+
+/* FORM CARD */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.form-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.form-row.single{grid-template-columns:1fr;}
+.fl{font-size:10px;color:var(--text2);margin-bottom:4px;font-weight:500;}
+.fi,.fs{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 10px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border-color .12s;}
+.fi:focus,.fs:focus{border-color:var(--accent);}
+.fs option{background:var(--surface);}
+
+/* SESSION CHECKBOXES */
+.session-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.session-chk{display:none;}
+.session-label{display:inline-flex;align-items:center;padding:4px 10px;border-radius:4px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .12s;user-select:none;background:var(--surface2);}
+.session-chk:checked+.session-label{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+.session-label:hover{border-color:var(--text2);}
+
+.form-footer{display:flex;justify-content:flex-end;margin-top:14px;}
+.btn{padding:7px 16px;border-radius:5px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .12s;white-space:nowrap;}
+.btn:hover{opacity:.8;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-p{background:var(--accent);color:#000;}
+.btn-s{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.btn-d{background:var(--danger);color:#fff;}
+.btn-xs{padding:3px 8px;font-size:11px;}
+
+/* LIST CARD */
+.list-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.list-card-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.list-card-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;}
+.list-card-count{font-size:11px;color:var(--text3);}
+
+/* SONG ITEM */
+.song-item{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.song-item:last-child{border-bottom:none;}
+.song-item-hdr{display:flex;align-items:center;gap:8px;}
+.song-num{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);flex-shrink:0;min-width:24px;}
+.song-title{font-size:14px;font-weight:700;flex:1;}
+.song-artist{font-size:12px;color:var(--text2);}
+.song-status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.song-status.confirmed{background:rgba(232,255,71,.15);color:var(--accent);}
+.song-status.pending{background:rgba(255,170,71,.1);color:var(--warn);}
+.song-status.rejected{background:rgba(255,71,71,.1);color:var(--danger);}
+.song-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.song-applicant{font-size:11px;color:var(--text3);}
+.sessions-needed{display:flex;flex-wrap:wrap;gap:4px;}
+.sneed{font-size:10px;padding:1px 6px;border-radius:3px;border:1px solid var(--border);color:var(--text2);background:var(--surface2);}
+.sneed.filled{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,.08);}
+
+/* SESSION LIST under song */
+.session-list{background:var(--surface2);border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;}
+.session-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+.session-row-name{font-weight:600;flex:1;}
+.session-row-sessions{display:flex;gap:3px;flex-wrap:wrap;}
+.sess-tag{font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(71,197,255,.1);border:1px solid rgba(71,197,255,.2);color:var(--accent2);}
+.sess-tag.confirmed{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.25);color:var(--accent);}
+
+/* MODAL */
+.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(4px);animation:fi .15s;}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:420px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;animation:su .15s;}
+@keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-hdr{padding:13px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-ttl{font-size:14px;font-weight:700;}
+.modal-x{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1;}
+.modal-x:hover{color:var(--text);}
+.modal-body{padding:13px 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;}
+.modal-foot{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:6px;justify-content:flex-end;flex-shrink:0;}
+.irow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.irow:last-child{border-bottom:none;}
+.ik{color:var(--text2);}
+
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 14px;font-size:12px;font-weight:500;z-index:999;white-space:nowrap;animation:fi .2s;}
+.toast.ok{border-color:var(--accent);color:var(--accent);}
+.toast.err{border-color:var(--danger);color:var(--danger);}
+.ld{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:12px;}
+.spin{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media(max-width:600px){
+  .form-row{grid-template-columns:1fr;}
+  header{padding:0 10px;}
+  .container{padding:10px;}
+  .modal-bd{align-items:flex-end;}
+  .modal{border-radius:12px 12px 0 0;width:100%;max-width:100%;max-height:85vh;}
+  .modal::before{content:'';display:block;width:32px;height:3px;background:var(--border);border-radius:2px;margin:8px auto 0;}
+  .fi,.fs{font-size:16px;}
+}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="ld" id="ld"><div class="spin"></div></div>
+
+<header>
+  <a class="logo" href="https://kuagc.com" target="_blank">BAND</a>
+  <div class="type-toggle">
+    <button class="type-btn active" id="tb-regular" onclick="switchType('regular')">일반 합주</button>
+    <button class="type-btn" id="tb-busking" onclick="switchType('busking')">버스킹 합주</button>
+  </div>
+  <div class="hdr-right">
+    <a class="back-btn" href="index.html">← 시간표</a>
+  </div>
+</header>
+
+<div class="container" id="mainContainer"></div>
+
+<!-- MODAL -->
+<div class="modal-bd" id="modalBd" style="display:none" onclick="onMBd(event)">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-ttl" id="modalTtl"></div><button class="modal-x" onclick="closeModal()">×</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { supabase } from './js/supabase.js';
+
+const SESSIONS = ['보컬1','보컬2','기타1','기타2','베이스','키보드1','키보드2','드럼','이외 악기'];
+
+let currentType = 'regular';
+let rounds = {regular: null, busking: null};
+let songs = {regular: [], busking: []};
+let sessionMap = {}; // song_id → session_applications[]
+
+// ── INIT ──────────────────────────────────────────────────────────────
+async function init(){
+  try{
+    await loadAll();
+    document.getElementById('ld').style.display='none';
+    render();
+    // realtime
+    supabase.channel('ens')
+      .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},loadAll)
+      .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},loadAll)
+      .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},loadAll)
+      .subscribe();
+  }catch(e){
+    document.getElementById('ld').innerHTML=`
+      <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
+        <div style="color:var(--danger);font-size:14px">불러오기 실패</div>
+        <div style="color:var(--text2);font-size:12px">${e.message}</div>
+        <button class="btn btn-p" onclick="init()">다시 시도</button>
+      </div>`;
+  }
+}
+
+async function loadAll(){
+  // 회차 로드 (가장 최근 것)
+  const {data:rds}=await supabase.from('ensemble_rounds').select('*').order('created_at',{ascending:false});
+  if(rds){
+    rounds.regular = rds.find(r=>r.type==='regular')||null;
+    rounds.busking = rds.find(r=>r.type==='busking')||null;
+  }
+  // 곡 신청 로드
+  for(const type of ['regular','busking']){
+    const r=rounds[type];
+    if(!r){ songs[type]=[]; continue; }
+    const {data:s}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
+    songs[type]=s||[];
+  }
+  // 세션 신청 로드
+  const allSongIds=[...songs.regular,...songs.busking].map(s=>s.id);
+  if(allSongIds.length){
+    const {data:sess}=await supabase.from('session_applications').select('*').in('song_id',allSongIds).order('created_at');
+    sessionMap={};
+    (sess||[]).forEach(s=>{ if(!sessionMap[s.song_id]) sessionMap[s.song_id]=[]; sessionMap[s.song_id].push(s); });
+  }
+  render();
+}
+
+// ── TYPE SWITCH ───────────────────────────────────────────────────────
+window.switchType=function(t){
+  currentType=t;
+  document.getElementById('tb-regular').classList.toggle('active',t==='regular');
+  document.getElementById('tb-busking').classList.toggle('active',t==='busking');
+  render();
+};
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function render(){
+  const r=rounds[currentType];
+  const phase=r?.phase||'closed';
+  const songList=songs[currentType]||[];
+  const typeName=currentType==='regular'?'일반 합주':'버스킹 합주';
+  let html='';
+
+  // 상태 카드
+  const statusInfo={
+    closed:{icon:'⭕',title:'신청 기간이 아닙니다',sub:'관리자가 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed'},
+    song:{icon:'🎵',title:'곡 신청 진행 중',sub:r?`최대 ${r.max_songs}곡 / 인당 ${r.max_songs_per_person}곡`:'',cls:'song'},
+    session:{icon:'🎸',title:'세션 신청 진행 중',sub:r?`인당 최대 ${r.max_sessions_per_person}곡 참여 가능`:'',cls:'session'},
+  }[phase];
+  html+=`<div class="status-card ${statusInfo.cls}">
+    <div class="status-icon">${statusInfo.icon}</div>
+    <div class="status-texts">
+      <div class="status-title">${r?.name||typeName} — ${statusInfo.title}</div>
+      <div class="status-sub">${statusInfo.sub}</div>
+    </div>
+  </div>`;
+
+  // 곡 신청 폼
+  if(phase==='song'){
+    const confirmed=songList.filter(s=>s.status==='confirmed'||s.status==='pending').length;
+    const remaining=r.max_songs-confirmed;
+    html+=`<div class="form-card">
+      <div class="form-title">곡 신청 (잔여 ${remaining}/${r.max_songs}곡)</div>
+      <div class="form-row">
+        <div><div class="fl">신청자 성명 *</div><input class="fi" id="sName" placeholder="홍길동" maxlength="20"/></div>
+        <div><div class="fl">학번 *</div><input class="fi" id="sStudentId" placeholder="20250001" maxlength="20"/></div>
+      </div>
+      <div class="form-row">
+        <div><div class="fl">곡 제목 *</div><input class="fi" id="sTitle" placeholder="곡 제목" maxlength="100"/></div>
+        <div><div class="fl">아티스트 *</div><input class="fi" id="sArtist" placeholder="아티스트명" maxlength="100"/></div>
+      </div>
+      <div>
+        <div class="fl">필요 세션 * (복수 선택)</div>
+        <div class="session-grid">
+          ${SESSIONS.map(s=>`
+            <input type="checkbox" class="session-chk" id="ns_${s}" value="${s}"/>
+            <label class="session-label" for="ns_${s}">${s}</label>`).join('')}
+        </div>
+      </div>
+      <div class="form-footer"><button class="btn btn-p" onclick="submitSong()">곡 신청</button></div>
+    </div>`;
+  }
+
+  // 세션 신청 폼
+  if(phase==='session'){
+    const confirmedSongs=songList.filter(s=>s.status==='confirmed');
+    html+=`<div class="form-card">
+      <div class="form-title">세션 신청</div>
+      <div class="form-row">
+        <div><div class="fl">성명 *</div><input class="fi" id="ssName" placeholder="홍길동" maxlength="20"/></div>
+        <div><div class="fl">학번 *</div><input class="fi" id="ssStudentId" placeholder="20250001" maxlength="20"/></div>
+      </div>
+      <div class="form-row single">
+        <div><div class="fl">참여할 곡 *</div>
+          <select class="fs" id="ssSong">
+            <option value="">— 곡 선택 —</option>
+            ${confirmedSongs.map(s=>`<option value="${s.id}">${s.title} — ${s.artist}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div>
+        <div class="fl">참여할 세션 * (복수 선택 가능)</div>
+        <div class="session-grid">
+          ${SESSIONS.map(s=>`
+            <input type="checkbox" class="session-chk" id="sss_${s}" value="${s}"/>
+            <label class="session-label" for="sss_${s}">${s}</label>`).join('')}
+        </div>
+      </div>
+      <div class="form-footer"><button class="btn btn-p" onclick="submitSession()">세션 신청</button></div>
+    </div>`;
+  }
+
+  // 곡 리스트
+  if(songList.length){
+    const showAll = phase==='session'||phase==='closed';
+    const displayList = showAll ? songList : songList;
+    html+=`<div class="list-card">
+      <div class="list-card-hdr">
+        <div class="list-card-title">${phase==='song'?'신청 현황':'곡 목록'}</div>
+        <div class="list-card-count">${songList.filter(s=>s.status!=='rejected').length}곡</div>
+      </div>
+      ${displayList.filter(s=>s.status!=='rejected').map((s,i)=>renderSongItem(s,i+1,phase)).join('')}
+    </div>`;
+  }
+
+  document.getElementById('mainContainer').innerHTML=html;
+}
+
+function renderSongItem(s,num,phase){
+  const sessApps=sessionMap[s.id]||[];
+  // 필요 세션별 채워진 여부
+  const filledSessions=new Set(sessApps.flatMap(a=>a.sessions));
+  const needBadges=s.sessions.map(sess=>`
+    <span class="sneed ${filledSessions.has(sess)?'filled':''}">${sess}</span>`).join('');
+
+  const sessionRows = sessApps.length ? `
+    <div class="session-list">
+      ${sessApps.map(a=>`
+        <div class="session-row">
+          <span class="session-row-name">${a.applicant_name}</span>
+          <div class="session-row-sessions">
+            ${a.sessions.map(sess=>`<span class="sess-tag ${a.status==='confirmed'?'confirmed':''}">${sess}</span>`).join('')}
+          </div>
+        </div>`).join('')}
+    </div>` : '';
+
+  return `<div class="song-item">
+    <div class="song-item-hdr">
+      <span class="song-num">${String(num).padStart(2,'0')}</span>
+      <div style="flex:1;min-width:0">
+        <div class="song-title">${s.title}</div>
+        <div class="song-artist">${s.artist}</div>
+      </div>
+      <span class="song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
+    </div>
+    <div class="song-meta">
+      <span class="song-applicant">신청: ${s.applicant_name}</span>
+      <div class="sessions-needed">${needBadges}</div>
+    </div>
+    ${phase==='session'||sessApps.length?sessionRows:''}
+    ${phase==='session'&&s.status==='confirmed'?`<div style="display:flex;justify-content:flex-end"><button class="btn btn-s btn-xs" onclick="openSessionModal(${s.id})">이 곡에 세션 신청</button></div>`:''}
+  </div>`;
+}
+
+// ── SUBMIT SONG ───────────────────────────────────────────────────────
+window.submitSong=async function(){
+  const r=rounds[currentType];
+  if(!r||r.phase!=='song'){toast('현재 곡 신청 기간이 아닙니다','err');return;}
+  const name=document.getElementById('sName').value.trim();
+  const sid=document.getElementById('sStudentId').value.trim();
+  const title=document.getElementById('sTitle').value.trim();
+  const artist=document.getElementById('sArtist').value.trim();
+  const sessions=[...document.querySelectorAll('.session-chk:checked')].map(c=>c.value);
+  if(!name||!sid||!title||!artist){toast('모든 필드를 입력해주세요','err');return;}
+  if(!sessions.length){toast('필요 세션을 하나 이상 선택해주세요','err');return;}
+
+  // 인당 제한 확인
+  const myCount=songs[currentType].filter(s=>s.student_id===sid&&s.status!=='rejected').length;
+  if(myCount>=r.max_songs_per_person){toast(`인당 최대 ${r.max_songs_per_person}곡까지 신청 가능합니다`,'err');return;}
+
+  // 총 곡수 확인
+  const totalCount=songs[currentType].filter(s=>s.status!=='rejected').length;
+  if(totalCount>=r.max_songs){toast('신청 가능한 곡 수가 초과됐습니다','err');return;}
+
+  try{
+    await supabase.from('song_applications').insert({
+      round_id:r.id, applicant_name:name, student_id:sid,
+      title, artist, sessions, status:'pending'
+    });
+    toast('곡 신청이 완료됐습니다','ok');
+    await loadAll();
+  }catch(e){toast(e.message,'err');}
+};
+
+// ── SUBMIT SESSION ────────────────────────────────────────────────────
+window.submitSession=async function(){
+  const r=rounds[currentType];
+  if(!r||r.phase!=='session'){toast('현재 세션 신청 기간이 아닙니다','err');return;}
+  const name=document.getElementById('ssName').value.trim();
+  const sid=document.getElementById('ssStudentId').value.trim();
+  const songId=document.getElementById('ssSong').value;
+  const sessions=[...document.querySelectorAll('[id^="sss_"]:checked')].map(c=>c.value);
+  if(!name||!sid||!songId){toast('모든 필드를 입력해주세요','err');return;}
+  if(!sessions.length){toast('참여할 세션을 하나 이상 선택해주세요','err');return;}
+
+  // 인당 참여 곡수 확인
+  const allSess=Object.values(sessionMap).flat();
+  const mySongs=new Set(allSess.filter(a=>a.student_id===sid&&a.round_id===r.id&&a.status!=='rejected').map(a=>a.song_id));
+  if(!mySongs.has(parseInt(songId))&&mySongs.size>=r.max_sessions_per_person){
+    toast(`인당 최대 ${r.max_sessions_per_person}곡까지 참여 가능합니다`,'err');return;
+  }
+
+  // 중복 신청 확인
+  const existing=(sessionMap[songId]||[]).find(a=>a.student_id===sid);
+  if(existing){toast('이미 이 곡에 세션을 신청했습니다. 관리자에게 문의해 수정하세요.','err');return;}
+
+  try{
+    await supabase.from('session_applications').insert({
+      song_id:parseInt(songId), round_id:r.id,
+      applicant_name:name, student_id:sid, sessions, status:'pending'
+    });
+    toast('세션 신청이 완료됐습니다','ok');
+    closeModal(); await loadAll();
+  }catch(e){toast(e.message,'err');}
+};
+
+// ── SESSION MODAL (from song list) ────────────────────────────────────
+window.openSessionModal=function(songId){
+  const song=songs[currentType].find(s=>s.id===songId);
+  const r=rounds[currentType];
+  showModal(`세션 신청 — ${song.title}`,
+    `<div class="irow"><span class="ik">곡</span><span style="font-weight:700">${song.title}</span></div>
+     <div class="irow"><span class="ik">아티스트</span><span>${song.artist}</span></div>
+     <div><div class="fl" style="margin-top:8px">성명 *</div><input class="fi" id="mssName" placeholder="홍길동" maxlength="20"/></div>
+     <div><div class="fl">학번 *</div><input class="fi" id="mssId" placeholder="20250001" maxlength="20"/></div>
+     <div>
+       <div class="fl">참여할 세션 * (복수 선택 가능)</div>
+       <div class="session-grid">
+         ${SESSIONS.map(s=>`
+           <input type="checkbox" class="session-chk" id="mss_${s}" value="${s}"/>
+           <label class="session-label" for="mss_${s}">${s}</label>`).join('')}
+       </div>
+     </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="mssBtn" onclick="submitSessionModal(${songId})">신청</button>`
+  );
+};
+
+window.submitSessionModal=async function(songId){
+  const r=rounds[currentType];
+  const name=document.getElementById('mssName').value.trim();
+  const sid=document.getElementById('mssId').value.trim();
+  const sessions=[...document.querySelectorAll('[id^="mss_"]:checked')].map(c=>c.value);
+  if(!name||!sid){toast('성명과 학번을 입력해주세요','err');return;}
+  if(!sessions.length){toast('세션을 하나 이상 선택해주세요','err');return;}
+
+  const allSess=Object.values(sessionMap).flat();
+  const mySongs=new Set(allSess.filter(a=>a.student_id===sid&&a.round_id===r.id&&a.status!=='rejected').map(a=>a.song_id));
+  if(!mySongs.has(songId)&&mySongs.size>=r.max_sessions_per_person){
+    toast(`인당 최대 ${r.max_sessions_per_person}곡까지 참여 가능합니다`,'err');return;
+  }
+  const existing=(sessionMap[songId]||[]).find(a=>a.student_id===sid);
+  if(existing){toast('이미 이 곡에 세션을 신청했습니다','err');return;}
+
+  const btn=document.getElementById('mssBtn'); btn.disabled=true;
+  try{
+    await supabase.from('session_applications').insert({
+      song_id:songId, round_id:r.id,
+      applicant_name:name, student_id:sid, sessions, status:'pending'
+    });
+    toast('세션 신청이 완료됐습니다','ok');
+    closeModal(); await loadAll();
+  }catch(e){toast(e.message,'err');btn.disabled=false;}
+};
+
+// ── MODAL ─────────────────────────────────────────────────────────────
+function showModal(title,body,foot){
+  document.getElementById('modalTtl').textContent=title;
+  document.getElementById('modalBody').innerHTML=body;
+  document.getElementById('modalFoot').innerHTML=foot;
+  document.getElementById('modalBd').style.display='flex';
+}
+window.closeModal=()=>document.getElementById('modalBd').style.display='none';
+window.onMBd=e=>{if(e.target===document.getElementById('modalBd'))closeModal();};
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+let toastT;
+function toast(msg,type=''){
+  let el=document.getElementById('toast');
+  if(!el){el=document.createElement('div');el.id='toast';document.body.appendChild(el);}
+  el.className='toast'+(type?' '+type:'');el.textContent=msg;el.style.display='block';
+  clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',3000);
+}
+
+init();
+</script>
+</body>
+</html>
