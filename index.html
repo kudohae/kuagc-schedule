@@ -238,48 +238,107 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 .status-popup-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
 .status-popup-foot .btn{flex:1;padding:9px;font-size:13px;}
 
+/* ── MOBILE DAY TAB ── */
+.day-tab-bar{display:none;}
+
 /* MOBILE TAB BAR */
 .tab-bar{display:none;}
 @media(max-width:700px){
-  :root{--hh:44px;--tab-h:52px;}
+  :root{--hh:50px;--tab-h:56px;}
+  body{font-size:15px;}
+
+  /* 헤더 */
   .hdr-search,.season-chip,.desktop-only{display:none;}
-  #pgSchedule{flex-direction:column;}
+  .week-lbl{min-width:60px;font-size:11px;}
+  .week-nav button{font-size:18px;padding:2px 5px;}
+  .hdr-ensemble-btn{font-size:12px;padding:5px 10px;}
+  .theme-btn{padding:5px 9px;}
+
+  /* 탭바 */
+  .tab-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:var(--header-bg);border-top:1px solid var(--border);z-index:100;backdrop-filter:blur(8px);}
+  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:11px;font-family:'Noto Sans KR',sans-serif;min-height:var(--tab-h);}
+  .tab-btn.active{color:var(--accent);}
+  .tab-btn svg{width:20px;height:20px;}
+  .nav{display:none;}
+
+  /* 페이지 */
+  #pgSchedule{flex-direction:column;overflow:hidden;}
+  .page.active{flex-direction:column;overflow:hidden;}
   .panel-left{display:none;}
-  .panel-main{padding:8px;gap:6px;overflow-x:hidden;}
-  /* 모바일: 시간표 가로 스크롤 허용 */
-  .sch-wrap{overflow-x:auto;}
-  .sch-hdr{display:grid;grid-template-columns:40px repeat(7,minmax(52px,1fr));min-width:450px;}
-  .sch-body{min-width:450px;}
-  .sch-times{width:40px;min-width:40px;}
-  .sch-grid{grid-template-columns:repeat(7,minmax(52px,1fr));}
-  .sch-day{font-size:11px;padding:5px 2px;}
-  .sch-time{height:56px;font-size:10px;}
-  .sch-slot{height:56px;}
-  .blk-name{font-size:11px;}
-  .blk-info{font-size:9px;}
-  .blk-tag{font-size:8px;}
-  .tab-bar{background:var(--header-bg);border-top:1px solid var(--border);}
-  /* 모바일 팀 목록 패널 */
+  .panel-main{padding:8px;gap:6px;padding-bottom:calc(var(--tab-h)+8px);min-height:0;overflow-y:auto;}
+  #pgApply{padding:10px;padding-bottom:calc(var(--tab-h)+10px);overflow-y:auto;}
   #mobileTeamPanel{display:none;flex-direction:column;overflow-y:auto;padding:10px;gap:6px;padding-bottom:calc(var(--tab-h)+10px);}
   #mobileTeamPanel.active{display:flex;}
-  #pgApply{padding:10px;padding-bottom:calc(var(--tab-h)+10px);}
+
+  /* 모달 바텀시트 */
   .modal-bd{align-items:flex-end;}
-  .modal{border-radius:12px 12px 0 0;width:100%;max-width:100%;max-height:85vh;}
-  .modal::before{content:'';display:block;width:32px;height:3px;background:var(--border);border-radius:2px;margin:8px auto 0;}
-  .fi,.fs{font-size:16px;}
-  .toast{bottom:calc(var(--tab-h)+8px);}
-  .tab-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:rgba(14,14,15,.97);border-top:1px solid var(--border);z-index:100;backdrop-filter:blur(8px);}
-  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:10px;font-family:'Noto Sans KR',sans-serif;}
-  .tab-btn.active{color:var(--accent);}
-  .tab-btn svg{width:18px;height:18px;}
-  .page.active{flex-direction:column;}
-  .panel-main{padding-bottom:calc(var(--tab-h)+8px);}
-  .nav{display:none;}
-  .week-lbl{min-width:56px;font-size:9px;}
+  .modal{border-radius:16px 16px 0 0;width:100%;max-width:100%;max-height:88vh;}
+  .modal::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;}
+  .fi,.fs{font-size:16px;padding:10px 12px;min-height:44px;}
+  .toast{bottom:calc(var(--tab-h)+10px);}
+
+  /* 터치 타겟 — 버튼 */
+  .btn{min-height:44px;padding:10px 16px;font-size:14px;}
+  .btn-xs{min-height:36px;padding:7px 12px;font-size:13px;}
+  .nav-btn{min-height:44px;}
+  .pref-clear{min-width:36px;min-height:36px;font-size:18px;}
+
+  /* 요일 탭 (1일 뷰) */
+  .day-tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
+  .day-tab-bar::-webkit-scrollbar{display:none;}
+  .day-tab{flex:1;min-width:44px;padding:10px 4px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;text-align:center;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;}
+  .day-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700;}
+  .day-tab.has-today{color:var(--accent2);}
+  .day-tab.active.has-today{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* 모바일 1일뷰 시간표 */
+  .sch-wrap{overflow:visible;}
+  .sch-hdr{display:none;}
+  .sch-body{display:flex;}
+  .sch-times{width:46px;min-width:46px;}
+  .sch-time{height:64px;font-size:12px;}
+  .sch-grid{grid-template-columns:1fr;}
+  .sch-col{display:none;}
+  .sch-col.mobile-active{display:block;}
+  .sch-slot{height:64px;}
+  .blk-name{font-size:13px;}
+  .blk-info{font-size:11px;}
+  .blk-tag{font-size:10px;}
+  .blk-empty{font-size:13px;}
+
+  /* 신청 페이지 모바일 폼 */
+  .apply-sch-wrap{display:none;}
+  .mobile-apply-form{display:flex;flex-direction:column;gap:10px;}
+  .mobile-pref-row{display:flex;flex-direction:column;gap:6px;}
+  .mobile-pref-selects{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .pref-status .pref-row{min-height:44px;}
+  .pref-badge{font-size:12px;padding:3px 9px;}
+  .pref-val{font-size:13px;}
+
+  /* stats row — 모바일 2x2 */
+  .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .stat{padding:8px 10px;}
+  .stat-lbl{font-size:10px;}
+  .stat-val{font-size:18px;}
+
+  /* session-label 간격 */
+  .session-grid{gap:8px;}
+  .session-label{min-height:40px;padding:8px 12px;font-size:13px;}
+
+  /* song-item 여백 */
+  .song-item{padding:14px 14px;gap:8px;}
+  .song-title{font-size:15px;}
+  .song-artist{font-size:13px;}
+  .song-applicant,.song-ts{font-size:12px;}
+  .sneed{font-size:11px;padding:3px 8px;}
+  .sess-tag{font-size:11px;padding:3px 7px;}
 }
 @media(min-width:701px){
   .tab-bar{display:none !important;}
+  .day-tab-bar{display:none !important;}
   #mobileTeamPanel{display:none !important;}
+  .mobile-apply-form{display:none !important;}
+  .apply-sch-wrap{display:block !important;}
 }
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -323,6 +382,8 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
         <span class="sch-title" id="schTitle">—</span>
         <span class="sch-season" id="schSeason"></span>
       </div>
+      <!-- 모바일 요일 탭 (desktop에선 숨김) -->
+      <div class="day-tab-bar" id="dayTabBar"></div>
       <div class="sch-hdr" id="schHdr"></div>
       <div class="sch-body">
         <div class="sch-times" id="schTimes"></div>
@@ -419,6 +480,8 @@ let weekOff=0, season='1학기';
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let merged=[], round=null, applications=[];
 let searchQ='', collapsed=new Set();
+let mobileDayIdx=(new Date().getDay()+6)%7; // 모바일 선택 요일 (기본=오늘)
+const isMobile=()=>window.innerWidth<=700;
 
 // ── THEME ─────────────────────────────────────────────────────────────
 function initTheme(){
@@ -580,6 +643,20 @@ function renderSchedule(){
   const todayDow=(new Date().getDay()+6)%7;
   const nowH=new Date().getHours(), nowM=new Date().getMinutes();
   const isNow=weekOff===0;
+  const mobile=isMobile();
+
+  // 요일 탭바 (모바일)
+  const dayTabBar=document.getElementById('dayTabBar');
+  if(dayTabBar){
+    if(mobile){
+      dayTabBar.innerHTML=DAYS.map((d,i)=>`
+        <button class="day-tab${i===mobileDayIdx?' active':''}${isNow&&i===todayDow?' has-today':''}"
+          onclick="selectMobileDay(${i})">${d}${isNow&&i===todayDow?'<br><span style="font-size:9px">오늘</span>':''}</button>`).join('');
+    } else {
+      dayTabBar.innerHTML='';
+    }
+  }
+
   document.getElementById('schHdr').innerHTML='<div class="sch-day"></div>'+
     DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}</div>`).join('');
   document.getElementById('schTimes').innerHTML=HOURS.map(h=>
@@ -590,7 +667,10 @@ function renderSchedule(){
   const pm=new Map(requests.filter(r=>r.type==='extra'&&r.status==='pending').map(r=>[`${r.day}-${r.hour}`,r]));
   for(let d=0;d<7;d++){
     const col=document.createElement('div');
-    col.className='sch-col'+(isNow&&d===todayDow?' today':'');
+    // 모바일: 선택된 요일만 표시
+    col.className='sch-col'
+      +(isNow&&d===todayDow?' today':'')
+      +(mobile?(d===mobileDayIdx?' mobile-active':''):'');
     if(isNow&&d===todayDow&&nowH>=HOURS[0]&&nowH<=HOURS[HOURS.length-1]){
       const line=document.createElement('div'); line.className='now-line';
       line.style.top=((nowH-HOURS[0])*62+(nowM/60)*62)+'px';
@@ -632,6 +712,14 @@ function renderSchedule(){
     grid.appendChild(col);
   }
 }
+
+window.selectMobileDay=function(idx){
+  mobileDayIdx=idx;
+  // 탭 active 상태만 변경
+  document.querySelectorAll('.day-tab').forEach((btn,i)=>btn.classList.toggle('active',i===idx));
+  // 컬럼 표시 전환
+  document.querySelectorAll('.sch-col').forEach((col,i)=>col.classList.toggle('mobile-active',i===idx));
+};
 
 // 현재 시각 라인만 갱신 (전체 재렌더 없이)
 function updateNowLine(){
@@ -765,6 +853,8 @@ function renderApply(){
   if(isOpen){
     const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
     const prefLabel=(p)=>p?`${DAYS[p.day]} ${p.hour}:00`:null;
+    const dayOpts=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
+    const hourOpts=HOURS.map(h=>`<option value="${h}">${timeStr(h)}</option>`).join('');
     html+=`
     <div class="apply-card">
       <div class="apply-card-title">시간 신청 — 팀 선택 후 시간표에서 클릭</div>
@@ -772,7 +862,34 @@ function renderApply(){
         <div class="fl">팀 선택</div>
         <select class="fs" id="apTeam" onchange="onApplyTeamChange(this.value)">${teamOpts}</select>
       </div>
-      <div class="pref-status">
+
+      <!-- 모바일: select 폼 -->
+      <div class="mobile-apply-form">
+        <div class="mobile-pref-row">
+          <div class="fl" style="color:var(--accent);font-weight:700">1지망 *</div>
+          <div class="mobile-pref-selects">
+            <select class="fs" id="mob-apD1"><option value="">요일</option>${dayOpts}</select>
+            <select class="fs" id="mob-apH1"><option value="">시간</option>${hourOpts}</select>
+          </div>
+        </div>
+        <div class="mobile-pref-row">
+          <div class="fl" style="color:var(--accent2)">2지망 (선택)</div>
+          <div class="mobile-pref-selects">
+            <select class="fs" id="mob-apD2"><option value="">요일</option>${dayOpts}</select>
+            <select class="fs" id="mob-apH2"><option value="">시간</option>${hourOpts}</select>
+          </div>
+        </div>
+        <div class="mobile-pref-row">
+          <div class="fl" style="color:var(--text2)">3지망 (선택)</div>
+          <div class="mobile-pref-selects">
+            <select class="fs" id="mob-apD3"><option value="">요일</option>${dayOpts}</select>
+            <select class="fs" id="mob-apH3"><option value="">시간</option>${hourOpts}</select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 데스크탑: 그리드 클릭 폼 -->
+      <div class="pref-status" style="">
         <div class="pref-row">
           <span class="pref-badge p1">1지망</span>
           <span class="pref-val ${p1?'':'empty'}">${prefLabel(p1)||'시간표에서 클릭해서 선택'}</span>
@@ -789,7 +906,7 @@ function renderApply(){
           ${p3?`<button class="pref-clear" onclick="clearPref(3)">×</button>`:''}
         </div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">아래 시간표에서 원하는 시간을 클릭하면 순서대로 1→2→3지망이 선택됩니다. 이미 배정된 시간은 신청할 수 없습니다.</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px" class="desktop-only">아래 시간표에서 원하는 시간을 클릭하면 순서대로 1→2→3지망이 선택됩니다. 이미 배정된 시간도 신청할 수 있습니다.</div>
       ${renderApplyGrid()}
       <div style="display:flex;justify-content:flex-end;margin-top:12px">
         <button class="btn btn-p" onclick="submitApply()">신청 제출</button>
@@ -905,8 +1022,26 @@ window.submitApply=async function(){
   const selEl=document.getElementById('apTeam');
   const team_id=applyTeamId||parseInt(selEl?.value);
   if(!team_id||isNaN(team_id)){toast('팀을 선택해주세요','err');return;}
-  if(!applyPrefs[1]){toast('1지망을 선택해주세요','err');return;}
-  const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
+
+  let p1,p2,p3;
+  if(isMobile()){
+    // 모바일: select 폼에서 읽기
+    const d1=document.getElementById('mob-apD1')?.value;
+    const h1=document.getElementById('mob-apH1')?.value;
+    if(!d1||!h1){toast('1지망 요일과 시간을 선택해주세요','err');return;}
+    p1={day:parseInt(d1),hour:parseInt(h1)};
+    const d2=document.getElementById('mob-apD2')?.value;
+    const h2=document.getElementById('mob-apH2')?.value;
+    if(d2&&h2) p2={day:parseInt(d2),hour:parseInt(h2)};
+    const d3=document.getElementById('mob-apD3')?.value;
+    const h3=document.getElementById('mob-apH3')?.value;
+    if(d3&&h3) p3={day:parseInt(d3),hour:parseInt(h3)};
+  } else {
+    // 데스크탑: 그리드 클릭
+    if(!applyPrefs[1]){toast('1지망을 선택해주세요','err');return;}
+    p1=applyPrefs[1]; p2=applyPrefs[2]; p3=applyPrefs[3];
+  }
+
   try{
     await submitApplication({round_id:round.id,team_id,
       pref1_day:p1.day,pref1_hour:p1.hour,
@@ -945,11 +1080,35 @@ function showModal(title,body,foot){
   document.getElementById('modalFoot').innerHTML=foot;
   document.getElementById('modalBd').style.display='flex';
   document.body.style.overflow='hidden';
+  // 스와이프 투 클로즈 (모바일)
+  if(isMobile()) initSwipeToClose();
 }
 window.closeModal=()=>{
   document.getElementById('modalBd').style.display='none';
   document.body.style.overflow='';
 };
+
+function initSwipeToClose(){
+  const modal=document.querySelector('#modalBd .modal');
+  if(!modal) return;
+  let startY=0, isDragging=false;
+  modal.addEventListener('touchstart',e=>{
+    startY=e.touches[0].clientY; isDragging=true;
+    modal.style.transition='none';
+  },{passive:true});
+  modal.addEventListener('touchmove',e=>{
+    if(!isDragging) return;
+    const dy=e.touches[0].clientY-startY;
+    if(dy>0) modal.style.transform=`translateY(${dy}px)`;
+  },{passive:true});
+  modal.addEventListener('touchend',e=>{
+    if(!isDragging) return; isDragging=false;
+    const dy=e.changedTouches[0].clientY-startY;
+    modal.style.transition='transform .2s';
+    if(dy>100){ modal.style.transform=`translateY(100%)`; setTimeout(closeModal,200); }
+    else { modal.style.transform=''; }
+  });
+}
 window.onMBd=e=>{ if(e.target===document.getElementById('modalBd')) closeModal(); };
 
 // ── STATUS POPUP ──────────────────────────────────────────────────────
