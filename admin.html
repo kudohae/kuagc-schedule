@@ -1083,7 +1083,7 @@ function renderEnsemble(){
       ctrl=`<button class="btn btn-p btn-xs" onclick="openCreateRoundModal('${type}')">회차 생성</button>`;
     } else if(phase==='song'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
-            <button class="btn btn-p btn-xs" onclick="openSessionPhase(${r.id})">→ 세션신청</button>
+            <button class="btn btn-p btn-xs" onclick="openSessionPhase(${r.id})">→ 세션신청 단계로 넘어가기</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session'){
       ctrl=`<button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
