@@ -357,6 +357,7 @@ const GRAY  = '#888888';
 const korSort = (a,k) => [...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
 const teamClr = t => t.type==='합주'?GRAY:(t.color||GRAY);
 const timeStr = h => h<24?h+':00':'0'+(h-24)+':00';
+const fmtTime = ts => { if(!ts) return ''; const d=new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
 function weekLabel(off){
   const now=new Date(),m=new Date(now);
   m.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);
@@ -662,6 +663,7 @@ function openReqDetail(req){
      <div class="irow"><span class="ik">시간</span><span>${DAYS[req.day]} ${req.hour}:00</span></div>
      <div class="irow"><span class="ik">사유</span><span>${req.reason}</span></div>
      <div class="irow"><span class="ik">신청자</span><span>${req.requester_name||'미기입'}</span></div>
+     <div class="irow"><span class="ik">제출 시각</span><span style="color:var(--text2)">${fmtTime(req.created_at)}</span></div>
      <div class="irow"><span class="ik">상태</span><span style="color:var(--warn)">관리자 승인 대기 중</span></div>`,
     `<button class="btn btn-s" onclick="closeModal()">닫기</button>
      <button class="btn btn-d" id="cancelBtn" onclick="cancelRequest(${req.id})">신청 취소</button>`
@@ -706,7 +708,7 @@ function renderApply(){
     <div class="apply-card">
       <div class="apply-card-title">${isFin?'배정 결과':'신청 현황'} (${applications.length}팀)</div>
       <table class="apply-tbl">
-        <thead><tr><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}</tr></thead>
+        <thead><tr><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th>제출 시각</th></tr></thead>
         <tbody>
           ${applications.map(a=>`<tr>
             <td style="font-weight:600">${a.teams.name}</td>
@@ -714,6 +716,7 @@ function renderApply(){
             <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
             <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
             ${isFin?`<td>${a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">미배정</span>`}</td>`:''}
+            <td style="font-size:11px;color:var(--text3)">${fmtTime(a.submitted_at)}</td>
           </tr>`).join('')}
         </tbody>
       </table>
