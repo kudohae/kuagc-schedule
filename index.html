@@ -956,7 +956,7 @@ window.onApplyDayChange=function(n){
   const occMap=new Map(merged.filter(s=>s.status!=='absent').map(s=>[`${s.day}-${s.hour}`,s.teams.name]));
   hourEl.innerHTML=`<option value="">시간 선택</option>`+HOURS.map(h=>{
     const occ=occMap.get(`${d}-${h}`);
-    const label=occ?`${timeStr(h)} (${occ}이(가) 사용 중)`:timeStr(h);
+    const label=occ?`${timeStr(h)} ${occ}이(가) 사용 중`:timeStr(h);
     return `<option value="${h}">${label}</option>`;
   }).join('');
   hourEl.disabled=false;
