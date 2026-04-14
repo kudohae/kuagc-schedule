@@ -617,8 +617,9 @@ function renderSchedule(){
     const col=document.createElement('div');
     col.className='sch-col'+(isNow&&d===todayDow?' today':'');
     if(isNow&&d===todayDow&&nowH>=HOURS[0]&&nowH<=HOURS[HOURS.length-1]){
+      const slotH=window.innerWidth<=700?56:62;
       const line=document.createElement('div'); line.className='now-line';
-      line.style.top=((nowH-HOURS[0])*62+(nowM/60)*62)+'px'; col.appendChild(line);
+      line.style.top=((nowH-HOURS[0])*slotH+(nowM/60)*slotH)+'px'; col.appendChild(line);
     }
     for(const h of HOURS){
       const cell=document.createElement('div'); cell.className='sch-slot';
@@ -1256,7 +1257,9 @@ window.createRound=async function(type){
 };
 
 window.openEditRoundModal=function(id){
-  const r=eRounds[eType];
+  // id로 직접 회차를 찾아 참조 (eType에 의존하지 않음)
+  const r=eRounds.regular?.id===id?eRounds.regular:eRounds.busking;
+  if(!r){toast('회차 정보를 찾을 수 없습니다','err');return;}
   showModal('설정 수정',
     `<div><div class="fl">회차 이름</div><input class="fi" id="eName" value="${r.name}" maxlength="50"/></div>
      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
