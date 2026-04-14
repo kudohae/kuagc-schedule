@@ -872,7 +872,7 @@ function renderApply(){
       if(p){
         hourOptsN=`<option value="">시간 선택</option>${HOURS.map(h=>{
           const occ=occMap.get(`${p.day}-${h}`);
-          const label=occ?`${timeStr(h)} (${occ}이(가) 사용 중)`:timeStr(h);
+          const label=occ?`${timeStr(h)} ${occ}이(가) 사용 중`:timeStr(h);
           return `<option value="${h}" ${h===p.hour?'selected':''}>${label}</option>`;
         }).join('')}`;
       }
