@@ -754,7 +754,7 @@ function openSlotModal(s){
   );
 }
 
-window.openAbsenceModal=function(slotId,day,hour,teamId){window.openAbsenceModal=function(slotId,day,hour,teamId){
+window.openAbsenceModal=function(slotId,day,hour,teamId){
   const t=teams.find(t=>t.id===teamId);
   // 이미 대기 중인 신청이 있는지 확인
   const existing=requests.find(r=>r.status==='pending'&&r.type==='absent'&&r.team_id===teamId&&r.day===day&&r.hour===hour&&r.week_offset===weekOff);
