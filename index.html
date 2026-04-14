@@ -672,8 +672,9 @@ function renderSchedule(){
       +(isNow&&d===todayDow?' today':'')
       +(mobile?(d===mobileDayIdx?' mobile-active':''):'');
     if(isNow&&d===todayDow&&nowH>=HOURS[0]&&nowH<=HOURS[HOURS.length-1]){
+      const slotH=mobile?64:62;
       const line=document.createElement('div'); line.className='now-line';
-      line.style.top=((nowH-HOURS[0])*62+(nowM/60)*62)+'px';
+      line.style.top=((nowH-HOURS[0])*slotH+(nowM/60)*slotH)+'px';
       col.appendChild(line);
     }
     for(const h of HOURS){
@@ -723,10 +724,10 @@ window.selectMobileDay=function(idx){
 
 // 현재 시각 라인만 갱신 (전체 재렌더 없이)
 function updateNowLine(){
-  const todayDow=(new Date().getDay()+6)%7;
   const nowH=new Date().getHours(), nowM=new Date().getMinutes();
+  const slotH=isMobile()?64:62;
   const line=document.querySelector('.now-line');
-  if(line) line.style.top=((nowH-HOURS[0])*62+(nowM/60)*62)+'px';
+  if(line) line.style.top=((nowH-HOURS[0])*slotH+(nowM/60)*slotH)+'px';
 }
 
 // ── WEEK NAV ─────────────────────────────────────────────────────────
