@@ -120,6 +120,15 @@ export async function rejectRequest(id) {
   const { error } = await supabase.from('requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 }
+export async function approveTerminate(request, season) {
+  await supabase.from('requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', request.id);
+  await supabase.from('base_slots')
+    .delete()
+    .eq('team_id', request.team_id)
+    .eq('day', request.day)
+    .eq('hour', request.hour)
+    .eq('season', season);
+}
 
 // ─── REALTIME ────────────────────────────────────────────────────────
 export function subscribeChanges(onBase, onException, onRequest, onRound, onApplication) {

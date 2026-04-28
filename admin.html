@@ -473,7 +473,7 @@ import {
   fetchTeams, createTeam, updateTeam, deleteTeam,
   fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
   fetchExceptions, createException, deleteException, mergeSchedule,
-  fetchRequests, approveRequest, rejectRequest,
+  fetchRequests, approveRequest, rejectRequest, approveTerminate,
   fetchNotices, createNotice, deleteNotice,
   fetchActiveRound, createRound, updateRound,
   fetchApplications, deleteApplication, runAssignment, approveDraft,
@@ -755,18 +755,24 @@ function renderPending(){
   badge.textContent=pend.length; badge.style.display=pend.length?'':'none';
   const list=document.getElementById('pendList');
   if(!pend.length){list.innerHTML='<div class="no-pend">대기 중인 신청 없음</div>';return;}
-  list.innerHTML=pend.map(r=>`
+  list.innerHTML=pend.map(r=>{
+    const isTerminate=r.teams.type==='스쿨'&&r.type==='absent';
+    const typeLabel=isTerminate?'종강 신고':r.type==='absent'?'미사용':'추가사용';
+    return `
     <div class="pcard ${r.type}">
       <div class="pcard-name" style="color:${teamClr(r.teams)}">${r.teams.name}</div>
-      <div class="pcard-detail">${DAYS[r.day]} ${r.hour}:00 · ${r.type==='absent'?'미사용':'추가사용'}</div>
+      <div class="pcard-detail">${DAYS[r.day]} ${r.hour}:00 · ${typeLabel}</div>
       <div class="pcard-detail">${r.reason}</div>
       ${r.requester_name?`<div class="pcard-detail">신청자: ${r.requester_name}</div>`:''}
       <div class="pcard-detail" style="color:var(--text3)">${fmtTime(r.created_at)}</div>
       <div class="pcard-actions">
-        <button class="pa-ok" onclick="doApprove(${r.id})">승인</button>
+        ${isTerminate
+          ?`<button class="pa-ok" onclick="doApproveTerminate(${r.id})" title="기본 배정 슬롯을 영구 삭제합니다">종강 승인</button>`
+          :`<button class="pa-ok" onclick="doApprove(${r.id})">승인</button>`}
         <button class="pa-no" onclick="doReject(${r.id})">거절</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function openPendingSlotModal(req){
   const t=req.teams;
@@ -783,6 +789,15 @@ window.doApprove=async function(id){
   const req=requests.find(r=>r.id===id); if(!req) return;
   try{
     await approveRequest(req,weekOff); toast('승인됐습니다','ok');
+    [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+    merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.doApproveTerminate=async function(id){
+  const req=requests.find(r=>r.id===id); if(!req) return;
+  try{
+    await approveTerminate(req,season); toast('종강 처리됐습니다 — 기본 배정 슬롯이 삭제됐습니다','ok');
+    baseSlots=await fetchBaseSlots(season);
     [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
     merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
