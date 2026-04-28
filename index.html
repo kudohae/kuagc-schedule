@@ -143,8 +143,10 @@ select:disabled{opacity:.4;cursor:not-allowed;}
 /* APPLY PAGE */
 #pgApply{flex-direction:column;overflow-y:auto;padding:16px;gap:0;}
 #applyContent{max-width:860px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
-.stat-btn{cursor:pointer;flex-direction:column;justify-content:center;align-items:center;gap:4px;border-style:dashed;background:transparent;font-family:'Noto Sans KR',sans-serif;padding:8px;}
-.stat-btn:hover{border-color:var(--danger);background:rgba(217,48,37,.04);}
+.stat-btn{cursor:pointer;flex-direction:column;justify-content:center;align-items:center;gap:3px;background:rgba(217,48,37,.07);border-color:rgba(217,48,37,.4);font-family:'Noto Sans KR',sans-serif;padding:8px;transition:background .15s,border-color .15s;}
+body.dark .stat-btn{background:rgba(255,71,71,.09);border-color:rgba(255,71,71,.35);}
+.stat-btn:hover{background:rgba(217,48,37,.14);border-color:var(--danger);}
+body.dark .stat-btn:hover{background:rgba(255,71,71,.16);}
 .apply-status{border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:10px;}
 .apply-status.open{background:rgba(232,255,71,.06);border:1px solid rgba(232,255,71,.2);}
 .apply-status.closed{background:var(--surface);border:1px solid var(--border);}
@@ -643,7 +645,7 @@ function renderStats(){
   const extra=exceptions.filter(e=>e.exception_type==='extra').length;
   const pend=requests.filter(r=>r.status==='pending').length;
   document.getElementById('statsEl').innerHTML=`
-    <button class="stat stat-btn" onclick="openTeamAbsentModal()"><div style="font-size:20px">🙏</div><div style="font-size:12px;font-weight:700;color:var(--text2)">우리 팀 쉬어요</div></button>
+    <button class="stat stat-btn" onclick="openTeamAbsentModal()"><div style="font-size:18px">🙏</div><div style="font-size:12px;font-weight:700;color:var(--danger)">우리 팀 쉬어요</div></button>
     <div class="stat"><div class="stat-ico">🔕</div><div class="stat-txt"><div class="stat-lbl">이번 주 미사용</div><div class="stat-val" style="color:var(--danger)">${absent}</div></div></div>
     <div class="stat"><div class="stat-ico">➕</div><div class="stat-txt"><div class="stat-lbl">이번 주 추가</div><div class="stat-val" style="color:var(--accent2)">${extra}</div></div></div>
     <div class="stat"><div class="stat-ico">🕐</div><div class="stat-txt"><div class="stat-lbl">대기 신청</div><div class="stat-val" style="color:var(--warn)">${pend}</div></div></div>`;
