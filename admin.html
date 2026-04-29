@@ -584,7 +584,7 @@ async function loadAll(){
 function render(){
   const wl=weekLabel(weekOff);
   document.getElementById('weekLbl').textContent=wl;
-  document.getElementById('schTitle').innerHTML=`${wl} 동아리방 사용 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
+  document.getElementById('schTitle').innerHTML=`${wl} 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
   renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts();
 }
