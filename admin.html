@@ -77,6 +77,12 @@ body.dark .admin-bar{background:rgba(232,255,71,.05);border-color:rgba(232,255,7
 .sch-title-row{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .sch-title{font-size:13px;font-weight:700;}
 .sch-season{font-size:11px;color:var(--text2);}
+.week-now-badge{font-size:11px;font-weight:700;background:rgba(92,158,0,.1);color:var(--accent);border:1px solid rgba(92,158,0,.3);border-radius:4px;padding:2px 7px;vertical-align:middle;display:inline-block;}
+body.dark .week-now-badge{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.25);}
+.week-goto-badge{font-size:11px;font-weight:700;color:var(--accent2);cursor:pointer;border:1px solid rgba(0,119,204,.3);border-radius:4px;padding:2px 7px;background:rgba(0,119,204,.06);transition:all .12s;vertical-align:middle;display:inline-block;}
+body.dark .week-goto-badge{background:rgba(71,197,255,.06);border-color:rgba(71,197,255,.25);}
+.week-goto-badge:hover{background:rgba(0,119,204,.12);}
+.sch-day-date{font-size:9px;font-weight:400;color:var(--text3);}
 .sch-hdr{display:grid;grid-template-columns:46px repeat(7,1fr);border-bottom:1px solid var(--border);}
 .sch-day{padding:6px 2px;text-align:center;font-size:12px;font-weight:700;color:var(--text2);border-right:1px solid var(--border);}
 .sch-day:last-child{border-right:none;}
@@ -380,7 +386,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   <!-- 신청대기 사이드패널 -->
   <div class="pend-sidebar">
     <div class="pend-sidebar-hdr">
-      <div class="pend-sidebar-title">신청 대기</div>
+      <div class="pend-sidebar-title">승인 대기</div>
       <span class="pend-badge" id="pendBadge" style="display:none"></span>
     </div>
     <div class="pend-list" id="pendList"></div>
@@ -473,7 +479,7 @@ import {
   fetchTeams, createTeam, updateTeam, deleteTeam,
   fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
   fetchExceptions, createException, deleteException, mergeSchedule,
-  fetchRequests, approveRequest, rejectRequest, approveTerminate,
+  fetchRequests, fetchAllPendingRequests, approveRequest, rejectRequest, approveTerminate,
   fetchNotices, createNotice, deleteNotice,
   fetchActiveRound, createRound, updateRound,
   fetchApplications, deleteApplication, runAssignment, approveDraft,
@@ -500,6 +506,8 @@ const HOURS = Array.from({length:18},(_,i)=>i+8);
 const GRAY  = '#888888';
 const COLORS= ['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47ffea','#ffd447','#b4ff47','#ff9d47'];
 const korSort=(a,k)=>[...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
+const getWeekDates=off=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);return Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return `${d.getMonth()+1}/${d.getDate()}`;});};
+const reqActualDate=(weekOffset,day)=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+weekOffset*7);const d=new Date(mon);d.setDate(mon.getDate()+day);return `${d.getMonth()+1}/${d.getDate()}`;};
 const teamClr=t=>t.type==='합주'?GRAY:(t.color||GRAY);
 const timeStr=h=>h<24?h+':00':'0'+(h-24)+':00';
 const fmtTime=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
@@ -517,6 +525,7 @@ function weekLabelWithThis(off){
 
 let weekOff=0, season='1학기';
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
+let pendingAll=[];
 let merged=[], round=null, applications=[];
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
@@ -561,18 +570,22 @@ async function loadAll(){
   merged=mergeSchedule(baseSlots,exceptions);
   round=await fetchActiveRound(season);
   if(round) applications=await fetchApplications(round.id);
+  pendingAll=await fetchAllPendingRequests();
   await loadEnsemble();
+  supabase.channel('admin-pending-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'requests'},async()=>{
+      pendingAll=await fetchAllPendingRequests();
+      renderPending();
+    })
+    .subscribe();
   render();
 }
 
 function render(){
   const wl=weekLabel(weekOff);
   document.getElementById('weekLbl').textContent=wl;
-  document.getElementById('schTitle').textContent=`${wl} 동아리방 사용 시간표`;
+  document.getElementById('schTitle').innerHTML=`${wl} 동아리방 사용 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
-  const pend=requests.filter(r=>r.status==='pending').length;
-  const badge=document.getElementById('pendBadge');
-  badge.textContent=pend; badge.style.display=pend?'':'none';
   renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts();
 }
 
@@ -591,6 +604,11 @@ window.changeWeek=async function(delta){
   [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
   merged=mergeSchedule(baseSlots,exceptions); render();
 };
+window.goToThisWeek=async function(){
+  weekOff=0;
+  [exceptions,requests]=await Promise.all([fetchExceptions(0),fetchRequests(0)]);
+  merged=mergeSchedule(baseSlots,exceptions); render();
+};
 
 window.changeSeason=async function(s){
   await setConfig('current_season',s); season=s;
@@ -606,8 +624,9 @@ function renderSchedule(){
   const todayDow=(new Date().getDay()+6)%7;
   const nowH=new Date().getHours(),nowM=new Date().getMinutes();
   const isNow=weekOff===0;
+  const wdates=getWeekDates(weekOff);
   document.getElementById('schHdr').innerHTML='<div class="sch-day"></div>'+
-    DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}</div>`).join('');
+    DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}<br><span class="sch-day-date">${wdates[i]}</span></div>`).join('');
   document.getElementById('schTimes').innerHTML=HOURS.map(h=>
     `<div class="sch-time"><span>${timeStr(h)}</span>${h>=24?`<span class="sch-time-next">익일</span>`:''}</div>`).join('');
   const grid=document.getElementById('schGrid'); grid.innerHTML='';
@@ -750,18 +769,18 @@ window.addSlot=async function(){
 
 // ── PENDING SIDEBAR ───────────────────────────────────────────────────
 function renderPending(){
-  const pend=requests.filter(r=>r.status==='pending');
   const badge=document.getElementById('pendBadge');
-  badge.textContent=pend.length; badge.style.display=pend.length?'':'none';
+  badge.textContent=pendingAll.length; badge.style.display=pendingAll.length?'':'none';
   const list=document.getElementById('pendList');
-  if(!pend.length){list.innerHTML='<div class="no-pend">대기 중인 신청 없음</div>';return;}
-  list.innerHTML=pend.map(r=>{
+  if(!pendingAll.length){list.innerHTML='<div class="no-pend">대기 중인 신청 없음</div>';return;}
+  list.innerHTML=pendingAll.map(r=>{
     const isTerminate=r.teams.type==='스쿨'&&r.type==='absent';
     const typeLabel=isTerminate?'종강 신고':r.type==='absent'?'미사용':'추가사용';
+    const dateStr=reqActualDate(r.week_offset,r.day);
     return `
     <div class="pcard ${r.type}">
       <div class="pcard-name" style="color:${teamClr(r.teams)}">${r.teams.name}</div>
-      <div class="pcard-detail">${DAYS[r.day]} ${r.hour}:00 · ${typeLabel}</div>
+      <div class="pcard-detail">${dateStr} ${r.hour}:00 · ${typeLabel}</div>
       <div class="pcard-detail">${r.reason}</div>
       ${r.requester_name?`<div class="pcard-detail">신청자: ${r.requester_name}</div>`:''}
       <div class="pcard-detail" style="color:var(--text3)">${fmtTime(r.created_at)}</div>
@@ -786,26 +805,25 @@ function openPendingSlotModal(req){
   );
 }
 window.doApprove=async function(id){
-  const req=requests.find(r=>r.id===id); if(!req) return;
+  const req=pendingAll.find(r=>r.id===id); if(!req) return;
   try{
-    await approveRequest(req,weekOff); toast('승인됐습니다','ok');
-    [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+    await approveRequest(req,req.week_offset); toast('승인됐습니다','ok');
+    [exceptions,requests,pendingAll]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff),fetchAllPendingRequests()]);
     merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.doApproveTerminate=async function(id){
-  const req=requests.find(r=>r.id===id); if(!req) return;
+  const req=pendingAll.find(r=>r.id===id); if(!req) return;
   try{
     await approveTerminate(req,season); toast('종강 처리됐습니다 — 기본 배정 슬롯이 삭제됐습니다','ok');
-    baseSlots=await fetchBaseSlots(season);
-    [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+    [baseSlots,exceptions,requests,pendingAll]=await Promise.all([fetchBaseSlots(season),fetchExceptions(weekOff),fetchRequests(weekOff),fetchAllPendingRequests()]);
     merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.doReject=async function(id){
   try{
     await rejectRequest(id); toast('거절됐습니다');
-    requests=await fetchRequests(weekOff); renderPending();
+    pendingAll=await fetchAllPendingRequests(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
 };
 

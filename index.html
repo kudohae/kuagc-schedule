@@ -89,6 +89,12 @@ body.dark .notice-bar{background:rgba(71,197,255,.06);border-color:rgba(71,197,2
 .stat-lbl{font-size:11px;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;}
 .stat-val{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;line-height:1.1;}
 
+.week-now-badge{font-size:11px;font-weight:700;background:rgba(92,158,0,.1);color:var(--accent);border:1px solid rgba(92,158,0,.3);border-radius:4px;padding:2px 7px;vertical-align:middle;display:inline-block;}
+body.dark .week-now-badge{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.25);}
+.week-goto-badge{font-size:11px;font-weight:700;color:var(--accent2);cursor:pointer;border:1px solid rgba(0,119,204,.3);border-radius:4px;padding:2px 7px;background:rgba(0,119,204,.06);transition:all .12s;vertical-align:middle;display:inline-block;}
+body.dark .week-goto-badge{background:rgba(71,197,255,.06);border-color:rgba(71,197,255,.25);}
+.week-goto-badge:hover{background:rgba(0,119,204,.12);}
+.sch-day-date{font-size:9px;font-weight:400;color:var(--text3);}
 /* SCHEDULE GRID */
 .sch-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
 .sch-title-row{padding:8px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
@@ -468,6 +474,7 @@ const DAYS  = ['월','화','수','목','금','토','일'];
 const HOURS = Array.from({length:18},(_,i)=>i+8);
 const GRAY  = '#888888';
 const korSort = (a,k) => [...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
+const getWeekDates=off=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);return Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return `${d.getMonth()+1}/${d.getDate()}`;});};
 const teamClr = t => t.type==='합주'?GRAY:(t.color||GRAY);
 const timeStr = h => h<24?h+':00':'0'+(h-24)+':00';
 const fmtTime = ts => { if(!ts) return ''; const d=new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
@@ -582,7 +589,7 @@ function render(){
   const wl=weekLabel(weekOff);
   document.getElementById('weekLbl').textContent=wl;
   document.getElementById('seasonChip').textContent=season;
-  document.getElementById('schTitle').textContent=`${wl} 동아리방 사용 시간표`;
+  document.getElementById('schTitle').innerHTML=`${wl} 동아리방 사용 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
   renderTeams();
   renderNotice();
@@ -669,8 +676,9 @@ function renderSchedule(){
     }
   }
 
+  const wdates=getWeekDates(weekOff);
   document.getElementById('schHdr').innerHTML='<div class="sch-day"></div>'+
-    DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}</div>`).join('');
+    DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}<br><span class="sch-day-date">${wdates[i]}</span></div>`).join('');
   document.getElementById('schTimes').innerHTML=HOURS.map(h=>
     `<div class="sch-time"><span>${timeStr(h)}</span>${h>=24?`<span class="sch-time-next">익일</span>`:''}</div>`).join('');
   const grid=document.getElementById('schGrid');
@@ -746,6 +754,11 @@ function updateNowLine(){
 window.changeWeek=async function(delta){
   weekOff+=delta;
   [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+  merged=mergeSchedule(baseSlots,exceptions); render();
+};
+window.goToThisWeek=async function(){
+  weekOff=0;
+  [exceptions,requests]=await Promise.all([fetchExceptions(0),fetchRequests(0)]);
   merged=mergeSchedule(baseSlots,exceptions); render();
 };
 

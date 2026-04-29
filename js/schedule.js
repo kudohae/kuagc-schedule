@@ -129,6 +129,14 @@ export async function approveTerminate(request, season) {
     .eq('hour', request.hour)
     .eq('season', season);
 }
+export async function fetchAllPendingRequests() {
+  const { data, error } = await supabase.from('requests')
+    .select('*, teams(*)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
 
 // ─── REALTIME ────────────────────────────────────────────────────────
 export function subscribeChanges(onBase, onException, onRequest, onRound, onApplication) {
