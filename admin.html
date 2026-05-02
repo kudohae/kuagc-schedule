@@ -120,10 +120,15 @@ body.dark .blk-empty{border-color:rgba(255,255,255,.1);}
 
 /* ── TEAMS PAGE ── */
 #pgTeams{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:10px;}
+.teams-toolbar{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.teams-sel-count{font-size:11px;color:var(--text3);margin-left:2px;}
 .teams-section{display:flex;flex-direction:column;gap:6px;}
 .teams-section-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);padding:4px 2px;border-bottom:1px solid var(--border);}
 .teams-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;}
-.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;display:flex;flex-direction:column;gap:6px;}
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;display:flex;flex-direction:column;gap:6px;transition:border-color .12s;}
+.tcard.tcard-sel{border-color:var(--accent2);background:rgba(0,119,204,.04);}
+body.dark .tcard.tcard-sel{background:rgba(71,197,255,.05);}
+.team-chk{width:15px;height:15px;cursor:pointer;accent-color:var(--accent2);flex-shrink:0;}
 .tcard-hdr{display:flex;align-items:center;gap:7px;}
 .tcard-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .tcard-name-static{font-size:12px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -243,22 +248,27 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 
 /* ── MOBILE ── */
+.mob-tab-bar{display:none;}
 @media(max-width:700px){
   body{font-size:14px;}
-  :root{--hh:50px;}
+  :root{--hh:50px;--tab-h:56px;}
 
-  /* 헤더 nav 가로 스크롤 */
+  /* 헤더: nav 숨기고 필수 요소만 */
   header{padding:0 10px;gap:7px;flex-wrap:nowrap;}
-  .nav{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:1;}
-  .nav::-webkit-scrollbar{display:none;}
-  .nb{padding:6px 11px;font-size:12px;white-space:nowrap;min-height:40px;}
+  .nav{display:none;}
   .week-lbl{min-width:56px;font-size:11px;}
   .season-sel{font-size:11px;padding:4px 7px;}
   .theme-btn{padding:5px 8px;}
   .logout-btn{padding:5px 9px;font-size:11px;}
 
+  /* 모바일 하단 탭바 */
+  .mob-tab-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:var(--header-bg);border-top:1px solid var(--border);z-index:100;backdrop-filter:blur(8px);}
+  .mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:10px;font-family:'Noto Sans KR',sans-serif;min-height:var(--tab-h);padding:0 2px;}
+  .mob-tab.active{color:var(--accent);}
+  .mob-tab svg{width:20px;height:20px;}
+
   /* 페이지 */
-  .page{height:calc(100vh - var(--hh));}
+  .page{height:calc(100vh - var(--hh));padding-bottom:var(--tab-h);}
   .page.active{overflow:hidden;}
 
   /* 시간표 + 신청대기 → 세로 스태킹 */
@@ -293,12 +303,15 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   /* 공지/연락처 카드 */
   .centered-card{width:96%;}
 
-  /* 팀 탭 페이지 */
-  #pgTeams{padding:8px;}
-  #pgNotices{padding:8px;}
-  #pgContacts{padding:8px;}
-  #pgApply{padding:8px;overflow-y:auto;}
-  #pgEnsemble{padding:8px 0;}
+  /* 팀 탭 페이지 — 하단 탭바 높이 만큼 패딩 */
+  #pgTeams{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  #pgNotices{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  #pgContacts{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  #pgApply{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  #pgEnsemble{padding:8px 0;padding-bottom:calc(var(--tab-h)+8px);}
+  #pgSch .sch-main{padding-bottom:calc(var(--tab-h)+8px);}
+  .pend-sidebar{max-height:180px;}
+  .toast{bottom:calc(var(--tab-h)+10px);}
 
   /* 버튼 터치 타겟 */
   .btn{min-height:44px;padding:10px 14px;font-size:14px;}
@@ -399,6 +412,11 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
     <div class="section-title">팀 관리</div>
     <button class="btn btn-p btn-xs" onclick="openAddTeamModal()">+ 팀 추가</button>
   </div>
+  <div class="teams-toolbar">
+    <button class="btn btn-s btn-xs" onclick="selectAllTeams()">전체 선택</button>
+    <button class="btn btn-d btn-xs" onclick="deleteSelectedTeams()">선택한 팀 삭제</button>
+    <span class="teams-sel-count" id="teamSelCount"></span>
+  </div>
   <div id="teamsContent" style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;"></div>
 </div>
 
@@ -459,6 +477,30 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 </div>
 
 </div><!-- /adminUI -->
+
+<!-- ADMIN MOBILE TAB BAR -->
+<div class="mob-tab-bar" id="mobTabBar" style="display:none">
+  <button class="mob-tab active" id="mt-sch" onclick="showPage('sch')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    시간표
+  </button>
+  <button class="mob-tab" id="mt-teams" onclick="showPage('teams')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>
+    팀 관리
+  </button>
+  <button class="mob-tab" id="mt-apply" onclick="showPage('apply')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    시간신청
+  </button>
+  <button class="mob-tab" id="mt-ensemble" onclick="showPage('ensemble')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    합주신청
+  </button>
+  <button class="mob-tab" id="mt-notices" onclick="showPage('notices')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    공지
+  </button>
+</div>
 
 <!-- MODAL -->
 <div class="modal-bd" id="modalBd" style="display:none" onclick="onMBd(event)">
@@ -526,6 +568,7 @@ function weekLabelWithThis(off){
 let weekOff=0, season='1학기';
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let pendingAll=[];
+let selectedTeams=new Set();
 let merged=[], round=null, applications=[];
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
@@ -538,6 +581,7 @@ window.doLogin=function(){
     sessionStorage.setItem('adm','1');
     document.getElementById('loginWrap').style.display='none';
     document.getElementById('adminUI').style.display='block';
+    document.getElementById('mobTabBar').style.display='';
     loadAll();
   } else {
     err.style.display='block';
@@ -555,6 +599,7 @@ window.doLogout=function(){
 if(isLoggedIn()){
   document.getElementById('loginWrap').style.display='none';
   document.getElementById('adminUI').style.display='block';
+  document.getElementById('mobTabBar').style.display='';
   loadAll();
 }
 
@@ -594,6 +639,7 @@ window.showPage=function(pg){
   ['sch','teams','apply','notices','contacts','ensemble'].forEach(p=>{
     document.getElementById('pg'+p.charAt(0).toUpperCase()+p.slice(1))?.classList.toggle('active',p===pg);
     document.getElementById('nb-'+p)?.classList.toggle('active',p===pg);
+    document.getElementById('mt-'+p)?.classList.toggle('active',p===pg);
   });
   document.getElementById('weekNavEl').style.display=pg==='sch'?'':'none';
   if(pg==='ensemble') renderEnsemble();
@@ -836,8 +882,9 @@ function renderTeams(){
     return `<div class="teams-section">
       <div class="teams-section-title">${g.label} (${list.length}팀)</div>
       <div class="teams-grid">
-        ${list.map(t=>`<div class="tcard">
+        ${list.map(t=>`<div class="tcard${selectedTeams.has(t.id)?' tcard-sel':''}">
           <div class="tcard-hdr">
+            <input type="checkbox" class="team-chk" ${selectedTeams.has(t.id)?'checked':''} onchange="toggleTeamSelect(${t.id},this.checked)"/>
             <div class="tcard-dot" style="background:${teamClr(t)}"></div>
             <div class="tcard-name-static">${t.name}</div>
             <div class="tcard-type">${t.type}</div>
@@ -880,6 +927,40 @@ window.doDeleteTeam=async function(id){
     await deleteTeam(id); teams=teams.filter(t=>t.id!==id);
     baseSlots=baseSlots.filter(s=>s.team_id!==id); merged=mergeSchedule(baseSlots,exceptions);
     toast('팀이 삭제됐습니다'); render();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.toggleTeamSelect=function(id,checked){
+  checked?selectedTeams.add(id):selectedTeams.delete(id);
+  const c=document.getElementById('teamSelCount');
+  if(c) c.textContent=selectedTeams.size?selectedTeams.size+'개 선택됨':'';
+  document.querySelectorAll('.tcard').forEach(el=>{
+    const chk=el.querySelector('.team-chk');
+    if(chk&&chk.getAttribute('onchange')&&chk.getAttribute('onchange').includes(id+',')){
+      el.classList.toggle('tcard-sel',checked);
+    }
+  });
+};
+window.selectAllTeams=function(){
+  const allIds=teams.map(t=>t.id);
+  const allSelected=allIds.every(id=>selectedTeams.has(id));
+  if(allSelected){ selectedTeams.clear(); }
+  else { allIds.forEach(id=>selectedTeams.add(id)); }
+  renderTeams();
+  const c=document.getElementById('teamSelCount');
+  if(c) c.textContent=selectedTeams.size?selectedTeams.size+'개 선택됨':'';
+  document.querySelector('.teams-toolbar .btn-s').textContent=selectedTeams.size===allIds.length?'전체 해제':'전체 선택';
+};
+window.deleteSelectedTeams=async function(){
+  if(!selectedTeams.size){toast('삭제할 팀을 선택해주세요','err');return;}
+  if(!confirm(`선택한 ${selectedTeams.size}개 팀을 삭제합니다. 해당 팀의 모든 슬롯도 삭제됩니다. 계속할까요?`)) return;
+  try{
+    for(const id of selectedTeams){ await deleteTeam(id); }
+    const deleted=[...selectedTeams];
+    selectedTeams.clear();
+    teams=teams.filter(t=>!deleted.includes(t.id));
+    baseSlots=baseSlots.filter(s=>!deleted.includes(s.team_id));
+    merged=mergeSchedule(baseSlots,exceptions);
+    toast(`${deleted.length}개 팀이 삭제됐습니다`,'ok'); render();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openAddTeamModal=function(){
