@@ -255,15 +255,17 @@ async function init(){
     await loadAll();
     document.getElementById('ld').style.display='none';
     supabase.channel('ens-rt')
-      .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},loadAll)
-      .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},loadAll)
+      // 곡/세션 변경 → 목록만 갱신 (폼 입력값 보존)
+      .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},refreshList)
+      .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},refreshList)
+      // 회차 상태 변경 → 전체 재렌더 (phase 전환 등)
       .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},loadAll)
       .subscribe();
-    // 실시간 미지원 테이블 대비 폴링 폴백 (8초 간격, 탭 비활성 시 중지)
-    let _poll=setInterval(loadAll,8000);
+    // 폴링 폴백: 목록만 갱신해 폼 입력값 보존
+    let _poll=setInterval(refreshList,8000);
     document.addEventListener('visibilitychange',()=>{
       if(document.hidden){clearInterval(_poll);}
-      else{loadAll();_poll=setInterval(loadAll,8000);}
+      else{refreshList();_poll=setInterval(refreshList,8000);}
     });
   }catch(e){
     document.getElementById('ld').innerHTML=`
@@ -275,12 +277,8 @@ async function init(){
   }
 }
 
-async function loadAll(){
-  const {data:rds}=await supabase.from('ensemble_rounds').select('*').order('created_at',{ascending:false});
-  if(rds){
-    rounds.regular=rds.find(r=>r.type==='regular')||null;
-    rounds.busking=rds.find(r=>r.type==='busking')||null;
-  }
+// 곡·세션 목록만 새로고침 — 폼(입력값) 건드리지 않음
+async function refreshList(){
   for(const type of ['regular','busking']){
     const r=rounds[type];
     if(!r){songs[type]=[];continue;}
@@ -293,6 +291,16 @@ async function loadAll(){
     const {data:sess}=await supabase.from('session_applications').select('*').in('song_id',allIds).order('created_at');
     (sess||[]).forEach(s=>{ if(!sessionMap[s.song_id]) sessionMap[s.song_id]=[]; sessionMap[s.song_id].push(s); });
   }
+  renderList();
+}
+
+async function loadAll(){
+  const {data:rds}=await supabase.from('ensemble_rounds').select('*').order('created_at',{ascending:false});
+  if(rds){
+    rounds.regular=rds.find(r=>r.type==='regular')||null;
+    rounds.busking=rds.find(r=>r.type==='busking')||null;
+  }
+  await refreshList();
   render();
 }
 
