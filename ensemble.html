@@ -450,24 +450,27 @@ function render(){
   if(phase==='song'){
     const active=songs[currentType].filter(s=>s.status!=='rejected');
     const remaining=r.max_songs-active.length;
-    html+=`<div class="form-card">
-      <div class="form-title">곡 신청 (잔여 ${remaining}/${r.max_songs}곡)</div>
-      <div class="form-row">
-        <div><div class="fl">신청자 성명 *</div><input class="fi" id="sName" placeholder="홍길동" maxlength="20"/></div>
-        <div><div class="fl">학번 *</div><input class="fi" id="sStudentId" placeholder="20250001" maxlength="20"/></div>
-      </div>
-      <div class="form-row">
-        <div><div class="fl">곡 제목 *</div><input class="fi" id="sTitle" placeholder="곡 제목" maxlength="100"/></div>
-        <div><div class="fl">아티스트 *</div><input class="fi" id="sArtist" placeholder="아티스트명" maxlength="100"/></div>
-      </div>
-      <div>
-        <div class="fl">필요 세션 * (복수 선택)</div>
-        <div class="session-grid">
-          ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ns_${s.replace(/\s/g,'_')}" value="${s}"/><label class="session-label" for="ns_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
+    const sessCountdown=r?.session_scheduled_at&&new Date(r.session_scheduled_at)>new Date();
+    if(!sessCountdown){
+      html+=`<div class="form-card">
+        <div class="form-title">곡 신청 (잔여 ${remaining}/${r.max_songs}곡)</div>
+        <div class="form-row">
+          <div><div class="fl">신청자 성명 *</div><input class="fi" id="sName" placeholder="홍길동" maxlength="20"/></div>
+          <div><div class="fl">학번 *</div><input class="fi" id="sStudentId" placeholder="20250001" maxlength="20"/></div>
         </div>
-      </div>
-      <div class="form-footer"><button class="btn btn-p" onclick="submitSong()">곡 신청</button></div>
-    </div>`;
+        <div class="form-row">
+          <div><div class="fl">곡 제목 *</div><input class="fi" id="sTitle" placeholder="곡 제목" maxlength="100"/></div>
+          <div><div class="fl">아티스트 *</div><input class="fi" id="sArtist" placeholder="아티스트명" maxlength="100"/></div>
+        </div>
+        <div>
+          <div class="fl">필요 세션 * (복수 선택)</div>
+          <div class="session-grid">
+            ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ns_${s.replace(/\s/g,'_')}" value="${s}"/><label class="session-label" for="ns_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
+          </div>
+        </div>
+        <div class="form-footer"><button class="btn btn-p" onclick="submitSong()">곡 신청</button></div>
+      </div>`;
+    }
   }
 
   if(phase==='session'){
@@ -597,6 +600,7 @@ window.onSongSelect=function(){
 window.submitSong=async function(){
   const r=rounds[currentType];
   if(!r||r.phase!=='song'){toast('현재 곡 신청 기간이 아닙니다','err');return;}
+  if(r.session_scheduled_at&&new Date(r.session_scheduled_at)>new Date()){toast('세션 신청 예약 중 — 곡 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('sName').value.trim();
   const sid=document.getElementById('sStudentId').value.trim();
   const title=document.getElementById('sTitle').value.trim();
