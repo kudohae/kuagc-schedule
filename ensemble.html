@@ -320,9 +320,9 @@ function render(){
   </div>`;
 
   const si={
-    closed:{icon:'⭕',title:'신청 기간이 아닙니다',sub:'관리자가 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed'},
+    closed:{icon:'❌️',title:'신청 기간이 아닙니다',sub:'관리자가 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed'},
     song:{icon:'🎵',title:'곡 신청 진행 중',sub:r?`최대 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡`:'',cls:'song'},
-    session:{icon:'🎸',title:'세션 신청 진행 중',sub:r?`인당 최대 ${r.max_sessions_per_person}곡 참여 가능`:'',cls:'session'},
+    session:{icon:'👥️',title:'세션 신청 진행 중',sub:r?`인당 최대 ${r.max_sessions_per_person}곡 참여 가능`:'',cls:'session'},
   }[phase];
   html+=`<div class="status-card ${si.cls}">
     <div class="status-icon">${si.icon}</div>
