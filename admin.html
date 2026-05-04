@@ -348,12 +348,17 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
       <div class="login-sub">동아리 관리 시스템</div>
     </div>
     <div>
-      <div class="fl">관리자 비밀번호</div>
+      <div class="fl">이메일</div>
+      <input class="fi" type="email" id="emailInput" placeholder="이메일 입력"
+        onkeydown="if(event.key==='Enter')document.getElementById('pwInput').focus()"/>
+    </div>
+    <div>
+      <div class="fl">비밀번호</div>
       <input class="fi" type="password" id="pwInput" placeholder="비밀번호 입력"
         onkeydown="if(event.key==='Enter')doLogin()"/>
     </div>
-    <div class="login-err" id="loginErr">비밀번호가 틀렸습니다</div>
-    <button class="btn btn-p" style="width:100%;padding:9px" onclick="doLogin()">Login</button>
+    <div class="login-err" id="loginErr">이메일 또는 비밀번호가 틀렸습니다</div>
+    <button class="btn btn-p" style="width:100%;padding:9px" id="loginBtn" onclick="doLogin()">로그인</button>
     <div style="text-align:center">
       <a href="index.html" style="font-size:11px;color:var(--text3);text-decoration:none;">← 일반 시간표로 돌아가기</a>
     </div>
@@ -554,7 +559,6 @@ window.toggleTheme=function(){
   if(btn) btn.textContent=document.body.classList.contains('dark')?'☀️':'🌙';
 };
 
-const ADMIN_PW = 'kuagc513';
 const DAYS  = ['월','화','수','목','금','토','일'];
 const HOURS = Array.from({length:18},(_,i)=>i+8);
 const GRAY  = '#888888';
@@ -585,36 +589,48 @@ let selectedTeams=new Set();
 let merged=[], round=null, applications=[];
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
-function isLoggedIn(){ return sessionStorage.getItem('adm')==='1'; }
+function showAdminUI(){
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('adminUI').style.display='block';
+  document.getElementById('mobTabBar').style.display='';
+  loadAll();
+}
 
-window.doLogin=function(){
+window.doLogin=async function(){
+  const email=document.getElementById('emailInput').value.trim();
   const pw=document.getElementById('pwInput').value;
   const err=document.getElementById('loginErr');
-  if(pw===ADMIN_PW){
-    sessionStorage.setItem('adm','1');
-    document.getElementById('loginWrap').style.display='none';
-    document.getElementById('adminUI').style.display='block';
-    document.getElementById('mobTabBar').style.display='';
-    loadAll();
-  } else {
+  const btn=document.getElementById('loginBtn');
+  err.style.display='none';
+  btn.disabled=true; btn.textContent='로그인 중...';
+  const {error}=await supabase.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false; btn.textContent='로그인';
+  if(error){
     err.style.display='block';
     document.getElementById('pwInput').value='';
     document.getElementById('pwInput').focus();
   }
 };
 
-window.doLogout=function(){
-  sessionStorage.removeItem('adm');
-  location.reload();
+window.doLogout=async function(){
+  await supabase.auth.signOut();
 };
 
-// auto-login if session active
-if(isLoggedIn()){
-  document.getElementById('loginWrap').style.display='none';
-  document.getElementById('adminUI').style.display='block';
-  document.getElementById('mobTabBar').style.display='';
-  loadAll();
-}
+// auth state listener
+supabase.auth.onAuthStateChange((_event,session)=>{
+  if(session){
+    showAdminUI();
+  } else {
+    document.getElementById('loginWrap').style.display='';
+    document.getElementById('adminUI').style.display='none';
+    document.getElementById('mobTabBar').style.display='none';
+  }
+});
+
+// restore session on load
+supabase.auth.getSession().then(({data:{session}})=>{
+  if(session) showAdminUI();
+});
 
 // ── LOAD ──────────────────────────────────────────────────────────────
 async function loadAll(){
