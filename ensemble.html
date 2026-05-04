@@ -372,12 +372,16 @@ function render(){
       </div>`;
       document.getElementById('mainContainer').innerHTML=html;
       startCountdown(type,targetDate,async()=>{
-        await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id);
+        try{ await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id); }catch(e){}
+        if(rounds[type]&&rounds[type].id===r.id){ rounds[type].phase='song'; rounds[type].song_scheduled_at=null; }
+        render();
       });
       return;
     } else {
       // 예약 시각 도달 — 바로 열기
+      if(rounds[type]&&rounds[type].id===r.id){ rounds[type].phase='song'; rounds[type].song_scheduled_at=null; }
       supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id).then(()=>{});
+      render(); return;
     }
   }
 
@@ -417,11 +421,15 @@ function render(){
         if(el) el.textContent=diffToHMS(d2);
         if(d2<=0){
           clearInterval(countdownTimers[sessKey]); delete countdownTimers[sessKey];
-          supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).then(()=>{});
+          try{ supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).then(()=>{}); }catch(e){}
+          if(rounds[type]&&rounds[type].id===r.id){ rounds[type].phase='session'; rounds[type].session_scheduled_at=null; }
+          render();
         }
       },1000);
     } else {
+      if(rounds[type]&&rounds[type].id===r.id){ rounds[type].phase='session'; rounds[type].session_scheduled_at=null; }
       supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).then(()=>{});
+      render(); return;
     }
   }
 

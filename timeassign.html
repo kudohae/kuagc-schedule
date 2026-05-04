@@ -163,11 +163,22 @@ window.toggleTheme=function(){
   if(btn) btn.textContent=document.body.classList.contains('dark')?'☀️':'🌙';
 };
 
+function fmtScheduled(ts){
+  const d=new Date(ts),pad=n=>String(n).padStart(2,'0');
+  return `${String(d.getFullYear()).slice(2)}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function diffToHMS(ms){
+  if(ms<=0) return '00:00:00';
+  const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  return [h,m,sc].map(v=>String(v).padStart(2,'0')).join(':');
+}
+
 // ── STATE ─────────────────────────────────────────────────────────────
 let season='1학기';
 let teams=[], baseSlots=[], exceptions=[], merged=[];
 let round=null, applications=[];
 let applyPrefs={}, applyTeamId=null;
+let taCountdownTimer=null;
 
 // ── INIT ──────────────────────────────────────────────────────────────
 async function init(){
@@ -209,7 +220,11 @@ async function init(){
 
 // ── RENDER ────────────────────────────────────────────────────────────
 function render(){
-  const isOpen=round&&round.status==='open';
+  // clear any existing countdown
+  if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
+
+  const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
+  const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
   const isFin=round&&(round.status==='finished'||round.draft_approved);
   const teamOpts=korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   const occMap=new Map(merged.filter(s=>s.status!=='absent').map(s=>[`${s.day}-${s.hour}`,s.teams.name]));
@@ -218,8 +233,34 @@ function render(){
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <h2 style="font-size:15px;font-weight:700">📅 시간 배정 신청</h2>
       <span class="rt-badge"><span class="rt-dot"></span>실시간</span>
-    </div>
-    <div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
+    </div>`;
+
+  if(isScheduled){
+    const targetDate=round.open_at;
+    const diff=new Date(targetDate)-Date.now();
+    html+=`<div class="apply-status closed">
+      <div class="apply-status-icon">⏳</div>
+      <div class="apply-status-texts">
+        <div class="apply-status-title">신청 기간이 아닙니다</div>
+        <div class="apply-status-sub">${fmtScheduled(targetDate)}에 신청이 열립니다</div>
+        <div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--accent2);margin-top:4px" id="ta-cd">${diffToHMS(diff)}</div>
+      </div>
+    </div>`;
+    document.getElementById('applyContent').innerHTML=html;
+    renderList();
+    taCountdownTimer=setInterval(()=>{
+      const d2=new Date(targetDate)-Date.now();
+      const el=document.getElementById('ta-cd');
+      if(el) el.textContent=diffToHMS(d2);
+      if(d2<=0){
+        clearInterval(taCountdownTimer); taCountdownTimer=null;
+        render();
+      }
+    },1000);
+    return;
+  }
+
+  html+=`<div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
       <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':'⭕'}</div>
       <div class="apply-status-texts">
         <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'신청 마감 — 배정 완료':'신청 기간이 아닙니다'}</div>
@@ -274,7 +315,8 @@ function render(){
 }
 
 function renderList(){
-  const isOpen=round&&round.status==='open';
+  const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
+  const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
   const isFin=round&&(round.status==='finished'||round.draft_approved);
   const pc=p=>p===1?'p1':p===2?'p2':p===3?'p3':'none';
   const pl=p=>p?p+'지망':'미배정';
@@ -337,7 +379,8 @@ window.onApplyDayChange=function(n){
 };
 
 window.submitApply=async function(){
-  if(!round||round.status!=='open'){toast('현재 신청 기간이 아닙니다','err');return;}
+  const _sched=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
+  if(!round||round.status!=='open'||_sched){toast('현재 신청 기간이 아닙니다','err');return;}
   const selEl=document.getElementById('apTeam');
   const team_id=applyTeamId||parseInt(selEl?.value);
   if(!team_id||isNaN(team_id)){toast('팀을 선택해주세요','err');return;}
