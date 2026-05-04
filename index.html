@@ -896,9 +896,11 @@ function showModal(title,body,foot){
   document.getElementById('modalTtl').textContent=title;
   document.getElementById('modalBody').innerHTML=body;
   document.getElementById('modalFoot').innerHTML=foot;
+  // transform 초기화 (이전 스와이프 잔여 상태 제거)
+  const modal=document.querySelector('#modalBd .modal');
+  if(modal){ modal.style.transform=''; modal.style.transition=''; }
   document.getElementById('modalBd').style.display='flex';
   document.body.style.overflow='hidden';
-  // 스와이프 투 클로즈 (모바일)
   if(isMobile()) initSwipeToClose();
 }
 window.closeModal=()=>{
@@ -908,9 +910,11 @@ window.closeModal=()=>{
 
 function initSwipeToClose(){
   const modal=document.querySelector('#modalBd .modal');
-  if(!modal) return;
+  if(!modal||modal._swipeInit) return; // 중복 등록 방지
+  modal._swipeInit=true;
   let startY=0, isDragging=false;
   modal.addEventListener('touchstart',e=>{
+    if(document.getElementById('modalBd').style.display==='none') return;
     startY=e.touches[0].clientY; isDragging=true;
     modal.style.transition='none';
   },{passive:true});
