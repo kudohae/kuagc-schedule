@@ -1408,7 +1408,7 @@ function renderEnsemble(){
             <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
             <div class="e-sess-actions">
               ${a.status==='pending'
-                ?`<button class="btn btn-s btn-xs" onclick="confirmSession(${a.id})">확</button><button class="btn btn-d btn-xs" onclick="rejectSession(${a.id})">✕</button>`
+                ?`<button class="btn btn-s btn-xs" onclick="confirmSession(${a.id})">확정</button><button class="btn btn-d btn-xs" onclick="rejectSession(${a.id})">✕</button>`
                 :`<span style="font-size:9px;font-weight:700;color:${a.status==='confirmed'?'var(--accent)':'var(--danger)'}">${a.status==='confirmed'?'확정':'거절'}</span>`}
             </div>
           </div>`).join('')}
