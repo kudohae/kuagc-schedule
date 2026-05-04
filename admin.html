@@ -1252,7 +1252,7 @@ function renderEnsemble(){
     const r=eRounds[type];
     const songList=eSongs[type]||[];
     const typeName=type==='regular'?'일반 합주':'버스킹 합주';
-    const phaseMap={closed:{label:'닫힘',cls:'closed'},song:{label:'곡 신청 중',cls:'song'},session:{label:'세션 신청 중',cls:'session'}};
+    const phaseMap={draft:{label:'준비 중',cls:'closed'},closed:{label:'닫힘',cls:'closed'},song:{label:'곡 신청 중',cls:'song'},session:{label:'세션 신청 중',cls:'session'}};
     const phase=r?.phase||'closed';
     const pm=phaseMap[phase];
 
@@ -1267,9 +1267,13 @@ function renderEnsemble(){
     let ctrl='';
     if(!r||phase==='closed'){
       ctrl=`<button class="btn btn-p btn-xs" onclick="openCreateRoundModal('${type}')">회차 생성</button>`;
+    } else if(phase==='draft'){
+      ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
+            <button class="btn btn-p btn-xs" onclick="openSongPhaseModal(${r.id})">곡 신청 열기</button>
+            <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">삭제</button>`;
     } else if(phase==='song'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
-            <button class="btn btn-p btn-xs" onclick="openSessionPhase(${r.id})">→ 세션신청</button>
+            <button class="btn btn-p btn-xs" onclick="openSessionPhaseModal(${r.id})">→ 세션신청</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session'){
       ctrl=`<button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
@@ -1353,7 +1357,7 @@ window.openCreateRoundModal=function(type){
        <div><div class="fl">인당 세션참여</div><input class="fi" id="eMaxSess" type="number" value="3" min="1"/></div>
      </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-p" id="ecBtn" onclick="createRound('${type}')">생성 + 곡 신청 열기</button>`
+     <button class="btn btn-p" id="ecBtn" onclick="createRound('${type}')">회차 생성</button>`
   );
 };
 
@@ -1365,8 +1369,8 @@ window.createRound=async function(type){
   if(!name){toast('이름을 입력해주세요','err');return;}
   const btn=document.getElementById('ecBtn'); btn.disabled=true;
   try{
-    await supabase.from('ensemble_rounds').insert({type,name,phase:'song',max_songs,max_songs_per_person,max_sessions_per_person});
-    toast('회차가 생성됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    await supabase.from('ensemble_rounds').insert({type,name,phase:'draft',max_songs,max_songs_per_person,max_sessions_per_person});
+    toast('회차가 생성됐습니다. 곡 신청을 열어주세요.','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1399,11 +1403,65 @@ window.saveRoundSettings=async function(id){
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
-window.openSessionPhase=async function(id){
-  if(!confirm('곡 신청을 마감하고 세션 신청 단계로 전환할까요?')) return;
+function schedDateInput(id,label){
+  const now=new Date(),pad=n=>String(n).padStart(2,'0');
+  const def=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return `<div><div class="fl">${label} (비워두면 즉시 열림)</div><input class="fi" type="datetime-local" id="${id}" /></div>`;
+}
+
+window.openSongPhaseModal=function(id){
+  showModal('곡 신청 열기',
+    schedDateInput('songOpenAt','예약 일시'),
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="sopBtn" onclick="doOpenSongPhase(${id})">열기</button>`
+  );
+};
+
+window.doOpenSongPhase=async function(id){
+  const atVal=document.getElementById('songOpenAt')?.value;
+  const btn=document.getElementById('sopBtn'); btn.disabled=true;
   try{
-    await supabase.from('ensemble_rounds').update({phase:'session'}).eq('id',id);
-    toast('세션 신청 단계로 전환됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    if(atVal){
+      const at=new Date(atVal).toISOString();
+      await supabase.from('ensemble_rounds').update({song_scheduled_at:at}).eq('id',id);
+      toast('곡 신청 예약됐습니다','ok');
+    } else {
+      await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',id);
+      toast('곡 신청이 열렸습니다','ok');
+    }
+    closeModal(); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+
+window.openSessionPhaseModal=function(id){
+  showModal('세션 신청 열기',
+    schedDateInput('sessOpenAt','예약 일시'),
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="ssopBtn" onclick="doOpenSessionPhase(${id})">전환</button>`
+  );
+};
+
+window.doOpenSessionPhase=async function(id){
+  const atVal=document.getElementById('sessOpenAt')?.value;
+  const btn=document.getElementById('ssopBtn'); btn.disabled=true;
+  try{
+    if(atVal){
+      const at=new Date(atVal).toISOString();
+      await supabase.from('ensemble_rounds').update({session_scheduled_at:at}).eq('id',id);
+      toast('세션 신청 예약됐습니다','ok');
+    } else {
+      await supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',id);
+      toast('세션 신청 단계로 전환됐습니다','ok');
+    }
+    closeModal(); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+
+window.deleteRound=async function(id){
+  if(!confirm('이 회차(준비 중)를 삭제할까요?')) return;
+  try{
+    await supabase.from('ensemble_rounds').delete().eq('id',id);
+    toast('삭제됐습니다'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 

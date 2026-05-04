@@ -241,6 +241,7 @@ let rounds = {regular:null, busking:null};
 let songs = {regular:[], busking:[]};
 let sessionMap = {};
 let searchQ = '';
+let countdownTimers = {}; // type → intervalId
 
 function fmtTime(ts){
   if(!ts) return '';
@@ -307,10 +308,47 @@ window.clearSearch=function(){
   renderList();
 };
 
+function fmtScheduled(ts){
+  const d=new Date(ts);
+  const yy=String(d.getFullYear()).slice(2);
+  const mo=String(d.getMonth()+1).padStart(2,'0');
+  const dd=String(d.getDate()).padStart(2,'0');
+  const hh=String(d.getHours()).padStart(2,'0');
+  const mm=String(d.getMinutes()).padStart(2,'0');
+  const ss=String(d.getSeconds()).padStart(2,'0');
+  return `${yy}-${mo}-${dd} ${hh}:${mm}:${ss}`;
+}
+
+function diffToHMS(ms){
+  if(ms<=0) return '00:00:00';
+  const s=Math.floor(ms/1000);
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  return [h,m,sc].map(v=>String(v).padStart(2,'0')).join(':');
+}
+
+function startCountdown(type,targetDate,onExpired){
+  if(countdownTimers[type]) clearInterval(countdownTimers[type]);
+  countdownTimers[type]=setInterval(()=>{
+    const diff=new Date(targetDate)-Date.now();
+    const el=document.getElementById(`cd-${type}`);
+    if(el) el.textContent=diffToHMS(diff);
+    if(diff<=0){
+      clearInterval(countdownTimers[type]);
+      delete countdownTimers[type];
+      onExpired();
+    }
+  },1000);
+}
+
 function render(){
   const r=rounds[currentType];
   const phase=r?.phase||'closed';
   const typeName=currentType==='regular'?'일반 합주':'버스킹 합주';
+  const type=currentType;
+
+  // 카운트다운 타이머 정리
+  if(countdownTimers[type]){ clearInterval(countdownTimers[type]); delete countdownTimers[type]; }
+
   let html='';
 
   html+=`<div class="search-bar">
@@ -319,11 +357,36 @@ function render(){
     <button class="search-clear" onclick="clearSearch()" style="${searchQ?'':'display:none'}">×</button>
   </div>`;
 
+  // ─ 곡 신청 예약 카운트다운 (draft + song_scheduled_at) ─
+  if(phase==='draft'&&r?.song_scheduled_at){
+    const targetDate=r.song_scheduled_at;
+    const diff=new Date(targetDate)-Date.now();
+    if(diff>0){
+      html+=`<div class="status-card closed">
+        <div class="status-icon">⏳</div>
+        <div class="status-texts">
+          <div class="status-title">${r.name||typeName} — 지금은 신청 기간이 아닙니다</div>
+          <div class="status-sub">${fmtScheduled(targetDate)}에 곡 신청이 열립니다</div>
+          <div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--accent2);margin-top:6px" id="cd-${type}">${diffToHMS(diff)}</div>
+        </div>
+      </div>`;
+      document.getElementById('mainContainer').innerHTML=html;
+      startCountdown(type,targetDate,async()=>{
+        await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id);
+      });
+      return;
+    } else {
+      // 예약 시각 도달 — 바로 열기
+      supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id).then(()=>{});
+    }
+  }
+
   const si={
+    draft:{icon:'🕐',title:'신청 준비 중',sub:'관리자가 곡 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed'},
     closed:{icon:'❌️',title:'신청 기간이 아닙니다',sub:'관리자가 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed'},
     song:{icon:'🎵',title:'곡 신청 진행 중',sub:r?`최대 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡`:'',cls:'song'},
     session:{icon:'👥️',title:'세션 신청 진행 중',sub:r?`인당 최대 ${r.max_sessions_per_person}곡 참여 가능`:'',cls:'session'},
-  }[phase];
+  }[phase]||{icon:'❌️',title:'신청 기간이 아닙니다',sub:'',cls:'closed'};
   html+=`<div class="status-card ${si.cls}">
     <div class="status-icon">${si.icon}</div>
     <div class="status-texts">
@@ -331,6 +394,36 @@ function render(){
       <div class="status-sub">${si.sub}</div>
     </div>
   </div>`;
+
+  // ─ 세션 신청 예약 카운트다운 (song + session_scheduled_at) ─
+  if(phase==='song'&&r?.session_scheduled_at){
+    const targetDate=r.session_scheduled_at;
+    const diff=new Date(targetDate)-Date.now();
+    if(diff>0){
+      html+=`<div class="status-card closed" style="margin-top:0">
+        <div class="status-icon">⏳</div>
+        <div class="status-texts">
+          <div class="status-title">${r.name||typeName} — 지금은 세션 신청 기간이 아닙니다</div>
+          <div class="status-sub">${fmtScheduled(targetDate)}에 세션 신청이 열립니다</div>
+          <div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--accent2);margin-top:6px" id="cd-sess-${type}">${diffToHMS(diff)}</div>
+        </div>
+      </div>`;
+      // 세션 카운트다운 타이머 (별도 key)
+      const sessKey=type+'-sess';
+      if(countdownTimers[sessKey]) clearInterval(countdownTimers[sessKey]);
+      countdownTimers[sessKey]=setInterval(()=>{
+        const d2=new Date(targetDate)-Date.now();
+        const el=document.getElementById(`cd-sess-${type}`);
+        if(el) el.textContent=diffToHMS(d2);
+        if(d2<=0){
+          clearInterval(countdownTimers[sessKey]); delete countdownTimers[sessKey];
+          supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).then(()=>{});
+        }
+      },1000);
+    } else {
+      supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).then(()=>{});
+    }
+  }
 
   if(phase==='song'){
     const active=songs[currentType].filter(s=>s.status!=='rejected');

@@ -215,7 +215,7 @@ export async function fetchApplications(roundId) {
 export async function submitApplication({ round_id, team_id, pref1_day, pref1_hour, pref2_day = null, pref2_hour = null, pref3_day = null, pref3_hour = null }) {
   const { data, error } = await supabase
     .from('time_applications')
-    .upsert({ round_id, team_id, pref1_day, pref1_hour, pref2_day, pref2_hour, pref3_day, pref3_hour, assigned_day: null, assigned_hour: null, assigned_pref: null, submitted_at: new Date().toISOString() },
+    .upsert({ round_id, team_id, pref1_day, pref1_hour, pref2_day, pref2_hour, pref3_day, pref3_hour, assigned_day: null, assigned_hour: null, assigned_pref: null },
       { onConflict: 'round_id,team_id' })
     .select('*, teams(*)').single();
   if (error) throw error;
