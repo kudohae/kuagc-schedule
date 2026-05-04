@@ -215,8 +215,7 @@ export async function fetchApplications(roundId) {
 export async function submitApplication({ round_id, team_id, pref1_day, pref1_hour, pref2_day = null, pref2_hour = null, pref3_day = null, pref3_hour = null }) {
   const { data, error } = await supabase
     .from('time_applications')
-    .upsert({ round_id, team_id, pref1_day, pref1_hour, pref2_day, pref2_hour, pref3_day, pref3_hour, assigned_day: null, assigned_hour: null, assigned_pref: null },
-      { onConflict: 'round_id,team_id' })
+    .insert({ round_id, team_id, pref1_day, pref1_hour, pref2_day, pref2_hour, pref3_day, pref3_hour })
     .select('*, teams(*)').single();
   if (error) throw error;
   return data;
@@ -230,19 +229,26 @@ export async function deleteApplication(id) {
 // ─── ASSIGNMENT LOGIC ────────────────────────────────────────────────
 // 신청 마감 후 관리자가 호출 — base_slots 초안 생성
 export async function runAssignment(round, applications, season) {
-  // 1. 배정 초기화
-  const assigned = new Map(); // "day-hour" → team_id
-  const results  = [];       // { id, assigned_day, assigned_hour, assigned_pref }
+  // 팀별 최신 신청만 사용 (re-submit 시 마지막 신청이 유효)
+  const latestPerTeam = new Map();
+  for (const app of applications) {
+    const ex = latestPerTeam.get(app.team_id);
+    if (!ex || new Date(app.submitted_at) > new Date(ex.submitted_at)) {
+      latestPerTeam.set(app.team_id, app);
+    }
+  }
 
-  // 신청 시각 순으로 정렬 (선착순)
-  const sorted = [...applications].sort((a, b) =>
+  const assigned = new Map();
+  const results  = [];
+
+  // 최신 신청을 제출 시각 순(선착순)으로 정렬
+  const sorted = [...latestPerTeam.values()].sort((a, b) =>
     new Date(a.submitted_at) - new Date(b.submitted_at)
   );
 
-  // 2. 지망 순서대로 배정
   for (const pref of [1, 2, 3]) {
     for (const app of sorted) {
-      if (results.find(r => r.id === app.id)) continue; // 이미 배정됨
+      if (results.find(r => r.id === app.id)) continue;
       const day  = app[`pref${pref}_day`];
       const hour = app[`pref${pref}_hour`];
       if (day == null || hour == null) continue;
@@ -254,14 +260,22 @@ export async function runAssignment(round, applications, season) {
     }
   }
 
-  // 미배정 처리
   for (const app of sorted) {
     if (!results.find(r => r.id === app.id)) {
       results.push({ id: app.id, assigned_day: null, assigned_hour: null, assigned_pref: null });
     }
   }
 
-  // 3. time_applications에 배정 결과 저장
+  // 무효(이전) 신청은 배정 null로 초기화
+  for (const app of applications) {
+    if (app.id !== latestPerTeam.get(app.team_id)?.id) {
+      await supabase.from('time_applications').update({
+        assigned_day: null, assigned_hour: null, assigned_pref: null
+      }).eq('id', app.id);
+    }
+  }
+
+  // 최신 신청에 배정 결과 저장
   for (const r of results) {
     await supabase.from('time_applications').update({
       assigned_day: r.assigned_day,
@@ -270,7 +284,6 @@ export async function runAssignment(round, applications, season) {
     }).eq('id', r.id);
   }
 
-  // 4. round status → finished
   await supabase.from('application_rounds')
     .update({ status: 'finished' }).eq('id', round.id);
 
@@ -279,10 +292,17 @@ export async function runAssignment(round, applications, season) {
 
 // 5. 관리자가 초안 확정 → base_slots에 반영
 export async function approveDraft(round, applications, season) {
-  // 기존 해당 시즌 base_slots 삭제 후 재생성
+  // 팀별 최신 신청만 base_slots에 반영
+  const latestPerTeam = new Map();
+  for (const app of applications) {
+    const ex = latestPerTeam.get(app.team_id);
+    if (!ex || new Date(app.submitted_at) > new Date(ex.submitted_at)) {
+      latestPerTeam.set(app.team_id, app);
+    }
+  }
   await supabase.from('base_slots').delete().eq('season', season);
 
-  const toInsert = applications
+  const toInsert = [...latestPerTeam.values()]
     .filter(a => a.assigned_day != null)
     .map(a => ({
       team_id: a.team_id,

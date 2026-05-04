@@ -584,19 +584,19 @@ function renderSchedule(){
   const isNow=weekOff===0;
   const mobile=isMobile();
 
+  const wdates=getWeekDates(weekOff);
+
   // 요일 탭바 (모바일)
   const dayTabBar=document.getElementById('dayTabBar');
   if(dayTabBar){
     if(mobile){
       dayTabBar.innerHTML=DAYS.map((d,i)=>`
         <button class="day-tab${i===mobileDayIdx?' active':''}${isNow&&i===todayDow?' has-today':''}"
-          onclick="selectMobileDay(${i})">${d}${isNow&&i===todayDow?'<br><span style="font-size:9px">오늘</span>':''}</button>`).join('');
+          onclick="selectMobileDay(${i})">${d}<br><span style="font-size:9px;font-weight:400">${wdates[i]}${isNow&&i===todayDow?' · 오늘':''}</span></button>`).join('');
     } else {
       dayTabBar.innerHTML='';
     }
   }
-
-  const wdates=getWeekDates(weekOff);
   document.getElementById('schHdr').innerHTML='<div class="sch-day"></div>'+
     DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}<br><span class="sch-day-date">${wdates[i]}</span></div>`).join('');
   document.getElementById('schTimes').innerHTML=HOURS.map(h=>

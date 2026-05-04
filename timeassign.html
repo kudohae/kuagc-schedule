@@ -315,38 +315,47 @@ function render(){
 }
 
 function renderList(){
-  const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
-  const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
   const isFin=round&&(round.status==='finished'||round.draft_approved);
   const pc=p=>p===1?'p1':p===2?'p2':p===3?'p3':'none';
   const pl=p=>p?p+'지망':'미배정';
 
-  // remove old list card if exists
   const old=document.getElementById('taListCard');
   if(old) old.remove();
 
   if(!round||!applications.length) return;
+
+  // applications is already sorted by submitted_at asc (fetchApplications uses .order('submitted_at'))
+  // latest entry per team_id is valid; earlier entries are void
+  const latestIdByTeam=new Map();
+  for(const a of applications) latestIdByTeam.set(a.team_id,a.id);
+  const isVoid=a=>latestIdByTeam.get(a.team_id)!==a.id;
+
+  // count valid (non-void) entries
+  const validCount=applications.filter(a=>!isVoid(a)).length;
 
   const div=document.createElement('div');
   div.id='taListCard';
   div.className='apply-card';
   div.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div class="apply-card-title" style="margin-bottom:0">${isFin?'배정 결과':'신청 현황'} (${applications.length}팀)</div>
+      <div class="apply-card-title" style="margin-bottom:0">${isFin?'배정 결과':'신청 현황'} (${validCount}팀)</div>
     </div>
     <div style="overflow-x:auto">
       <table class="apply-tbl">
         <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th>제출 시각</th></tr></thead>
         <tbody>
-          ${applications.map((a,i)=>`<tr>
-            <td style="color:var(--text3);font-family:'Space Mono',monospace">${String(i+1).padStart(2,'0')}</td>
-            <td style="font-weight:600">${a.teams.name}</td>
-            <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
-            <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
-            <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
-            ${isFin?`<td>${a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">미배정</span>`}</td>`:''}
-            <td style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace">${fmtTime(a.submitted_at)}</td>
-          </tr>`).join('')}
+          ${applications.map((a,i)=>{
+            const void_=isVoid(a);
+            return `<tr style="${void_?'opacity:.32;':''}">
+              <td style="color:var(--text3);font-family:'Space Mono',monospace">${String(i+1).padStart(2,'0')}</td>
+              <td style="font-weight:600${void_?';text-decoration:line-through':''}">${a.teams.name}${void_?` <span class="pbadge none" style="font-size:9px">무효</span>`:''}</td>
+              <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
+              <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
+              <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
+              ${isFin?`<td>${!void_&&a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">${void_?'무효':'미배정'}</span>`}</td>`:''}
+              <td style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace">${fmtTime(a.submitted_at)}</td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>`;

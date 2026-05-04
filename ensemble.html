@@ -254,11 +254,17 @@ async function init(){
   try{
     await loadAll();
     document.getElementById('ld').style.display='none';
-    supabase.channel('ens')
+    supabase.channel('ens-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},loadAll)
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},loadAll)
       .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},loadAll)
       .subscribe();
+    // 실시간 미지원 테이블 대비 폴링 폴백 (8초 간격, 탭 비활성 시 중지)
+    let _poll=setInterval(loadAll,8000);
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden){clearInterval(_poll);}
+      else{loadAll();_poll=setInterval(loadAll,8000);}
+    });
   }catch(e){
     document.getElementById('ld').innerHTML=`
       <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">

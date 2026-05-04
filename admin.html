@@ -83,6 +83,7 @@ body.dark .week-now-badge{background:rgba(232,255,71,.1);border-color:rgba(232,2
 body.dark .week-goto-badge{background:rgba(71,197,255,.06);border-color:rgba(71,197,255,.25);}
 .week-goto-badge:hover{background:rgba(0,119,204,.12);}
 .sch-day-date{font-size:9px;font-weight:400;color:var(--text3);}
+.day-tab-bar{display:none;}
 .sch-hdr{display:grid;grid-template-columns:46px repeat(7,1fr);border-bottom:1px solid var(--border);}
 .sch-day{padding:6px 2px;text-align:center;font-size:12px;font-weight:700;color:var(--text2);border-right:1px solid var(--border);}
 .sch-day:last-child{border-right:none;}
@@ -282,13 +283,23 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   .pcard-detail{font-size:12px;}
   .pa-ok,.pa-no{min-height:40px;font-size:13px;}
 
-  /* 시간표 그리드 */
+  /* 시간표 그리드 — 모바일 1일 뷰 */
   .sch-times{width:40px;}
-  .sch-hdr{grid-template-columns:40px repeat(7,1fr);}
-  .sch-time{height:56px;font-size:10px;}
-  .sch-slot{height:56px;}
+  .sch-time{height:60px;font-size:10px;}
+  .sch-slot{height:60px;}
   .blk-name{font-size:11px;}
   .blk-info{font-size:10px;}
+  .sch-hdr{display:none;}
+  .sch-grid{grid-template-columns:1fr;}
+  .sch-col{display:none;}
+  .sch-col.mobile-active{display:block;}
+  /* 요일 탭바 */
+  .day-tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
+  .day-tab-bar::-webkit-scrollbar{display:none;}
+  .day-tab{flex:1;min-width:44px;padding:8px 3px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;text-align:center;transition:all .12s;white-space:nowrap;}
+  .day-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700;}
+  .day-tab.today-tab{color:var(--accent2);}
+  .day-tab.active.today-tab{color:var(--accent);border-bottom-color:var(--accent);}
 
   /* 팀 관리 1열 */
   .teams-grid{grid-template-columns:1fr;}
@@ -389,6 +400,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
         <span class="sch-title" id="schTitle">—</span>
         <span class="sch-season" id="schSeason"></span>
       </div>
+      <div class="day-tab-bar" id="dayTabBar"></div>
       <div class="sch-hdr" id="schHdr"></div>
       <div class="sch-body">
         <div class="sch-times" id="schTimes"></div>
@@ -566,6 +578,7 @@ function weekLabelWithThis(off){
 }
 
 let weekOff=0, season='1학기';
+let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let pendingAll=[];
 let selectedTeams=new Set();
@@ -629,6 +642,17 @@ async function loadAll(){
       renderEnsemble();
     })
     .subscribe();
+  supabase.channel('admin-apply-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},async()=>{
+      if(round) applications=await fetchApplications(round.id);
+      renderApply();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'application_rounds'},async()=>{
+      round=await fetchActiveRound(season);
+      if(round) applications=await fetchApplications(round.id);
+      renderApply();
+    })
+    .subscribe();
   render();
 }
 
@@ -676,7 +700,20 @@ function renderSchedule(){
   const todayDow=(new Date().getDay()+6)%7;
   const nowH=new Date().getHours(),nowM=new Date().getMinutes();
   const isNow=weekOff===0;
+  const mobile=window.innerWidth<=700;
   const wdates=getWeekDates(weekOff);
+
+  const dayTabBar=document.getElementById('dayTabBar');
+  if(dayTabBar){
+    if(mobile){
+      dayTabBar.innerHTML=DAYS.map((d,i)=>`
+        <button class="day-tab${i===mobileDayIdx?' active':''}${isNow&&i===todayDow?' today-tab':''}"
+          onclick="selectMobileDay(${i})">${d}<br><span style="font-size:9px;font-weight:400">${wdates[i]}</span></button>`).join('');
+    } else {
+      dayTabBar.innerHTML='';
+    }
+  }
+
   document.getElementById('schHdr').innerHTML='<div class="sch-day"></div>'+
     DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}<br><span class="sch-day-date">${wdates[i]}</span></div>`).join('');
   document.getElementById('schTimes').innerHTML=HOURS.map(h=>
@@ -686,7 +723,7 @@ function renderSchedule(){
   const pm=new Map(requests.filter(r=>r.type==='extra'&&r.status==='pending').map(r=>[`${r.day}-${r.hour}`,r]));
   for(let d=0;d<7;d++){
     const col=document.createElement('div');
-    col.className='sch-col'+(isNow&&d===todayDow?' today':'');
+    col.className='sch-col'+(isNow&&d===todayDow?' today':'')+(mobile?(d===mobileDayIdx?' mobile-active':''):'');
     if(isNow&&d===todayDow&&nowH>=HOURS[0]&&nowH<=HOURS[HOURS.length-1]){
       const slotH=window.innerWidth<=700?56:62;
       const line=document.createElement('div'); line.className='now-line';
@@ -722,6 +759,12 @@ function renderSchedule(){
     grid.appendChild(col);
   }
 }
+
+window.selectMobileDay=function(idx){
+  mobileDayIdx=idx;
+  document.querySelectorAll('.day-tab').forEach((btn,i)=>btn.classList.toggle('active',i===idx));
+  document.querySelectorAll('.sch-col').forEach((col,i)=>col.classList.toggle('mobile-active',i===idx));
+};
 
 function openSlotModal(s){
   const t=s.teams,absent=s.status==='absent',isExtra=s.source==='extra',c=teamClr(t);
@@ -1011,32 +1054,38 @@ window.addTeam=async function(){
 
 // ── APPLY ─────────────────────────────────────────────────────────────
 function renderApply(){
-  const isOpen=round&&round.status==='open';
+  const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
+  const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
   const isFin=round&&(round.status==='finished'||round.draft_approved);
   const isClosed=round&&round.status==='closed'&&!round.draft_approved;
 
-  let html=`<div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
+  let statusCls=isOpen?'open':isFin?'finished':'closed';
+  let statusIcon=isOpen?'🟢':isFin?'🔵':isScheduled?'⏳':isClosed?'🟡':'⭕';
+  let statusTitle=isOpen?'신청 진행 중':isFin?'배정 완료':isScheduled?'신청 예약됨':isClosed?'신청 마감됨 — 배정 대기':'신청 기간 아님';
+  let statusSub=isScheduled?`${fmtScheduled(round.open_at)}에 신청 시작`:isOpen&&round.close_at?'마감: '+new Date(round.close_at).toLocaleString('ko-KR'):'';
+
+  let html=`<div class="apply-status ${statusCls}">
     <div class="apply-status-left">
-      <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':isClosed?'🟡':'⭕'}</div>
+      <div class="apply-status-icon">${statusIcon}</div>
       <div>
-        <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'배정 완료':isClosed?'신청 마감됨 — 배정 대기':'신청 기간 아님'}</div>
-        <div class="apply-status-sub">${isOpen&&round.close_at?'마감: '+new Date(round.close_at).toLocaleString('ko-KR'):''}</div>
+        <div class="apply-status-title">${statusTitle}</div>
+        <div class="apply-status-sub">${statusSub}</div>
       </div>
     </div>
     <div class="apply-status-actions">`;
 
   if(!round||round.draft_approved){
-    // 상태: 없음 또는 완전히 완료 → 새 회차 시작 가능
-    html+=`<button class="btn btn-p btn-xs" onclick="openRoundNow()">신청 시작</button>`;
+    html+=`<button class="btn btn-p btn-xs" onclick="openRoundNow()">즉시 시작</button>
+           <button class="btn btn-s btn-xs" onclick="openScheduleRoundModal()">예약 시작</button>`;
+  } else if(isScheduled){
+    html+=`<button class="btn btn-s btn-xs" onclick="openChangeScheduleModal()">예약 변경</button>
+           <button class="btn btn-p btn-xs" onclick="openApplyNow()">지금 열기</button>`;
   } else if(isOpen){
-    // 상태: 신청 중 → 마감
     html+=`<button class="btn btn-d btn-xs" onclick="closeRoundNow()">신청 마감</button>`;
   } else if(isClosed){
-    // 상태: 마감됨 → 배정 실행 또는 재오픈
     html+=`<button class="btn btn-s btn-xs" onclick="reopenRound()">신청 재오픈</button>
            <button class="btn btn-p btn-xs" onclick="runAndConfirm()">배정 및 확정</button>`;
   }
-  // 언제든 새 회차 시작 버튼 (완료 상태 제외)
   if(round&&!round.draft_approved){
     html+=`<button class="btn btn-s btn-xs" onclick="if(confirm('현재 회차를 종료하고 새 신청을 시작할까요?'))startNewRound()">새 신청 시작</button>`;
   }
@@ -1046,18 +1095,28 @@ function renderApply(){
   if(round&&applications.length){
     const pc=p=>p===1?'p1':p===2?'p2':p===3?'p3':'none';
     const pl=p=>p?p+'지망':'미배정';
+    // 팀별 최신 신청 ID 파악 (이미 submitted_at 오름차순 정렬됨)
+    const latestIdByTeam=new Map();
+    for(const a of applications) latestIdByTeam.set(a.team_id,a.id);
+    const isVoid=a=>latestIdByTeam.get(a.team_id)!==a.id;
+    const validCount=applications.filter(a=>!isVoid(a)).length;
     html+=`<div class="card">
+      <div style="font-size:11px;color:var(--text2);padding:8px 10px 0;font-weight:700">${validCount}팀 신청 중${applications.length>validCount?` (무효 ${applications.length-validCount}건 포함)`:''}</div>
       <table class="apply-tbl">
-        <thead><tr><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
-        <tbody>${applications.map(a=>`<tr>
-          <td style="font-weight:600">${a.teams.name}</td>
-          <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
-          <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
-          <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
-          ${isFin?`<td>${a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">미배정</span>`}</td>`:''}
-          <td style="font-size:11px;color:var(--text3)">${fmtTime(a.submitted_at)}</td>
-          <td><button class="btn btn-s btn-xs" onclick="delApp(${a.id})">취소</button></td>
-        </tr>`).join('')}</tbody>
+        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
+        <tbody>${applications.map((a,i)=>{
+          const void_=isVoid(a);
+          return `<tr style="${void_?'opacity:.3;':''}">
+            <td style="color:var(--text3);font-family:'Space Mono',monospace">${String(i+1).padStart(2,'0')}</td>
+            <td style="font-weight:600${void_?';text-decoration:line-through':''}">${a.teams.name}${void_?` <span class="pbadge none" style="font-size:9px">무효</span>`:''}</td>
+            <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
+            <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
+            <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
+            ${isFin?`<td>${!void_&&a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">${void_?'무효':'미배정'}</span>`}</td>`:''}
+            <td style="font-size:11px;color:var(--text3)">${fmtTime(a.submitted_at)}</td>
+            <td><button class="btn btn-s btn-xs" onclick="delApp(${a.id})">취소</button></td>
+          </tr>`;
+        }).join('')}</tbody>
       </table>
     </div>`;
   }
@@ -1133,11 +1192,38 @@ window.scheduleRound=async function(){
   try{
     round=await createRound({season,open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
     applications=[]; closeModal(); toast('자동 열기가 예약됐습니다','ok'); renderApply();
-    const delay=new Date(oa)-Date.now();
-    if(delay>0&&delay<86400000) setTimeout(async()=>{
-      await updateRound(round.id,{status:'open'}); round=await fetchActiveRound(season);
-      toast('신청이 자동으로 열렸습니다','ok'); renderApply();
-    },delay);
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.openChangeScheduleModal=function(){
+  if(!round) return;
+  const pad=n=>String(n).padStart(2,'0');
+  let curOA='',curCA='';
+  if(round.open_at){const d=new Date(round.open_at);curOA=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+  if(round.close_at){const d=new Date(round.close_at);curCA=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+  showModal('예약 변경',
+    `<div><div class="fl">신청 시작 일시</div><input class="fi" type="datetime-local" id="csOA" value="${curOA}"/></div>
+     <div><div class="fl">신청 마감 일시 (선택)</div><input class="fi" type="datetime-local" id="csCA" value="${curCA}"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="csBtn" onclick="doChangeSchedule()">저장</button>`
+  );
+};
+
+window.doChangeSchedule=async function(){
+  const oa=document.getElementById('csOA').value,ca=document.getElementById('csCA').value;
+  if(!oa){toast('시작 일시를 입력해주세요','err');return;}
+  const btn=document.getElementById('csBtn'); btn.disabled=true;
+  try{
+    round=await updateRound(round.id,{open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
+    closeModal(); toast('예약이 변경됐습니다','ok'); renderApply();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+
+window.openApplyNow=async function(){
+  if(!round) return;
+  try{
+    round=await updateRound(round.id,{open_at:null});
+    toast('신청이 즉시 열렸습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
