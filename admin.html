@@ -1383,7 +1383,7 @@ function renderEnsemble(){
     } else if(phase==='song'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
             ${r.session_scheduled_at?`<button class="btn btn-s btn-xs" onclick="openChangeSessionScheduleModal(${r.id})">예약 변경</button>`:''}
-            <button class="btn btn-p btn-xs" onclick="openSessionPhaseModal(${r.id})">→ 세션신청</button>
+            <button class="btn btn-p btn-xs" onclick="openSessionPhaseModal(${r.id})">세션신청으로 전환</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session'){
       ctrl=`<button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
