@@ -348,6 +348,57 @@ export async function deleteContact(id) {
   if (error) throw error;
 }
 
+// ─── SCHOOLS ─────────────────────────────────────────────────────────
+export async function fetchSchools() {
+  const { data, error } = await supabase.from('schools').select('*').order('created_at');
+  if (error) throw error;
+  return data;
+}
+export async function createSchool({ name, teacher_name, capacity, description = '' }) {
+  const { data, error } = await supabase.from('schools')
+    .insert({ name, teacher_name, capacity, description, status: 'draft' })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+export async function updateSchool(id, fields) {
+  const { data, error } = await supabase.from('schools').update(fields).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+export async function deleteSchool(id) {
+  const { error } = await supabase.from('schools').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ─── SCHOOL APPLICATIONS ─────────────────────────────────────────────
+export async function fetchSchoolApplications(schoolId) {
+  const { data, error } = await supabase.from('school_applications')
+    .select('*').eq('school_id', schoolId).order('created_at');
+  if (error) throw error;
+  return data;
+}
+export async function fetchAllSchoolApplications() {
+  const { data, error } = await supabase.from('school_applications')
+    .select('*').order('created_at');
+  if (error) throw error;
+  return data;
+}
+export async function adminDeleteSchoolApp(id) {
+  const { data: app, error: fe } = await supabase.from('school_applications')
+    .select('*').eq('id', id).single();
+  if (fe) throw fe;
+  const wasNormal = app.status === 'normal';
+  const { error } = await supabase.from('school_applications').delete().eq('id', id);
+  if (error) throw error;
+  if (wasNormal) {
+    const { data: first } = await supabase.from('school_applications')
+      .select('*').eq('school_id', app.school_id).eq('status', 'waitlist')
+      .order('created_at').limit(1).maybeSingle();
+    if (first) await supabase.from('school_applications').update({ status: 'normal' }).eq('id', first.id);
+  }
+}
+
 // ─── VACANCY REPORTS ─────────────────────────────────────────────────
 export async function fetchVacancyReports() {
   const { data, error } = await supabase.from('vacancy_reports').select('*').order('created_at');

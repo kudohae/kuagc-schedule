@@ -44,6 +44,9 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 .hdr-ensemble-btn{background:rgba(92,158,0,.1);border:1px solid rgba(92,158,0,.35);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;transition:all .12s;}
 body.dark .hdr-ensemble-btn{background:rgba(232,255,71,.08);border-color:rgba(232,255,71,.25);}
 .hdr-ensemble-btn:hover{opacity:.8;}
+.hdr-school-btn{background:rgba(200,118,10,.08);border:1px solid rgba(200,118,10,.3);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--warn);text-decoration:none;white-space:nowrap;transition:all .12s;}
+body.dark .hdr-school-btn{background:rgba(255,170,71,.08);border-color:rgba(255,170,71,.25);}
+.hdr-school-btn:hover{opacity:.8;}
 .hdr-apply-btn{background:rgba(0,119,204,.08);border:1px solid rgba(0,119,204,.3);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--accent2);white-space:nowrap;transition:all .12s;cursor:pointer;font-family:'Noto Sans KR',sans-serif;text-decoration:none;}
 body.dark .hdr-apply-btn{background:rgba(71,197,255,.08);border-color:rgba(71,197,255,.25);}
 .hdr-apply-btn:hover{opacity:.8;}
@@ -211,7 +214,7 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
 
   /* 헤더 */
   .season-chip,.desktop-only{display:none;}
-  .hdr-apply-btn,.hdr-ensemble-btn{display:none;}
+  .hdr-apply-btn,.hdr-school-btn,.hdr-ensemble-btn{display:none;}
   header>div[style*="width:1px"]{display:none;}
   .week-lbl{min-width:60px;font-size:11px;}
   .week-nav button{font-size:18px;padding:2px 5px;}
@@ -308,6 +311,7 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
   </div>
   <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
   <a class="hdr-apply-btn" href="timeassign.html">📅 시간 배정</a>
+  <a class="hdr-school-btn" href="school.html">🏫 스쿨 신청</a>
   <a class="hdr-ensemble-btn" href="ensemble.html">🎸 합주 신청</a>
   <div class="hdr-right">
     <div class="season-chip desktop-only" id="seasonChip">—</div>
