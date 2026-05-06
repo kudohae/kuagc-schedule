@@ -71,6 +71,7 @@ body.dark .status-card.session{background:rgba(71,197,255,.06);border-color:rgba
 .form-footer{display:flex;justify-content:flex-end;margin-top:14px;}
 .session-area{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
 .no-song-selected{font-size:13px;color:var(--text3);padding:8px 0;}
+.closed-notice{font-size:14px;color:var(--text3);padding:12px 0;text-align:center;}
 
 /* BUTTONS */
 .btn{padding:7px 15px;border-radius:5px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .12s;white-space:nowrap;}
@@ -450,8 +451,8 @@ function render(){
   if(phase==='song'){
     const active=songs[currentType].filter(s=>s.status!=='rejected');
     const remaining=r.max_songs-active.length;
-    const sessCountdown=r?.session_scheduled_at&&new Date(r.session_scheduled_at)>new Date();
-    if(!sessCountdown){
+    const songClosed=r?.song_close_at&&new Date(r.song_close_at)<=new Date();
+    if(!songClosed){
       html+=`<div class="form-card">
         <div class="form-title">곡 신청 (잔여 ${remaining}/${r.max_songs}곡)</div>
         <div class="form-row">
@@ -475,26 +476,31 @@ function render(){
 
   if(phase==='session'){
     const confirmedSongs=songs[currentType].filter(s=>s.status==='confirmed');
-    html+=`<div class="form-card">
-      <div class="form-title">세션 신청</div>
-      <div class="form-row">
-        <div><div class="fl">성명 *</div><input class="fi" id="ssName" placeholder="홍길동" maxlength="20"/></div>
-        <div><div class="fl">학번 *</div><input class="fi" id="ssStudentId" placeholder="2021130905" maxlength="20"/></div>
-      </div>
-      <div class="form-row single">
-        <div>
-          <div class="fl">참여할 곡 *</div>
-          <select class="fs" id="ssSong" onchange="onSongSelect()">
-            <option value="">— 곡 선택 —</option>
-            ${confirmedSongs.map(s=>`<option value="${s.id}" data-sessions='${JSON.stringify(s.sessions)}'>${s.title} — ${s.artist}</option>`).join('')}
-          </select>
+    const sessClosed=r?.session_close_at&&new Date(r.session_close_at)<=new Date();
+    if(!sessClosed){
+      html+=`<div class="form-card">
+        <div class="form-title">세션 신청</div>
+        <div class="form-row">
+          <div><div class="fl">성명 *</div><input class="fi" id="ssName" placeholder="홍길동" maxlength="20"/></div>
+          <div><div class="fl">학번 *</div><input class="fi" id="ssStudentId" placeholder="2021130905" maxlength="20"/></div>
         </div>
-      </div>
-      <div id="sessionSelectArea">
-        <div class="no-song-selected">곡을 선택하면 신청 가능한 세션이 표시됩니다.</div>
-      </div>
-      <div class="form-footer"><button class="btn btn-p" onclick="submitSession()">세션 신청</button></div>
-    </div>`;
+        <div class="form-row single">
+          <div>
+            <div class="fl">참여할 곡 *</div>
+            <select class="fs" id="ssSong" onchange="onSongSelect()">
+              <option value="">— 곡 선택 —</option>
+              ${confirmedSongs.map(s=>`<option value="${s.id}" data-sessions='${JSON.stringify(s.sessions)}'>${s.title} — ${s.artist}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div id="sessionSelectArea">
+          <div class="no-song-selected">곡을 선택하면 신청 가능한 세션이 표시됩니다.</div>
+        </div>
+        <div class="form-footer"><button class="btn btn-p" onclick="submitSession()">세션 신청</button></div>
+      </div>`;
+    } else {
+      html+=`<div class="form-card"><div class="form-title">세션 신청</div><div class="closed-notice">세션 신청이 마감됐습니다.</div></div>`;
+    }
   }
 
   html+=`<div id="songListEl"></div>`;
@@ -600,7 +606,7 @@ window.onSongSelect=function(){
 window.submitSong=async function(){
   const r=rounds[currentType];
   if(!r||r.phase!=='song'){toast('현재 곡 신청 기간이 아닙니다','err');return;}
-  if(r.session_scheduled_at&&new Date(r.session_scheduled_at)>new Date()){toast('세션 신청 예약 중 — 곡 신청이 마감됐습니다','err');return;}
+  if(r.song_close_at&&new Date(r.song_close_at)<=new Date()){toast('곡 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('sName').value.trim();
   const sid=document.getElementById('sStudentId').value.trim();
   const title=document.getElementById('sTitle').value.trim();
@@ -632,6 +638,7 @@ window.submitSong=async function(){
 window.submitSession=async function(){
   const r=rounds[currentType];
   if(!r||r.phase!=='session'){toast('현재 세션 신청 기간이 아닙니다','err');return;}
+  if(r.session_close_at&&new Date(r.session_close_at)<=new Date()){toast('세션 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('ssName').value.trim();
   const sid=document.getElementById('ssStudentId').value.trim();
   const songId=document.getElementById('ssSong').value;
