@@ -177,7 +177,7 @@ function diffToHMS(ms){
 let season='1학기';
 let teams=[], baseSlots=[], exceptions=[], merged=[];
 let round=null, applications=[];
-let applyPrefs={}, applyTeamId=null;
+let applyPrefs={}, applyTeamId=null, applyTeamName='';
 let taCountdownTimer=null;
 
 // ── INIT ──────────────────────────────────────────────────────────────
@@ -294,7 +294,18 @@ function render(){
       <div class="apply-card-title">시간 신청</div>
       <div style="margin-bottom:14px">
         <div class="fl">팀 선택 *</div>
-        <select class="fs" id="apTeam" onchange="onApplyTeamChange(this.value)">${teamOpts}</select>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input class="fi" type="text" id="apTeamInput" placeholder="팀명 입력"
+            oninput="onApplyTeamInput(this.value)"
+            value="${applyTeamName}" style="flex:1"/>
+          <div id="apTeamInfo" style="font-size:12px;min-width:80px;flex-shrink:0">${(()=>{
+            if(!applyTeamName) return '';
+            const _t=teams.find(t=>t.name===applyTeamName);
+            return _t
+              ? `<span style="color:var(--accent)">${_t.info||'—'}</span>`
+              : `<span style="color:var(--danger)">없는 팀입니다. 팀명을 확인해주세요.</span>`;
+          })()}</div>
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
         ${prefFormRow(1,'p1-txt','1지망',false,p1)}
@@ -310,7 +321,6 @@ function render(){
 
   document.getElementById('applyContent').innerHTML=html;
   const sel=document.getElementById('apTeam');
-  if(sel&&applyTeamId) sel.value=applyTeamId;
   renderList();
 }
 
@@ -363,8 +373,20 @@ function renderList(){
 }
 
 // ── INTERACTIONS ──────────────────────────────────────────────────────
-window.onApplyTeamChange=function(val){
-  applyTeamId=parseInt(val);
+window.onApplyTeamInput=function(val){
+  applyTeamName=val;
+  const trimmed=val.trim();
+  const infoEl=document.getElementById('apTeamInfo');
+  if(!infoEl) return;
+  if(!trimmed){ applyTeamId=null; infoEl.innerHTML=''; return; }
+  const t=teams.find(t=>t.name===trimmed);
+  if(t){
+    applyTeamId=t.id;
+    infoEl.innerHTML=`<span style="color:var(--accent)">${t.info||'—'}</span>`;
+  } else {
+    applyTeamId=null;
+    infoEl.innerHTML=`<span style="color:var(--danger)">없는 팀입니다. 팀명을 확인해주세요.</span>`;
+  }
 };
 
 window.onApplyDayChange=function(n){
@@ -390,20 +412,18 @@ window.onApplyDayChange=function(n){
 window.submitApply=async function(){
   const _sched=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
   if(!round||round.status!=='open'||_sched){toast('현재 신청 기간이 아닙니다','err');return;}
-  const selEl=document.getElementById('apTeam');
-  const team_id=applyTeamId||parseInt(selEl?.value);
-  if(!team_id||isNaN(team_id)){toast('팀을 선택해주세요','err');return;}
+  if(!applyTeamId){toast('팀을 선택해주세요','err');return;}
   const d1=document.getElementById('apD1')?.value;
   const h1=document.getElementById('apH1')?.value;
   if(!d1||!h1){toast('1지망 요일과 시간을 선택해주세요','err');return;}
   const d2=document.getElementById('apD2')?.value, h2=document.getElementById('apH2')?.value;
   const d3=document.getElementById('apD3')?.value, h3=document.getElementById('apH3')?.value;
   try{
-    await submitApplication({round_id:round.id,team_id,
+    await submitApplication({round_id:round.id,team_id:applyTeamId,
       pref1_day:parseInt(d1),pref1_hour:parseInt(h1),
       pref2_day:d2&&h2?parseInt(d2):null,pref2_hour:d2&&h2?parseInt(h2):null,
       pref3_day:d3&&h3?parseInt(d3):null,pref3_hour:d3&&h3?parseInt(h3):null});
-    applyPrefs={}; applyTeamId=null;
+    applyPrefs={}; applyTeamId=null; applyTeamName='';
     toast('신청이 제출됐습니다','ok');
     // 최신 목록은 realtime이 자동으로 받아옴 — 폼만 리렌더
     render();

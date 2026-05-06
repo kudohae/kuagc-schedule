@@ -828,7 +828,7 @@ function openSlotModal(s){
     `<button class="btn btn-s" onclick="closeModal()">닫기</button>
      ${s.exceptionId?`<button class="btn btn-s" onclick="removeException(${s.exceptionId})">예외 제거</button>`:''}
      ${!absent&&s.source==='base'?`<button class="btn btn-d" onclick="markAbsent(${s.team_id},${s.day},${s.hour})">이번 주 미사용</button>`:''}
-     <button class="btn btn-p" onclick="openEditSlotModal(${s.id})">수정</button>`
+     ${s.source==='base'?`<button class="btn btn-p" onclick="openEditSlotModal(${s.id})">수정</button>`:''}`
   );
 }
 
@@ -877,7 +877,7 @@ window.openAddSlotModal=function(day=0,hour=10){
   // ±4주 범위 옵션 생성
   const weekOpts=Array.from({length:9},(_,i)=>i-4).map(off=>{
     const label=weekLabelWithThis(off);
-    return `<option value="week_${off}" ${off===weekOff?'selected':''}>${label}</option>`;
+    return `<option value="week_${off}">${label}</option>`;
   }).join('');
   showModal('슬롯 추가',
     `<div>
