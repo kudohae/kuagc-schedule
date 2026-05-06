@@ -347,3 +347,21 @@ export async function deleteContact(id) {
   const { error } = await supabase.from('contacts').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ─── VACANCY REPORTS ─────────────────────────────────────────────────
+export async function fetchVacancyReports() {
+  const { data, error } = await supabase.from('vacancy_reports').select('*').order('created_at');
+  if (error) throw error;
+  return data;
+}
+export async function createVacancyReport({ incident_month, incident_day, incident_hour, incident_minute }) {
+  const { data, error } = await supabase.from('vacancy_reports')
+    .insert({ incident_month, incident_day, incident_hour, incident_minute })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+export async function deleteVacancyReport(id) {
+  const { error } = await supabase.from('vacancy_reports').delete().eq('id', id);
+  if (error) throw error;
+}

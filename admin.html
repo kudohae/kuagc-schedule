@@ -112,7 +112,7 @@ body.dark .blk{box-shadow:0 1px 3px rgba(0,0,0,.35);}
 .blk-info{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9;color:#fff;}
 .blk-tag{font-size:9px;font-weight:700;background:rgba(0,0,0,.2);padding:1px 3px;border-radius:2px;flex-shrink:0;margin-left:auto;color:#fff;}
 .blk.absent{box-shadow:none;}
-.blk.extra{box-shadow:0 0 0 1.5px var(--accent2);}
+.blk.extra{border-left:4px solid var(--accent2) !important;box-shadow:0 1px 3px rgba(0,0,0,.15);}
 .blk-empty{position:absolute;inset:2px;border-radius:4px;border:1px dashed rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);cursor:pointer;transition:all .12s;}
 body.dark .blk-empty{border-color:rgba(255,255,255,.1);}
 .blk-empty:hover{border-color:var(--accent);color:var(--accent);}
@@ -243,6 +243,13 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 .e-sess-tag{font-size:9px;padding:1px 4px;border-radius:2px;background:rgba(71,197,255,.1);border:1px solid rgba(71,197,255,.2);color:var(--accent2);}
 .e-sess-tag.confirmed{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.2);color:var(--accent);}
 .e-sess-actions{display:flex;gap:3px;flex-shrink:0;}
+.e-sess-chk{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+.e-sess-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.e-sess-dot.confirmed{background:var(--accent);}
+.e-sess-dot.rejected{background:var(--danger);}
+.e-form-btn{margin-top:6px;display:flex;justify-content:flex-end;}
+.e-song-item.unformed{opacity:.55;}
+.e-unformed-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(200,118,10,.15);color:var(--warn);}
 
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -578,7 +585,8 @@ import {
   fetchNotices, createNotice, deleteNotice,
   fetchActiveRound, createRound, updateRound,
   fetchApplications, deleteApplication, runAssignment, approveDraft,
-  fetchContacts, upsertContact, deleteContact
+  fetchContacts, upsertContact, deleteContact,
+  fetchVacancyReports, deleteVacancyReport
 } from './js/schedule.js';
 
 // ── THEME ─────────────────────────────────────────────────────────────
@@ -705,8 +713,44 @@ async function loadAll(){
       renderApply();
     })
     .subscribe();
+  supabase.channel('admin-vacancy-rt')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'vacancy_reports'},async()=>{
+      await checkVacancyReports();
+    })
+    .subscribe();
   render();
+  await checkVacancyReports();
 }
+
+async function checkVacancyReports(){
+  const reports=await fetchVacancyReports().catch(()=>[]);
+  if(reports.length) showVacancyPopup(reports[0]);
+}
+
+function showVacancyPopup(report){
+  const {id,incident_month:mo,incident_day:d,incident_hour:hh,incident_minute:mm}=report;
+  const min=String(mm).padStart(2,'0');
+  const text=`${mo}월 ${d}일 ${hh}시 ${min}분에, 시간표와 다르게 동아리방이 비어있었어요.`;
+  showModal('시간표 불일치 신고 접수',
+    `<div style="background:var(--surface2);border-radius:6px;padding:12px 14px;font-size:14px;line-height:1.6;color:var(--text)">${text}</div>`,
+    `<button class="btn btn-s" onclick="copyVacancyReport(${JSON.stringify(text).replace(/"/g,'&quot;')})">클립보드에 복사</button>
+     <button class="btn btn-d" onclick="confirmVacancyReport(${id},${JSON.stringify(text).replace(/"/g,'&quot;')})">신고 확인</button>`
+  );
+}
+
+window.copyVacancyReport=function(text){
+  navigator.clipboard.writeText(text).then(()=>toast('클립보드에 복사됐습니다','ok')).catch(()=>toast('복사에 실패했습니다','err'));
+};
+
+window.confirmVacancyReport=async function(id,text){
+  const input=prompt(`신고를 확인하고 삭제하려면 "확인"을 입력하세요.\n\n${text}`);
+  if(input?.trim()!=='확인'){toast('취소됐습니다');return;}
+  try{
+    await deleteVacancyReport(id);
+    closeModal(); toast('신고가 삭제됐습니다','ok');
+    await checkVacancyReports();
+  }catch(e){toast(errMsg(e),'err');}
+};
 
 function render(){
   const wl=weekLabel(weekOff);
@@ -793,7 +837,9 @@ function renderSchedule(){
           blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}88">${t.name}</span><span class="blk-tag" style="color:${c}88">미사용</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}66">${t.info||''}</span></div>`;
         } else {
           blk.style.background=c;
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="color:#000">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
+          if(isExtra) blk.style.borderLeft='4px solid var(--accent2)';
+          const tagStyle=isExtra?'background:var(--accent2);color:#000':'color:#000';
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
         }
         blk.onclick=()=>openSlotModal(s); cell.appendChild(blk);
       } else if(pe){
@@ -1484,29 +1530,34 @@ function renderEnsemble(){
     } else {
       songsHtml=active.map((s,i)=>{
         const sessApps=eSessionMap[s.id]||[];
+        const confirmedSessSet=new Set(sessApps.filter(a=>a.status==='confirmed').flatMap(a=>a.sessions));
+        const isFormed=s.sessions.every(sess=>confirmedSessSet.has(sess));
+        const unformed=s.status==='confirmed'&&!isFormed;
+        const hasPending=sessApps.some(a=>a.status==='pending');
         const sessHtml=sessApps.length?`<div class="e-sess-list">
           ${sessApps.map(a=>`<div class="e-sess-row">
+            ${a.status==='pending'
+              ?`<input type="checkbox" class="e-sess-chk" data-song="${s.id}" value="${a.id}" checked>`
+              :`<span class="e-sess-dot ${a.status}"></span>`}
             <span class="e-sess-name">${a.applicant_name} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
             <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${x}</span>`).join('')}</div>
             <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
-            <div class="e-sess-actions">
-              ${a.status==='pending'
-                ?`<button class="btn btn-s btn-xs" onclick="confirmSession(${a.id})">확정</button><button class="btn btn-d btn-xs" onclick="rejectSession(${a.id})">✕</button>`
-                :`<span style="font-size:9px;font-weight:700;color:${a.status==='confirmed'?'var(--accent)':'var(--danger)'}">${a.status==='confirmed'?'확정':'거절'}</span>`}
-            </div>
+            ${a.status!=='pending'?`<span style="font-size:9px;font-weight:700;color:${a.status==='confirmed'?'var(--accent)':'var(--danger)'}">${a.status==='confirmed'?'확정':'거절'}</span>`:''}
           </div>`).join('')}
+          ${hasPending?`<div class="e-form-btn"><button class="btn btn-p btn-xs" onclick="formTeam(${s.id})">이 조합으로 구성</button></div>`:''}
         </div>`:'';
         const actions=r&&phase!=='closed'?`<div class="e-song-actions">
           ${s.status!=='confirmed'?`<button class="btn btn-p btn-xs" onclick="confirmSong(${s.id})">확정</button>`:''}
           ${s.status!=='rejected'?`<button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">거절</button>`:''}
         </div>`:'';
-        return `<div class="e-song-item">
+        return `<div class="e-song-item${unformed?' unformed':''}">
           <div class="e-song-hdr">
             <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
             <div style="flex:1;min-width:0">
               <div class="e-song-title">${s.title}</div>
               <div class="e-song-artist">${s.artist}</div>
             </div>
+            ${unformed?`<span class="e-unformed-badge">미구성</span>`:''}
             <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
           </div>
           <div class="e-song-meta">
@@ -1762,6 +1813,18 @@ window.rejectSession=async function(id){
   try{
     await supabase.from('session_applications').update({status:'rejected'}).eq('id',id);
     toast('거절됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.formTeam=async function(songId){
+  const checkboxes=[...document.querySelectorAll(`input.e-sess-chk[data-song="${songId}"]`)];
+  const toConfirm=checkboxes.filter(c=>c.checked).map(c=>parseInt(c.value));
+  if(!toConfirm.length){toast('구성할 세션을 선택해주세요','err');return;}
+  try{
+    for(const id of toConfirm){
+      await supabase.from('session_applications').update({status:'confirmed'}).eq('id',id);
+    }
+    toast('구성됐습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 

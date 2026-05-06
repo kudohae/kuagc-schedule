@@ -126,7 +126,7 @@ body.dark .blk{box-shadow:0 1px 3px rgba(0,0,0,.35);}
 .blk-info{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9;color:#fff;}
 .blk-tag{font-size:9px;font-weight:700;background:rgba(0,0,0,.2);padding:1px 3px;border-radius:2px;flex-shrink:0;margin-left:auto;color:#fff;}
 .blk.absent{box-shadow:none;}
-.blk.extra{box-shadow:0 0 0 1.5px var(--accent2);}
+.blk.extra{border-left:4px solid var(--accent2) !important;box-shadow:0 1px 3px rgba(0,0,0,.15);}
 .blk.pending{opacity:.5;box-shadow:none;}
 .blk-empty{position:absolute;inset:2px;border-radius:4px;border:1px dashed rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);cursor:pointer;transition:all .12s;}
 body.dark .blk-empty{border-color:rgba(255,255,255,.12);color:var(--text3);}
@@ -383,7 +383,6 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
   <div class="status-popup">
     <div class="status-popup-main" id="statusMain"></div>
     <div class="status-popup-foot">
-      <button class="btn btn-s" onclick="closeStatus()">닫기</button>
       <button class="btn btn-p" onclick="closeStatus()">시간표 보기</button>
     </div>
   </div>
@@ -396,7 +395,7 @@ import {
   getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,
   createException, deleteException, fetchNotices,
-  fetchContacts
+  fetchContacts, createVacancyReport
 } from './js/schedule.js';
 
 // ── CONFIG ────────────────────────────────────────────────────────────
@@ -576,7 +575,8 @@ function renderStats(){
   const extra=exceptions.filter(e=>e.exception_type==='extra').length;
   const pend=requests.filter(r=>r.status==='pending').length;
   document.getElementById('statsEl').innerHTML=`
-    <button class="stat stat-btn" onclick="openTeamAbsentModal()"><div style="font-size:18px">🙏</div><div style="font-size:12px;font-weight:700;color:var(--danger)">우리 팀 쉬어요</div></button>
+    <button class="stat stat-btn" onclick="openTeamAbsentModal()"><div style="font-size:18px">🙏</div><div style="font-size:12px;font-weight:700;color:var(--danger)">미사용 보고하기</div></button>
+    <button class="stat stat-btn" onclick="openVacancyReportModal()"><div style="font-size:18px">🚨</div><div style="font-size:12px;font-weight:700;color:var(--accent2)">시간표 불일치 신고</div></button>
     <div class="stat"><div class="stat-ico">🔕</div><div class="stat-txt"><div class="stat-lbl">이번 주 미사용</div><div class="stat-val" style="color:var(--danger)">${absent}</div></div></div>
     <div class="stat"><div class="stat-ico">➕</div><div class="stat-txt"><div class="stat-lbl">이번 주 추가</div><div class="stat-val" style="color:var(--accent2)">${extra}</div></div></div>
     <div class="stat"><div class="stat-ico">🕐</div><div class="stat-txt"><div class="stat-lbl">대기 신청</div><div class="stat-val" style="color:var(--warn)">${pend}</div></div></div>`;
@@ -634,7 +634,9 @@ function renderSchedule(){
           blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}88">${t.name}</span><span class="blk-tag" style="color:${c}88">미사용</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}66">${t.info||''}</span></div>`;
         } else {
           blk.style.background=c;
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="color:#000">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
+          if(isExtra) blk.style.borderLeft='4px solid var(--accent2)';
+          const tagStyle=isExtra?'background:var(--accent2);color:#000':'color:#000';
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
         }
         blk.onclick=()=>openSlotModal(s);
         cell.appendChild(blk);
@@ -697,7 +699,7 @@ function openSlotModal(s){
             <button class="btn btn-d" onclick="openAbsenceModal(${s.id},${s.day},${s.hour},${s.team_id},'종강 신고')">종강 신고</button>`;
     } else {
       foot=`<button class="btn btn-s" onclick="closeModal()">닫기</button>
-            <button class="btn btn-d" onclick="openAbsenceModal(${s.id},${s.day},${s.hour},${s.team_id})">미사용 신고</button>`;
+            <button class="btn btn-d" onclick="openAbsenceModal(${s.id},${s.day},${s.hour},${s.team_id})">미사용 보고</button>`;
     }
   } else {
     foot=`<button class="btn btn-s" onclick="closeModal()">닫기</button>`;
@@ -714,7 +716,7 @@ function openSlotModal(s){
 
 window.openAbsenceModal=function(slotId,day,hour,teamId,label){
   const t=teams.find(t=>t.id===teamId);
-  const modalLabel=label||'미사용 신고';
+  const modalLabel=label||'미사용 보고';
   const isSchool=t?.type==='스쿨';
   if(isSchool){
     // 종강 신고: 이미 대기 중인 신청이 있는지 확인
@@ -755,7 +757,7 @@ window.submitAbsence=async function(teamId,day,hour){
       await createException({team_id:teamId,day,hour,week_offset:weekOff,exception_type:'absent'});
       exceptions=await fetchExceptions(weekOff);
       merged=mergeSchedule(baseSlots,exceptions);
-      closeModal(); toast('미사용 신고가 완료됐습니다');
+      closeModal(); toast('미사용 보고가 완료됐습니다');
       renderStats(); renderSchedule();
     }
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 제출';}
@@ -788,12 +790,12 @@ window.openTeamAbsentModal=function(){
   ),'name');
   if(!teamsWithSlots.length){toast('이번 주에 신고 가능한 팀이 없습니다','err');return;}
   const teamOpts=teamsWithSlots.map(t=>`<option value="${t.id}">${t.name} (${t.type})</option>`).join('');
-  showModal('우리 팀 쉬어요',
+  showModal('동방 미사용 보고',
     `<div><div class="fl">팀 선택 *</div><select class="fs" id="taTeam" onchange="onTeamAbsentTeamChange()">${teamOpts}</select></div>
      <div id="taSlotWrap" style="margin-top:4px"></div>
      <div><div class="fl">사유 (선택)</div><input class="fi" id="taReason" placeholder="예: 이번 주 쉽니다" maxlength="100"/></div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-d" id="taBtn" onclick="submitTeamAbsent()">미사용 신고</button>`
+     <button class="btn btn-d" id="taBtn" onclick="submitTeamAbsent()">미사용 보고</button>`
   );
   window.onTeamAbsentTeamChange();
 };
@@ -822,16 +824,44 @@ window.submitTeamAbsent=async function(){
     await createException({team_id:teamId,day,hour,week_offset:weekOff,exception_type:'absent'});
     exceptions=await fetchExceptions(weekOff);
     merged=mergeSchedule(baseSlots,exceptions);
-    closeModal(); toast('미사용 신고가 완료됐습니다');
+    closeModal(); toast('미사용 보고가 완료됐습니다');
     renderStats(); renderSchedule();
-  }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='미사용 신고';}
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='미사용 보고';}
+};
+
+window.openVacancyReportModal=function(){
+  const now=new Date();
+  showModal('시간표 불일치 신고',
+    `<div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5">시간표에 사용 중으로 표시된 팀이 동방을 비워뒀던 경우에 신고해주세요.</div>
+     <div style="font-size:13px;margin-bottom:10px;color:var(--text)">발생 일시를 입력해주세요.</div>
+     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+       <div><div class="fl">월</div><input class="fi" id="vrMonth" type="number" min="1" max="12" value="${now.getMonth()+1}"/></div>
+       <div><div class="fl">일</div><input class="fi" id="vrDay" type="number" min="1" max="31" value="${now.getDate()}"/></div>
+       <div><div class="fl">시</div><input class="fi" id="vrHour" type="number" min="0" max="23" value="${now.getHours()}"/></div>
+       <div><div class="fl">분</div><input class="fi" id="vrMinute" type="number" min="0" max="59" value="${now.getMinutes()}"/></div>
+     </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-d" id="vrBtn" onclick="submitVacancyReport()">신고 제출</button>`
+  );
+};
+window.submitVacancyReport=async function(){
+  const mo=parseInt(document.getElementById('vrMonth').value);
+  const d=parseInt(document.getElementById('vrDay').value);
+  const hh=parseInt(document.getElementById('vrHour').value);
+  const mm=parseInt(document.getElementById('vrMinute').value);
+  if(!mo||!d||isNaN(hh)||isNaN(mm)){toast('모든 항목을 입력해주세요','err');return;}
+  const btn=document.getElementById('vrBtn'); btn.disabled=true; btn.textContent='제출 중...';
+  try{
+    await createVacancyReport({incident_month:mo,incident_day:d,incident_hour:hh,incident_minute:mm});
+    closeModal(); toast('신고가 접수됐습니다');
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 제출';}
 };
 
 function openClaimModal(day,hour){
   const opts=korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name} (${t.type})</option>`).join('');
   showModal(`추가 사용 신청 · ${DAYS[day]} ${hour}:00`,
     `<div style="background:rgba(255,170,71,.1);border:1px solid rgba(255,170,71,.3);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--warn);line-height:1.5;">
-       ⚠️ 합주는 <strong>1주 1회</strong>가 원칙입니다.<br>추가 합주 신청 전, 기존 배정 시간에 <strong>미사용 신고</strong>를 먼저 해주세요.
+       ⚠️ 합주는 <strong>1주 1회</strong>가 원칙입니다.<br>추가 합주 신청 전, 기존 배정 시간에 <strong>미사용 보고</strong>를 먼저 해주세요.
      </div>
      <div><div class="fl">팀 선택 *</div><select class="fs" id="clTeam">${opts}</select></div>
      <div><div class="fl">신청자 이름</div><input class="fi" id="clName" placeholder="이름 (선택)" maxlength="20"/></div>

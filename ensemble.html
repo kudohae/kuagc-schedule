@@ -401,16 +401,17 @@ function render(){
   }
 
   const si={
-    draft:{icon:'🕐',title:'신청 준비 중',sub:'관리자가 곡 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed'},
-    closed:{icon:'❌️',title:'신청 기간이 아닙니다',sub:'관리자가 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed'},
-    song:{icon:'🎵',title:'곡 신청 진행 중',sub:r?`최대 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡`:'',cls:'song'},
-    session:{icon:'👥️',title:'세션 신청 진행 중',sub:r?`인당 최대 ${r.max_sessions_per_person}곡 참여 가능`:'',cls:'session'},
-  }[phase]||{icon:'❌️',title:'신청 기간이 아닙니다',sub:'',cls:'closed'};
+    draft:{icon:'🕐',title:'신청 준비 중',sub:'관리자가 곡 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed',close:''},
+    closed:{icon:'❌️',title:'신청 기간이 아닙니다',sub:'관리자가 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed',close:''},
+    song:{icon:'🎵',title:'곡 신청 진행 중',sub:r?`최대 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡`:'',cls:'song',close:r?.song_close_at?'마감: '+fmtScheduled(r.song_close_at):''},
+    session:{icon:'👥️',title:'세션 신청 진행 중',sub:r?`인당 최대 ${r.max_sessions_per_person}곡 참여 가능`:'',cls:'session',close:r?.session_close_at?'마감: '+fmtScheduled(r.session_close_at):''},
+  }[phase]||{icon:'❌️',title:'신청 기간이 아닙니다',sub:'',cls:'closed',close:''};
   html+=`<div class="status-card ${si.cls}">
     <div class="status-icon">${si.icon}</div>
     <div class="status-texts">
       <div class="status-title">${r?.name||typeName} — ${si.title}</div>
       <div class="status-sub">${si.sub}</div>
+      ${si.close?`<div class="status-sub" style="color:var(--warn)">⏰ ${si.close}</div>`:''}
     </div>
   </div>`;
 
@@ -547,7 +548,7 @@ function renderSongItem(s,num,phase){
     <div class="session-list">
       ${sessApps.map(a=>`
         <div class="session-row">
-          <span class="session-row-name">${a.applicant_name}</span>
+          <span class="session-row-name">${a.applicant_name}(${a.student_id.slice(-3)})</span>
           <div class="session-row-right">
             <div class="session-row-sessions">
               ${a.sessions.map(sess=>`<span class="sess-tag ${a.status==='confirmed'?'confirmed':''}">${sess}</span>`).join('')}
@@ -566,7 +567,7 @@ function renderSongItem(s,num,phase){
       <span class="song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
     </div>
     <div class="song-meta">
-      <span class="song-applicant">신청: ${s.applicant_name}</span>
+      <span class="song-applicant">신청: ${s.applicant_name}(${s.student_id.slice(-3)})</span>
       <span class="song-ts">${fmtTime(s.created_at)}</span>
       <div class="sessions-needed">${needBadges}</div>
     </div>
