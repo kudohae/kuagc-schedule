@@ -1532,7 +1532,7 @@ function renderEnsemble(){
         const sessApps=eSessionMap[s.id]||[];
         const confirmedSessSet=new Set(sessApps.filter(a=>a.status==='confirmed').flatMap(a=>a.sessions));
         const isFormed=s.sessions.every(sess=>confirmedSessSet.has(sess));
-        const unformed=s.status==='confirmed'&&!isFormed;
+        const unformed=s.status==='confirmed'&&confirmedSessSet.size>0&&!isFormed;
         const hasPending=sessApps.some(a=>a.status==='pending');
         const sessHtml=sessApps.length?`<div class="e-sess-list">
           ${sessApps.map(a=>`<div class="e-sess-row">
