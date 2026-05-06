@@ -248,7 +248,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 .e-sess-dot.confirmed{background:var(--accent);}
 .e-sess-dot.rejected{background:var(--danger);}
 .e-form-btn{margin-top:6px;display:flex;justify-content:flex-end;}
-.e-song-item.unformed{opacity:.55;}
+.e-song-item.unformed{border-left:3px solid var(--warn);}
 .e-unformed-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(200,118,10,.15);color:var(--warn);}
 
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -1037,36 +1037,50 @@ function renderTeams(){
             <div class="tcard-type">${t.type}</div>
           </div>
           <div class="tcard-row">
-            <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.name}" id="tname-${t.id}"/>
-            <button class="btn btn-s btn-xs" onclick="saveTeamName(${t.id})">이름</button>
+            <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.name}" id="tname-${t.id}" placeholder="팀명"/>
           </div>
           <div class="tcard-row">
             <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.info||''}" id="tinfo-${t.id}"
               placeholder="${g.k==='스쿨'?'선생님':g.k==='합주'?'합주곡':'추가정보'}"/>
-            <button class="btn btn-s btn-xs" onclick="saveTeamInfo(${t.id})">저장</button>
           </div>
-          ${t.members&&t.members.length?`<div style="font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:2px;margin-top:2px;padding:4px 6px;background:var(--surface2);border-radius:3px">${t.members.map(m=>`<span>${m.name}(${m.student_id_last3}) <span style="color:var(--accent2)">${m.sessions.join('·')}</span></span>`).join('')}</div>`:''}
-          <div style="display:flex;justify-content:flex-end">
+          ${t.members&&t.members.length?`<div style="display:flex;flex-direction:column;gap:4px;background:var(--surface2);border-radius:3px;padding:6px 8px">
+            <div style="font-size:10px;font-weight:700;color:var(--text2)">참여자</div>
+            ${t.members.map((m,i)=>`<div style="display:grid;grid-template-columns:1fr 50px 1fr;gap:3px">
+              <input class="fi" style="padding:3px 6px;font-size:11px" id="tmn-${t.id}-${i}" value="${(m.name||'').replace(/"/g,'&quot;')}" placeholder="이름"/>
+              <input class="fi" style="padding:3px 6px;font-size:11px;text-align:center" id="tms-${t.id}-${i}" maxlength="3" value="${m.student_id_last3||''}" placeholder="학번"/>
+              <input class="fi" style="padding:3px 6px;font-size:11px" id="tmse-${t.id}-${i}" value="${(m.sessions||[]).join(',')}" placeholder="보컬1,기타1"/>
+            </div>`).join('')}
+            <div style="font-size:9px;color:var(--text3)">세션은 쉼표로 구분</div>
+          </div>`:''}
+          <div style="display:flex;justify-content:flex-end;gap:5px">
             <button class="btn btn-d btn-xs" onclick="doDeleteTeam(${t.id})">삭제</button>
+            <button class="btn btn-p btn-xs" onclick="saveTeamAll(${t.id})">저장</button>
           </div>
         </div>`).join('')}
       </div>
     </div>`;
   }).join('');
 }
-window.saveTeamName=async function(id){
-  const val=document.getElementById('tname-'+id)?.value.trim();
-  if(!val){toast('이름을 입력해주세요','err');return;}
+window.saveTeamAll=async function(id){
+  const name=document.getElementById('tname-'+id)?.value.trim();
+  if(!name){toast('팀명을 입력해주세요','err');return;}
+  const info=document.getElementById('tinfo-'+id)?.value.trim()??'';
+  const members=[];
+  let i=0;
+  while(document.getElementById(`tmn-${id}-${i}`)){
+    const mname=document.getElementById(`tmn-${id}-${i}`)?.value.trim()??'';
+    const msid=document.getElementById(`tms-${id}-${i}`)?.value.trim()??'';
+    const msessRaw=document.getElementById(`tmse-${id}-${i}`)?.value.trim()??'';
+    const msess=msessRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    if(mname) members.push({name:mname,student_id_last3:msid,sessions:msess});
+    i++;
+  }
   try{
-    await updateTeam(id,{name:val}); const t=teams.find(t=>t.id===id); if(t) t.name=val;
-    teams=korSort(teams,'name'); toast('이름이 수정됐습니다','ok'); renderTeams();
-  }catch(e){toast(errMsg(e),'err');}
-};
-window.saveTeamInfo=async function(id){
-  const val=document.getElementById('tinfo-'+id)?.value.trim()??'';
-  try{
-    await updateTeam(id,{info:val}); const t=teams.find(t=>t.id===id); if(t) t.info=val;
-    toast('저장됐습니다','ok'); renderSchedule();
+    await updateTeam(id,{name,info,members});
+    const t=teams.find(t=>t.id===id);
+    if(t){t.name=name;t.info=info;t.members=members;}
+    teams=korSort(teams,'name');
+    toast('저장됐습니다','ok'); renderTeams(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.doDeleteTeam=async function(id){
