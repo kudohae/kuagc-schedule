@@ -348,15 +348,44 @@ export async function deleteContact(id) {
   if (error) throw error;
 }
 
-// ─── SCHOOLS ─────────────────────────────────────────────────────────
-export async function fetchSchools() {
-  const { data, error } = await supabase.from('schools').select('*').order('created_at');
+// ─── SCHOOL ROUNDS ───────────────────────────────────────────────────
+export async function fetchSchoolRounds() {
+  const { data, error } = await supabase.from('school_rounds')
+    .select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return data;
 }
-export async function createSchool({ name, teacher_name, capacity, description = '' }) {
+export async function createSchoolRound(fields = {}) {
+  const { data, error } = await supabase.from('school_rounds')
+    .insert({ status: 'draft', ...fields }).select().single();
+  if (error) throw error;
+  return data;
+}
+export async function updateSchoolRound(id, fields) {
+  const { data, error } = await supabase.from('school_rounds')
+    .update(fields).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+export async function fetchActiveSchoolRound() {
+  const { data } = await supabase.from('school_rounds')
+    .select('*').eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(1).maybeSingle();
+  return data;
+}
+
+// ─── SCHOOLS ─────────────────────────────────────────────────────────
+export async function fetchSchools(roundId = null) {
+  let q = supabase.from('schools').select('*').order('created_at');
+  if (roundId != null) q = q.eq('round_id', roundId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data;
+}
+export async function createSchool({ name, teacher_name, capacity, description = '', round_id }) {
   const { data, error } = await supabase.from('schools')
-    .insert({ name, teacher_name, capacity, description, status: 'draft' })
+    .insert({ name, teacher_name, capacity, description, round_id })
     .select().single();
   if (error) throw error;
   return data;

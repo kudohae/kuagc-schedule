@@ -468,10 +468,10 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
       <div class="section-title">스쿨 신청 관리</div>
       <div style="display:flex;gap:6px;align-items:center">
         <a href="school.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">→ 신청 페이지</a>
-        <button class="btn btn-p btn-xs" onclick="openAddSchoolModal()">+ 스쿨 추가</button>
+        <button class="btn btn-p btn-xs" onclick="openCreateRoundModal()">+ 새 회차 만들기</button>
       </div>
     </div>
-    <div id="schoolAdminContent" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="schoolAdminContent" style="display:flex;flex-direction:column;gap:12px;"></div>
   </div>
 </div>
 
@@ -654,7 +654,8 @@ let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let pendingAll=[];
 let selectedTeams=new Set();
 let merged=[], round=null, applications=[];
-let adminSchools=[], adminSchoolApps=[];
+let adminSchools=[], adminSchoolApps=[], adminSchoolRounds=[];
+let pendingSchoolRoundId=null;
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
 function showAdminUI(){
@@ -716,6 +717,9 @@ async function loadAll(){
   await loadEnsemble();
   await loadSchoolData();
   supabase.channel('admin-school-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},async()=>{
+      await loadSchoolData(); renderSchool();
+    })
     .on('postgres_changes',{event:'*',schema:'public',table:'schools'},async()=>{
       await loadSchoolData(); renderSchool();
     })
@@ -787,10 +791,12 @@ window.confirmVacancyReport=async function(id,text){
 
 // ── SCHOOL ────────────────────────────────────────────────────────────
 async function loadSchoolData(){
-  const [{data:sc},{data:ap}]=await Promise.all([
+  const [{data:rd},{data:sc},{data:ap}]=await Promise.all([
+    supabase.from('school_rounds').select('*').order('created_at',{ascending:false}),
     supabase.from('schools').select('*').order('created_at'),
     supabase.from('school_applications').select('*').order('created_at')
   ]);
+  adminSchoolRounds=rd||[];
   adminSchools=sc||[];
   adminSchoolApps=ap||[];
 }
@@ -804,54 +810,158 @@ function fmtSchoolDate(ts){
 function renderSchool(){
   const el=document.getElementById('schoolAdminContent');
   if(!el) return;
-  if(!adminSchools.length){
-    el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">등록된 스쿨이 없습니다. "+ 스쿨 추가"로 추가하세요.</div>';
+  if(!adminSchoolRounds.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">등록된 회차가 없습니다. "+ 새 회차 만들기"로 추가하세요.</div>';
     return;
   }
-  el.innerHTML=adminSchools.map(s=>{
-    const apps=adminSchoolApps.filter(a=>a.school_id===s.id);
-    const normal=apps.filter(a=>a.status==='normal').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-    const waitlist=apps.filter(a=>a.status==='waitlist').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-    const statusLabel={'draft':'초안','open':'모집중','closed':'마감'}[s.status]||s.status;
-    const statusColor={'draft':'var(--text3)','open':'var(--accent)','closed':'var(--text2)'}[s.status];
-    const allSorted=[...normal,...waitlist];
-    return `<div class="card" style="padding:14px 16px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
-        <div>
-          <div style="font-size:15px;font-weight:700">${s.name}</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:2px">담임: ${s.teacher_name||'미정'} · 정원: ${s.capacity}명</div>
-          ${s.description?`<div style="font-size:12px;color:var(--text2);margin-top:3px">${s.description}</div>`:''}
-          ${s.open_at?`<div style="font-size:11px;color:var(--text3);margin-top:3px">오픈: ${fmtSchoolDate(s.open_at)}</div>`:''}
-          ${s.close_at?`<div style="font-size:11px;color:var(--text3)">마감: ${fmtSchoolDate(s.close_at)}</div>`:''}
+  const totalRounds=adminSchoolRounds.length;
+  el.innerHTML=adminSchoolRounds.map((r,ri)=>{
+    const roundSchools=adminSchools.filter(s=>s.round_id===r.id);
+    const roundNum=totalRounds-ri;
+    const statusLabel={'draft':'초안','open':'모집중','closed':'마감'}[r.status]||r.status;
+    const statusColor={'draft':'var(--text3)','open':'var(--accent)','closed':'var(--text2)'}[r.status];
+    const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+
+    const schoolsHtml=roundSchools.map(s=>{
+      const apps=adminSchoolApps.filter(a=>a.school_id===s.id);
+      const normal=apps.filter(a=>a.status==='normal').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      const waitlist=apps.filter(a=>a.status==='waitlist').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      const allSorted=[...normal,...waitlist];
+      return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:10px 12px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:700">${s.name}</div>
+            <div style="font-size:11px;color:var(--text2)">담임: ${s.teacher_name||'미정'} · 정원 ${s.capacity}명 · 확정 ${normal.length}명 / 대기 ${waitlist.length}명</div>
+            ${s.description?`<div style="font-size:11px;color:var(--text2);margin-top:2px">${s.description}</div>`:''}
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button class="btn btn-s btn-xs" onclick="openEditSchoolModal(${s.id})">편집</button>
+            <button class="btn btn-d btn-xs" onclick="schoolDelete(${s.id})">삭제</button>
+          </div>
         </div>
-        <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:3px;background:var(--surface2);color:${statusColor};flex-shrink:0;border:1px solid var(--border)">${statusLabel}</span>
+        ${allSorted.length?`<div style="display:flex;flex-direction:column;gap:2px">
+          ${allSorted.map(a=>{
+            const isW=a.status==='waitlist';
+            const num=isW?'대'+(waitlist.indexOf(a)+1):''+(normal.indexOf(a)+1);
+            return `<div style="display:flex;align-items:center;gap:7px;padding:4px 7px;background:var(--surface);border-radius:3px">
+              <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);min-width:26px">${num}</span>
+              <span style="flex:1;font-size:12px">${a.applicant_name}</span>
+              <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${a.student_id}</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;${isW?'background:rgba(200,118,10,.1);color:var(--warn)':'background:rgba(92,158,0,.1);color:var(--accent)'}">${isW?'대기':'확정'}</span>
+              <button class="btn btn-d btn-xs" onclick="schoolDeleteApp(${a.id})">삭제</button>
+            </div>`;
+          }).join('')}
+        </div>`:'<div style="font-size:11px;color:var(--text3)">신청자 없음</div>'}
+      </div>`;
+    }).join('');
+
+    return `<div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:700">스쿨 신청 ${roundNum}회차</span>
+          <span style="font-size:11px;color:var(--text3)">${fmtSchoolDate(r.created_at)} 생성</span>
+          ${r.close_at?`<span style="font-size:11px;color:var(--text3)">마감: ${fmtSchoolDate(r.close_at)}</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--surface2);color:${statusColor};border:1px solid var(--border)">${statusLabel}</span>
+          ${r.status==='draft'?`<button class="btn btn-p btn-xs" onclick="schoolRoundOpen(${r.id})">열기</button>`:''}
+          ${r.status==='open'?`<button class="btn btn-s btn-xs" onclick="schoolRoundClose(${r.id})">닫기</button>`:''}
+          ${r.status==='closed'?`<button class="btn btn-s btn-xs" onclick="schoolRoundOpen(${r.id})">다시 열기</button>`:''}
+          <button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
+          <button class="btn btn-d btn-xs" onclick="schoolRoundDelete(${r.id})">삭제</button>
+        </div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-        ${s.status==='draft'?`<button class="btn btn-p btn-xs" onclick="schoolOpen(${s.id})">열기</button>`:''}
-        ${s.status==='open'?`<button class="btn btn-s btn-xs" onclick="schoolClose(${s.id})">닫기</button>`:''}
-        ${s.status==='closed'?`<button class="btn btn-s btn-xs" onclick="schoolOpen(${s.id})">다시 열기</button>`:''}
-        <button class="btn btn-s btn-xs" onclick="openEditSchoolModal(${s.id})">편집</button>
-        <button class="btn btn-d btn-xs" onclick="schoolDelete(${s.id})">삭제</button>
+      <div style="padding:10px 16px;display:flex;flex-direction:column;gap:8px">
+        ${roundSchools.length?schoolsHtml:'<div style="font-size:12px;color:var(--text3)">이 회차에 등록된 스쿨이 없습니다.</div>'}
+        <button class="btn btn-s btn-xs" style="width:fit-content" onclick="openAddSchoolModal(${r.id})">+ 스쿨 추가</button>
       </div>
-      <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:6px">신청자 — 확정 ${normal.length}명 / 대기 ${waitlist.length}명</div>
-      ${allSorted.length?`<div style="display:flex;flex-direction:column;gap:3px">
-        ${allSorted.map((a,i)=>{
-          const isW=a.status==='waitlist';
-          const num=isW?'대'+(waitlist.indexOf(a)+1):''+(normal.indexOf(a)+1);
-          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:4px">
-            <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);min-width:26px">${num}</span>
-            <span style="flex:1;font-size:13px">${a.applicant_name}</span>
-            <span style="font-family:'Space Mono',monospace;font-size:12px;color:var(--text2)">${a.student_id}</span>
-            <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;${isW?'background:rgba(200,118,10,.1);color:var(--warn)':'background:rgba(92,158,0,.1);color:var(--accent)'}">${isW?'대기':'확정'}</span>
-            <button class="btn btn-d btn-xs" onclick="schoolDeleteApp(${a.id})">삭제</button>
-          </div>`;
-        }).join('')}
-      </div>`:'<div style="font-size:12px;color:var(--text3)">신청자가 없습니다.</div>'}
     </div>`;
   }).join('');
 }
 
-window.openAddSchoolModal=function(){
+// ── 회차 관리 ─────────────────────────────────────────────────────────
+window.openCreateRoundModal=function(){
+  const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+  showModal('새 회차 만들기',
+    `<div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">모집 마감 시각 (선택)</div><input class="fi" id="newRoundCloseAt" type="datetime-local" /></div>
+    </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="createRoundBtn" onclick="submitCreateRound()">만들기</button>`
+  );
+};
+window.submitCreateRound=async function(){
+  const closeAtVal=document.getElementById('newRoundCloseAt')?.value;
+  const btn=document.getElementById('createRoundBtn');
+  if(btn){btn.disabled=true;btn.textContent='생성 중...';}
+  try{
+    const {error}=await supabase.from('school_rounds').insert({
+      status:'draft',
+      close_at:closeAtVal?new Date(closeAtVal).toISOString():null
+    });
+    if(error) throw error;
+    closeModal(); toast('회차가 생성됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='만들기';}}
+};
+window.openEditRoundModal=function(id){
+  const r=adminSchoolRounds.find(x=>x.id===id);
+  if(!r) return;
+  const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+  showModal('회차 설정',
+    `<div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">모집 마감 시각 (선택)</div><input class="fi" id="editRoundCloseAt" type="datetime-local" value="${toLocal(r.close_at)}" /></div>
+    </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="editRoundBtn" onclick="submitEditRound(${id})">저장</button>`
+  );
+};
+window.submitEditRound=async function(id){
+  const closeAtVal=document.getElementById('editRoundCloseAt')?.value;
+  const btn=document.getElementById('editRoundBtn');
+  if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+  try{
+    const {error}=await supabase.from('school_rounds').update({
+      close_at:closeAtVal?new Date(closeAtVal).toISOString():null
+    }).eq('id',id);
+    if(error) throw error;
+    closeModal(); toast('저장됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='저장';}}
+};
+window.schoolRoundOpen=async function(id){
+  try{
+    await supabase.from('school_rounds').update({status:'open'}).eq('id',id);
+    toast('회차가 열렸습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.schoolRoundClose=async function(id){
+  try{
+    await supabase.from('school_rounds').update({status:'closed'}).eq('id',id);
+    toast('회차가 마감됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.schoolRoundDelete=async function(id){
+  const r=adminSchoolRounds.find(x=>x.id===id);
+  const cnt=adminSchools.filter(s=>s.round_id===id).length;
+  if(!confirm(`${adminSchoolRounds.length-adminSchoolRounds.indexOf(r)}회차를 삭제하시겠습니까?${cnt?'\n스쿨 '+cnt+'개와 모든 신청 데이터도 삭제됩니다.':''}`)) return;
+  try{
+    const schoolIds=adminSchools.filter(s=>s.round_id===id).map(s=>s.id);
+    if(schoolIds.length){
+      await supabase.from('school_applications').delete().in('school_id',schoolIds);
+      await supabase.from('schools').delete().in('id',schoolIds);
+    }
+    await supabase.from('school_rounds').delete().eq('id',id);
+    toast('삭제됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+// ── 스쿨 관리 ─────────────────────────────────────────────────────────
+window.openAddSchoolModal=function(roundId){
+  pendingSchoolRoundId=roundId;
   showModal('스쿨 추가',
     `<div style="display:flex;flex-direction:column;gap:10px">
       <div><div class="fl">스쿨 이름</div><input class="fi" id="addSchName" placeholder="예: 보컬 스쿨 A반" /></div>
@@ -864,7 +974,6 @@ window.openAddSchoolModal=function(){
   );
   setTimeout(()=>document.getElementById('addSchName')?.focus(),50);
 };
-
 window.submitAddSchool=async function(){
   const name=(document.getElementById('addSchName')?.value||'').trim();
   const teacher=(document.getElementById('addSchTeacher')?.value||'').trim();
@@ -875,67 +984,41 @@ window.submitAddSchool=async function(){
   const btn=document.getElementById('addSchBtn');
   if(btn){btn.disabled=true;btn.textContent='추가 중...';}
   try{
-    const {error}=await supabase.from('schools').insert({name,teacher_name:teacher,capacity:cap,description:desc,status:'draft'});
+    const {error}=await supabase.from('schools').insert({name,teacher_name:teacher,capacity:cap,description:desc,round_id:pendingSchoolRoundId});
     if(error) throw error;
     closeModal(); toast('스쿨이 추가됐습니다','ok');
     await loadSchoolData(); renderSchool();
   }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='추가';}}
 };
-
 window.openEditSchoolModal=function(id){
   const s=adminSchools.find(x=>x.id===id);
   if(!s) return;
-  const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   showModal('스쿨 편집',
     `<div style="display:flex;flex-direction:column;gap:10px">
       <div><div class="fl">스쿨 이름</div><input class="fi" id="edSchName" value="${s.name}" /></div>
       <div><div class="fl">담임 이름</div><input class="fi" id="edSchTeacher" value="${s.teacher_name||''}" /></div>
       <div><div class="fl">정원 (명)</div><input class="fi" id="edSchCap" type="number" min="1" value="${s.capacity}" /></div>
       <div><div class="fl">설명</div><textarea class="fi" id="edSchDesc" rows="3" style="resize:vertical">${s.description||''}</textarea></div>
-      <div><div class="fl">오픈 예정 시각 (선택)</div><input class="fi" id="edSchOpenAt" type="datetime-local" value="${toLocal(s.open_at)}" /></div>
-      <div><div class="fl">마감 시각 (선택)</div><input class="fi" id="edSchCloseAt" type="datetime-local" value="${toLocal(s.close_at)}" /></div>
     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="edSchBtn" onclick="submitEditSchool(${id})">저장</button>`
   );
 };
-
 window.submitEditSchool=async function(id){
   const name=(document.getElementById('edSchName')?.value||'').trim();
   const teacher=(document.getElementById('edSchTeacher')?.value||'').trim();
   const cap=parseInt(document.getElementById('edSchCap')?.value)||0;
   const desc=(document.getElementById('edSchDesc')?.value||'').trim();
-  const openAtVal=document.getElementById('edSchOpenAt')?.value;
-  const closeAtVal=document.getElementById('edSchCloseAt')?.value;
   if(!name){toast('스쿨 이름을 입력해주세요','err');return;}
   if(cap<1){toast('정원을 1명 이상으로 입력해주세요','err');return;}
   const btn=document.getElementById('edSchBtn');
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
   try{
-    const {error}=await supabase.from('schools').update({
-      name,teacher_name:teacher,capacity:cap,description:desc,
-      open_at:openAtVal?new Date(openAtVal).toISOString():null,
-      close_at:closeAtVal?new Date(closeAtVal).toISOString():null
-    }).eq('id',id);
+    const {error}=await supabase.from('schools').update({name,teacher_name:teacher,capacity:cap,description:desc}).eq('id',id);
     if(error) throw error;
     closeModal(); toast('저장됐습니다','ok');
     await loadSchoolData(); renderSchool();
   }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='저장';}}
-};
-
-window.schoolOpen=async function(id){
-  try{
-    await supabase.from('schools').update({status:'open'}).eq('id',id);
-    toast('스쿨이 열렸습니다','ok');
-    await loadSchoolData(); renderSchool();
-  }catch(e){toast(errMsg(e),'err');}
-};
-window.schoolClose=async function(id){
-  try{
-    await supabase.from('schools').update({status:'closed'}).eq('id',id);
-    toast('스쿨이 마감됐습니다','ok');
-    await loadSchoolData(); renderSchool();
-  }catch(e){toast(errMsg(e),'err');}
 };
 window.schoolDelete=async function(id){
   const s=adminSchools.find(x=>x.id===id);
