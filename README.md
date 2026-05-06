@@ -15,7 +15,7 @@ GitHub Pages (index.html, js/)
   Supabase (PostgreSQL + REST API + Realtime)
 ```
 
-별도 백엔드 서버 없음. Supabase가 REST API와 실시간 구독을 모두 제공함.
+별도 백엔드 서버 없음. Supabase가 REST API와 실시간 구독을 모두 제공.
 
 ---
 
