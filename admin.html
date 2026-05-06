@@ -468,7 +468,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
       <div class="section-title">스쿨 신청 관리</div>
       <div style="display:flex;gap:6px;align-items:center">
         <a href="school.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">→ 신청 페이지</a>
-        <button class="btn btn-p btn-xs" onclick="openCreateRoundModal()">+ 새 회차 만들기</button>
+        <button class="btn btn-p btn-xs" onclick="openCreateSchoolRoundModal()">+ 새 회차 만들기</button>
       </div>
     </div>
     <div id="schoolAdminContent" style="display:flex;flex-direction:column;gap:12px;"></div>
@@ -858,7 +858,7 @@ function renderSchool(){
     return `<div class="card" style="padding:0;overflow:hidden">
       <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:13px;font-weight:700">스쿨 신청 ${roundNum}회차</span>
+          <span style="font-size:13px;font-weight:700">${r.name||`스쿨 신청 ${roundNum}회차`}</span>
           <span style="font-size:11px;color:var(--text3)">${fmtSchoolDate(r.created_at)} 생성</span>
           ${r.close_at?`<span style="font-size:11px;color:var(--text3)">마감: ${fmtSchoolDate(r.close_at)}</span>`:''}
         </div>
@@ -867,7 +867,7 @@ function renderSchool(){
           ${r.status==='draft'?`<button class="btn btn-p btn-xs" onclick="schoolRoundOpen(${r.id})">열기</button>`:''}
           ${r.status==='open'?`<button class="btn btn-s btn-xs" onclick="schoolRoundClose(${r.id})">닫기</button>`:''}
           ${r.status==='closed'?`<button class="btn btn-s btn-xs" onclick="schoolRoundOpen(${r.id})">다시 열기</button>`:''}
-          <button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
+          <button class="btn btn-s btn-xs" onclick="openEditSchoolRoundModal(${r.id})">설정</button>
           <button class="btn btn-d btn-xs" onclick="schoolRoundDelete(${r.id})">삭제</button>
         </div>
       </div>
@@ -880,23 +880,30 @@ function renderSchool(){
 }
 
 // ── 회차 관리 ─────────────────────────────────────────────────────────
-window.openCreateRoundModal=function(){
-  const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
-  showModal('새 회차 만들기',
+window.openCreateSchoolRoundModal=function(){
+  showModal('스쿨 신청 회차 만들기',
     `<div style="display:flex;flex-direction:column;gap:10px">
-      <div><div class="fl">모집 마감 시각 (선택)</div><input class="fi" id="newRoundCloseAt" type="datetime-local" /></div>
+      <div><div class="fl">회차 이름</div><input class="fi" id="newSchRoundName" placeholder="예: 2025년 1학기 스쿨 신청" /></div>
+      <div><div class="fl">오픈 예약 시각 (선택)</div><input class="fi" id="newSchRoundOpenAt" type="datetime-local" /></div>
+      <div><div class="fl">마감 예약 시각 (선택)</div><input class="fi" id="newSchRoundCloseAt" type="datetime-local" /></div>
     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-p" id="createRoundBtn" onclick="submitCreateRound()">만들기</button>`
+     <button class="btn btn-p" id="createSchRoundBtn" onclick="submitCreateSchoolRound()">만들기</button>`
   );
+  setTimeout(()=>document.getElementById('newSchRoundName')?.focus(),50);
 };
-window.submitCreateRound=async function(){
-  const closeAtVal=document.getElementById('newRoundCloseAt')?.value;
-  const btn=document.getElementById('createRoundBtn');
+window.submitCreateSchoolRound=async function(){
+  const name=(document.getElementById('newSchRoundName')?.value||'').trim();
+  const openAtVal=document.getElementById('newSchRoundOpenAt')?.value;
+  const closeAtVal=document.getElementById('newSchRoundCloseAt')?.value;
+  if(!name){toast('회차 이름을 입력해주세요','err');return;}
+  const btn=document.getElementById('createSchRoundBtn');
   if(btn){btn.disabled=true;btn.textContent='생성 중...';}
   try{
     const {error}=await supabase.from('school_rounds').insert({
+      name,
       status:'draft',
+      open_at:openAtVal?new Date(openAtVal).toISOString():null,
       close_at:closeAtVal?new Date(closeAtVal).toISOString():null
     });
     if(error) throw error;
@@ -904,24 +911,31 @@ window.submitCreateRound=async function(){
     await loadSchoolData(); renderSchool();
   }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='만들기';}}
 };
-window.openEditRoundModal=function(id){
+window.openEditSchoolRoundModal=function(id){
   const r=adminSchoolRounds.find(x=>x.id===id);
   if(!r) return;
   const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   showModal('회차 설정',
     `<div style="display:flex;flex-direction:column;gap:10px">
-      <div><div class="fl">모집 마감 시각 (선택)</div><input class="fi" id="editRoundCloseAt" type="datetime-local" value="${toLocal(r.close_at)}" /></div>
+      <div><div class="fl">회차 이름</div><input class="fi" id="editSchRoundName" value="${r.name||''}" placeholder="예: 2025년 1학기 스쿨 신청" /></div>
+      <div><div class="fl">오픈 예약 시각 (선택)</div><input class="fi" id="editSchRoundOpenAt" type="datetime-local" value="${toLocal(r.open_at)}" /></div>
+      <div><div class="fl">마감 예약 시각 (선택)</div><input class="fi" id="editSchRoundCloseAt" type="datetime-local" value="${toLocal(r.close_at)}" /></div>
     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-p" id="editRoundBtn" onclick="submitEditRound(${id})">저장</button>`
+     <button class="btn btn-p" id="editSchRoundBtn" onclick="submitEditSchoolRound(${id})">저장</button>`
   );
 };
-window.submitEditRound=async function(id){
-  const closeAtVal=document.getElementById('editRoundCloseAt')?.value;
-  const btn=document.getElementById('editRoundBtn');
+window.submitEditSchoolRound=async function(id){
+  const name=(document.getElementById('editSchRoundName')?.value||'').trim();
+  const openAtVal=document.getElementById('editSchRoundOpenAt')?.value;
+  const closeAtVal=document.getElementById('editSchRoundCloseAt')?.value;
+  if(!name){toast('회차 이름을 입력해주세요','err');return;}
+  const btn=document.getElementById('editSchRoundBtn');
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
   try{
     const {error}=await supabase.from('school_rounds').update({
+      name,
+      open_at:openAtVal?new Date(openAtVal).toISOString():null,
       close_at:closeAtVal?new Date(closeAtVal).toISOString():null
     }).eq('id',id);
     if(error) throw error;
