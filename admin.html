@@ -1462,15 +1462,17 @@ function renderEnsemble(){
             <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">삭제</button>`;
     } else if(phase==='song'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
-            ${r.session_scheduled_at?`<button class="btn btn-s btn-xs" onclick="openChangeSessionScheduleModal(${r.id})">예약 변경</button>`:''}
+            <button class="btn btn-s btn-xs" onclick="openChangeSessionScheduleModal(${r.id})">${r.session_scheduled_at?'마감 예약 변경':'마감 예약'}</button>
             <button class="btn btn-p btn-xs" onclick="openSessionPhaseModal(${r.id})">세션신청으로 전환</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session'){
-      ctrl=`<button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+      ctrl=`<button class="btn btn-s btn-xs" onclick="openSessionCloseModal(${r.id})">${r.session_scheduled_at?'마감 예약 변경':'마감 예약'}</button>
+            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     }
 
     const schedInfo=(phase==='draft'&&r?.song_scheduled_at?`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 곡 신청 예약: ${fmtScheduled(r.song_scheduled_at)}</div>`:'')
-                   +(phase==='song'&&r?.session_scheduled_at?`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 세션 신청 예약: ${fmtScheduled(r.session_scheduled_at)}</div>`:'');
+                   +(phase==='song'&&r?.session_scheduled_at?`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 세션 전환 예약 (곡 마감): ${fmtScheduled(r.session_scheduled_at)}</div>`:'')
+                   +(phase==='session'&&r?.session_scheduled_at?`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 세션 신청 마감 예약: ${fmtScheduled(r.session_scheduled_at)}</div>`:'');
     const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 곡${r.max_songs_per_person} · 세션${r.max_sessions_per_person}</div>${schedInfo}`:'';
     const ctrlHtml=`<div class="ensemble-col-ctrl">${ctrl}</div>`;
 
@@ -1700,26 +1702,66 @@ window.openChangeSessionScheduleModal=function(id){
     const d=new Date(r.session_scheduled_at);
     cur=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
-  showModal('세션 신청 예약 변경',
-    `<div><div class="fl">새 예약 일시 (비워두면 즉시 전환)</div><input class="fi" type="datetime-local" id="sessOpenAt2" value="${cur}"/></div>`,
+  showModal('곡 신청 마감 예약/변경',
+    `<div><div class="fl">마감 일시</div><input class="fi" type="datetime-local" id="sessCloseAt" value="${cur}"/></div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     ${r?.session_scheduled_at?`<button class="btn btn-s" onclick="cancelSongCloseSchedule(${id})">예약 취소</button>`:''}
      <button class="btn btn-p" id="csssBtn" onclick="doChangeSessionSchedule(${id})">저장</button>`
   );
 };
 
 window.doChangeSessionSchedule=async function(id){
-  const atVal=document.getElementById('sessOpenAt2')?.value;
+  const atVal=document.getElementById('sessCloseAt')?.value;
+  if(!atVal){toast('마감 일시를 입력해주세요','err');return;}
   const btn=document.getElementById('csssBtn'); btn.disabled=true;
   try{
-    if(atVal){
-      await supabase.from('ensemble_rounds').update({session_scheduled_at:new Date(atVal).toISOString()}).eq('id',id);
-      toast('예약 시간이 변경됐습니다','ok');
-    } else {
-      await supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',id);
-      toast('세션 신청 단계로 전환됐습니다','ok');
-    }
+    await supabase.from('ensemble_rounds').update({session_scheduled_at:new Date(atVal).toISOString()}).eq('id',id);
+    toast('마감이 예약됐습니다','ok');
     closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+
+window.cancelSongCloseSchedule=async function(id){
+  try{
+    await supabase.from('ensemble_rounds').update({session_scheduled_at:null}).eq('id',id);
+    toast('마감 예약이 취소됐습니다','ok');
+    closeModal(); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.openSessionCloseModal=function(id){
+  const r=eRounds.regular?.id===id?eRounds.regular:eRounds.busking;
+  const pad=n=>String(n).padStart(2,'0');
+  let cur='';
+  if(r?.session_scheduled_at){
+    const d=new Date(r.session_scheduled_at);
+    cur=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  showModal('세션 신청 마감 예약/변경',
+    `<div><div class="fl">마감 일시</div><input class="fi" type="datetime-local" id="sessClose2" value="${cur}"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     ${r?.session_scheduled_at?`<button class="btn btn-s" onclick="cancelSessionClose(${id})">예약 취소</button>`:''}
+     <button class="btn btn-p" id="scBtn" onclick="doSessionClose(${id})">저장</button>`
+  );
+};
+
+window.doSessionClose=async function(id){
+  const atVal=document.getElementById('sessClose2')?.value;
+  if(!atVal){toast('마감 일시를 입력해주세요','err');return;}
+  const btn=document.getElementById('scBtn'); btn.disabled=true;
+  try{
+    await supabase.from('ensemble_rounds').update({session_scheduled_at:new Date(atVal).toISOString()}).eq('id',id);
+    toast('마감이 예약됐습니다','ok');
+    closeModal(); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+
+window.cancelSessionClose=async function(id){
+  try{
+    await supabase.from('ensemble_rounds').update({session_scheduled_at:null}).eq('id',id);
+    toast('마감 예약이 취소됐습니다','ok');
+    closeModal(); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
 };
 
 window.closeRound=async function(id){
