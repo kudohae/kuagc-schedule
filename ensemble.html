@@ -467,7 +467,7 @@ function render(){
         <div>
           <div class="fl">필요 세션 * (복수 선택)</div>
           <div class="session-grid">
-            ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ns_${s.replace(/\s/g,'_')}" value="${s}"/><label class="session-label" for="ns_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
+            ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ns_${s.replace(/\s/g,'_')}" value="${s}" onchange="onSessionChkChange(this)"/><label class="session-label" for="ns_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
           </div>
         </div>
         <div class="form-footer"><button class="btn btn-p" onclick="submitSong()">곡 신청</button></div>
@@ -602,6 +602,29 @@ window.onSongSelect=function(){
           <label class="session-label" for="sss_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
       </div>
     </div>`;
+};
+
+window.onSessionChkChange=function(el){
+  const s=el.value;
+  const requires={'보컬2':'보컬1','기타2':'기타1','키보드2':'키보드1'};
+  const gates={'보컬1':'보컬2','기타1':'기타2','키보드1':'키보드2'};
+  if(el.checked){
+    const req=requires[s];
+    if(req){
+      const reqEl=document.getElementById('ns_'+req.replace(/\s/g,'_'));
+      if(!reqEl||!reqEl.checked){
+        el.checked=false;
+        const base=s.slice(0,-1);
+        toast(`${base} 1을 선택해야 ${base} 2를 추가할 수 있습니다`,'err');
+      }
+    }
+  } else {
+    const dep=gates[s];
+    if(dep){
+      const depEl=document.getElementById('ns_'+dep.replace(/\s/g,'_'));
+      if(depEl&&depEl.checked) depEl.checked=false;
+    }
+  }
 };
 
 window.submitSong=async function(){
