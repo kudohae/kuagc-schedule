@@ -336,6 +336,11 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   .modal{border-radius:16px 16px 0 0;width:100%;max-width:100%;max-height:88vh;}
   .modal::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;}
 }
+#pgData{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:10px;}
+.data-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.data-section-title{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2);}
+.btn-danger{background:rgba(255,80,80,.12);color:var(--danger);border:1px solid rgba(255,80,80,.3);}
+.btn-danger:hover{background:rgba(255,80,80,.2);}
 </style>
 </head>
 <body>
@@ -377,6 +382,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
     <button class="nb"        id="nb-ensemble" onclick="showPage('ensemble')">합주신청</button>
     <button class="nb"        id="nb-notices"  onclick="showPage('notices')">공지</button>
     <button class="nb"        id="nb-contacts" onclick="showPage('contacts')">연락처</button>
+    <button class="nb"        id="nb-data"     onclick="showPage('data')" style="color:var(--danger)">데이터 관리</button>
   </div>
   <div class="hdr-r">
     <select class="season-sel" id="seasonSel" onchange="changeSeason(this.value)">
@@ -493,6 +499,32 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   </div>
 </div>
 
+<div class="page" id="pgData" style="flex-direction:column;overflow-y:auto;padding:10px 14px;gap:10px;">
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)">시간 정보 삭제</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">선택한 학기의 기본 시간표, 신청 회차 및 모든 신청 정보를 삭제합니다.</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+      <select class="fs" id="delSeasonSel" style="width:auto">
+        <option>1학기</option><option>여름방학</option><option>2학기</option><option>겨울방학</option>
+      </select>
+    </div>
+    <button class="btn btn-d" onclick="openDeleteTimeModal()">시간 정보 삭제</button>
+  </div>
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)">팀 정보 삭제</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">등록된 모든 팀 정보를 삭제합니다.</div>
+    <button class="btn btn-d" onclick="openDeleteTeamsModal()">팀 정보 삭제</button>
+  </div>
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2)">관리자 비밀번호 변경</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div><div class="fl">새 비밀번호</div><input class="fi" type="password" id="newPw1" placeholder="새 비밀번호 (6자 이상)"/></div>
+      <div><div class="fl">새 비밀번호 확인</div><input class="fi" type="password" id="newPw2" placeholder="새 비밀번호 재입력"/></div>
+      <button class="btn btn-p" style="width:fit-content" onclick="changeAdminPassword()">비밀번호 변경</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /adminUI -->
 
 <!-- ADMIN MOBILE TAB BAR -->
@@ -516,6 +548,10 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   <button class="mob-tab" id="mt-notices" onclick="showPage('notices')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     공지
+  </button>
+  <button class="mob-tab" id="mt-data" onclick="showPage('data')" style="color:var(--danger)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    데이터
   </button>
 </div>
 
@@ -568,7 +604,7 @@ const getWeekDates=off=>{const now=new Date(),mon=new Date(now);mon.setDate(now.
 const reqActualDate=(weekOffset,day)=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+weekOffset*7);const d=new Date(mon);d.setDate(mon.getDate()+day);return `${d.getMonth()+1}/${d.getDate()}`;};
 const teamClr=t=>t.type==='합주'?GRAY:(t.color||GRAY);
 const timeStr=h=>h<24?h+':00':'0'+(h-24)+':00';
-const fmtTime=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+const fmtTime=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;};
 const errMsg=e=>{const m=e?.message||'';if(m.includes('unique')||m.includes('duplicate'))return'이미 동일한 데이터가 존재합니다';if(m.includes('foreign key'))return'참조 데이터가 존재하지 않습니다';if(m.includes('network')||m.includes('fetch'))return'네트워크 오류가 발생했습니다';if(m.includes('JWT')||m.includes('auth'))return'인증 오류입니다. 새로고침 후 시도해주세요';return m||'오류가 발생했습니다';};
 function weekLabel(off){
   const now=new Date(),m=new Date(now);
@@ -682,7 +718,7 @@ function render(){
 
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
 window.showPage=function(pg){
-  ['sch','teams','apply','notices','contacts','ensemble'].forEach(p=>{
+  ['sch','teams','apply','notices','contacts','ensemble','data'].forEach(p=>{
     document.getElementById('pg'+p.charAt(0).toUpperCase()+p.slice(1))?.classList.toggle('active',p===pg);
     document.getElementById('nb-'+p)?.classList.toggle('active',p===pg);
     document.getElementById('mt-'+p)?.classList.toggle('active',p===pg);
@@ -1072,8 +1108,9 @@ window.addTeam=async function(){
 function renderApply(){
   const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
   const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
-  const isFin=round&&(round.status==='finished'||round.draft_approved);
-  const isClosed=round&&round.status==='closed'&&!round.draft_approved;
+  const isFin=round&&round.status==='finished'&&!round.draft_approved;
+  const isClosed=round&&round.status==='closed'&&!round.draft_approved&&!isFin;
+  const isFinOrApproved=round&&(round.status==='finished'||round.draft_approved);
 
   let statusCls=isOpen?'open':isFin?'finished':'closed';
   let statusIcon=isOpen?'🟢':isFin?'🔵':isScheduled?'⏳':isClosed?'🟡':'⭕';
@@ -1091,19 +1128,20 @@ function renderApply(){
     <div class="apply-status-actions">`;
 
   if(!round||round.draft_approved){
-    html+=`<button class="btn btn-p btn-xs" onclick="openRoundNow()">즉시 시작</button>
-           <button class="btn btn-s btn-xs" onclick="openScheduleRoundModal()">예약 시작</button>`;
+    html+=`<button class="btn btn-p btn-xs" onclick="openNewRoundModal()">새 신청 설정</button>`;
   } else if(isScheduled){
     html+=`<button class="btn btn-s btn-xs" onclick="openChangeScheduleModal()">예약 변경</button>
            <button class="btn btn-p btn-xs" onclick="openApplyNow()">지금 열기</button>`;
   } else if(isOpen){
-    html+=`<button class="btn btn-d btn-xs" onclick="closeRoundNow()">신청 마감</button>`;
-  } else if(isClosed){
+    html+=`<button class="btn btn-d btn-xs" onclick="closeRoundNow()">신청 마감</button>
+           <button class="btn btn-s btn-xs" onclick="openCloseDeadlineModal()">마감 예약/변경</button>`;
+  } else if(isClosed&&!isFin){
     html+=`<button class="btn btn-s btn-xs" onclick="reopenRound()">신청 재오픈</button>
-           <button class="btn btn-p btn-xs" onclick="runAndConfirm()">배정 및 확정</button>`;
-  }
-  if(round&&!round.draft_approved){
-    html+=`<button class="btn btn-s btn-xs" onclick="if(confirm('현재 회차를 종료하고 새 신청을 시작할까요?'))startNewRound()">새 신청 시작</button>`;
+           <button class="btn btn-p btn-xs" onclick="runAssignmentOnly()">배정 실행</button>
+           <button class="btn btn-d btn-xs" onclick="openDiscardModal()">신청 폐기</button>`;
+  } else if(isFin){
+    html+=`<button class="btn btn-p btn-xs" onclick="confirmDraftOnly()">확정</button>
+           <button class="btn btn-d btn-xs" onclick="openDiscardModal()">신청 폐기</button>`;
   }
 
   html+=`</div></div>`;
@@ -1119,7 +1157,7 @@ function renderApply(){
     html+=`<div class="card">
       <div style="font-size:11px;color:var(--text2);padding:8px 10px 0;font-weight:700">${validCount}팀 신청 중${applications.length>validCount?` (무효 ${applications.length-validCount}건 포함)`:''}</div>
       <table class="apply-tbl">
-        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFinOrApproved?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
         <tbody>${applications.map((a,i)=>{
           const void_=isVoid(a);
           return `<tr style="${void_?'opacity:.3;':''}">
@@ -1128,7 +1166,7 @@ function renderApply(){
             <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
             <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
             <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
-            ${isFin?`<td>${!void_&&a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">${void_?'무효':'미배정'}</span>`}</td>`:''}
+            ${isFinOrApproved?`<td>${!void_&&a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">${void_?'무효':'미배정'}</span>`}</td>`:''}
             <td style="font-size:11px;color:var(--text3)">${fmtTime(a.submitted_at)}</td>
             <td><button class="btn btn-s btn-xs" onclick="delApp(${a.id})">취소</button></td>
           </tr>`;
@@ -1139,10 +1177,26 @@ function renderApply(){
   document.getElementById('applyContent').innerHTML=html;
 }
 
-window.openRoundNow=async function(){
+window.openNewRoundModal=function(){
+  showModal('새 신청 설정',
+    `<div><div class="fl">신청 시작 일시 (비워두면 즉시 시작)</div><input class="fi" type="datetime-local" id="nOA"/></div>
+     <div><div class="fl">신청 마감 일시 (선택)</div><input class="fi" type="datetime-local" id="nCA"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" onclick="createNewRound()">설정</button>`
+  );
+};
+
+window.createNewRound=async function(){
+  const oa=document.getElementById('nOA').value,ca=document.getElementById('nCA').value;
   try{
-    round=await createRound({season});
-    applications=[]; toast('신청이 시작됐습니다','ok'); renderApply();
+    if(!oa&&!ca){
+      round=await createRound({season});
+    } else if(!oa&&ca){
+      round=await createRound({season,close_at:new Date(ca).toISOString()});
+    } else {
+      round=await createRound({season,open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
+    }
+    applications=[]; closeModal(); toast('신청이 설정됐습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1162,27 +1216,72 @@ window.reopenRound=async function(){
   }catch(e){toast(errMsg(e),'err');}
 };
 
-window.runAndConfirm=async function(){
-  if(!confirm('배정을 실행하고 시간표에 반영할까요?')) return;
+window.runAssignmentOnly=async function(){
+  if(!confirm('배정을 실행할까요? 각 팀에 시간이 배정됩니다.')) return;
   try{
     toast('배정 실행 중...');
     applications=await fetchApplications(round.id);
     await runAssignment(round,applications,season);
     round=await fetchActiveRound(season); applications=await fetchApplications(round.id);
-    // 즉시 확정
-    await approveDraft(round,applications,season);
-    baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
-    round=await fetchActiveRound(season);
-    toast('배정 및 시간표 확정 완료','ok'); renderSchedule(); renderApply();
+    toast('배정이 완료됐습니다. 확인 후 확정하세요.','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
-window.startNewRound=async function(){
+window.confirmDraftOnly=async function(){
+  if(!confirm('배정 결과를 확정하고 시간표에 반영할까요?')) return;
   try{
-    // 기존 회차 강제 종료
-    if(round) await updateRound(round.id,{status:'closed',draft_approved:true});
-    round=await createRound({season});
-    applications=[]; toast('새 신청이 시작됐습니다','ok'); renderApply();
+    applications=await fetchApplications(round.id);
+    await approveDraft(round,applications,season);
+    baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
+    round=await fetchActiveRound(season);
+    toast('시간표 확정 완료','ok'); renderSchedule(); renderApply();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.openCloseDeadlineModal=function(){
+  if(!round) return;
+  const pad=n=>String(n).padStart(2,'0');
+  let curCA='';
+  if(round.close_at){const d=new Date(round.close_at);curCA=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+  showModal('마감 예약/변경',
+    `<div><div class="fl">마감 일시</div><input class="fi" type="datetime-local" id="cdCA" value="${curCA}"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     ${curCA?`<button class="btn btn-s" onclick="clearCloseDeadline()">예약 해제</button>`:''}
+     <button class="btn btn-p" id="cdBtn" onclick="saveCloseDeadline()">저장</button>`
+  );
+};
+window.saveCloseDeadline=async function(){
+  const ca=document.getElementById('cdCA').value;
+  if(!ca){toast('마감 일시를 입력해주세요','err');return;}
+  const btn=document.getElementById('cdBtn'); btn.disabled=true;
+  try{
+    round=await updateRound(round.id,{close_at:new Date(ca).toISOString()});
+    closeModal(); toast('마감 일시가 저장됐습니다','ok'); renderApply();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+window.clearCloseDeadline=async function(){
+  try{
+    round=await updateRound(round.id,{close_at:null});
+    closeModal(); toast('마감 예약이 해제됐습니다','ok'); renderApply();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.openDiscardModal=function(){
+  showModal('신청 폐기',
+    `<div style="color:var(--danger);font-weight:600;font-size:13px">신청을 폐기하시겠습니까? 모든 신청 정보가 사라집니다.</div>
+     <div class="fl">폐기하려면 하단에 <b>'폐기'</b>를 입력해주세요.</div>
+     <input class="fi" type="text" id="discardInput" placeholder="폐기"/>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn" style="background:var(--danger);color:#fff" onclick="discardRound()">폐기</button>`
+  );
+};
+window.discardRound=async function(){
+  const val=document.getElementById('discardInput').value;
+  if(val!=='폐기'){toast('"폐기"를 정확히 입력해주세요','err');return;}
+  try{
+    if(round){
+      await supabase.from('time_applications').delete().eq('round_id',round.id);
+      await updateRound(round.id,{status:'closed',draft_approved:true});
+    }
+    round=null; applications=[]; closeModal(); toast('신청이 폐기됐습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.delApp=async function(id){
@@ -1192,25 +1291,6 @@ window.delApp=async function(id){
     toast('취소됐습니다'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
-window.openScheduleRoundModal=function(){
-  const now=new Date(),pad=n=>String(n).padStart(2,'0');
-  const def=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  showModal('자동 열기 예약',
-    `<div><div class="fl">신청 시작 일시</div><input class="fi" type="datetime-local" id="sOA" value="${def}"/></div>
-     <div><div class="fl">신청 마감 일시 (선택)</div><input class="fi" type="datetime-local" id="sCA"/></div>`,
-    `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-p" onclick="scheduleRound()">예약</button>`
-  );
-};
-window.scheduleRound=async function(){
-  const oa=document.getElementById('sOA').value,ca=document.getElementById('sCA').value;
-  if(!oa){toast('시작 일시를 입력해주세요','err');return;}
-  try{
-    round=await createRound({season,open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
-    applications=[]; closeModal(); toast('자동 열기가 예약됐습니다','ok'); renderApply();
-  }catch(e){toast(errMsg(e),'err');}
-};
-
 window.openChangeScheduleModal=function(){
   if(!round) return;
   const pad=n=>String(n).padStart(2,'0');
@@ -1700,6 +1780,62 @@ function showModal(title,body,foot){
 }
 window.closeModal=()=>{document.getElementById('modalBd').style.display='none';document.body.style.overflow='';};
 window.onMBd=e=>{if(e.target===document.getElementById('modalBd'))closeModal();};
+
+// ── DATA MANAGEMENT ───────────────────────────────────────────────────
+window.openDeleteTimeModal=function(){
+  const s=document.getElementById('delSeasonSel').value;
+  showModal('시간 정보 삭제',
+    `<div style="color:var(--danger);font-weight:600;font-size:13px">${s}의 모든 시간 정보를 삭제합니다. 이 작업은 되돌릴 수 없습니다.</div>
+     <div class="fl">삭제하려면 하단에 <b>'삭제'</b>를 입력해주세요.</div>
+     <input class="fi" type="text" id="delTimeInput" placeholder="삭제"/>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-d" onclick="doDeleteTime('${s}')">삭제</button>`
+  );
+};
+window.doDeleteTime=async function(s){
+  const val=document.getElementById('delTimeInput').value;
+  if(val!=='삭제'){toast('"삭제"를 정확히 입력해주세요','err');return;}
+  try{
+    const {data:rds}=await supabase.from('application_rounds').select('id').eq('season',s);
+    if(rds&&rds.length) await supabase.from('time_applications').delete().in('round_id',rds.map(r=>r.id));
+    await supabase.from('application_rounds').delete().eq('season',s);
+    await supabase.from('base_slots').delete().eq('season',s);
+    if(season===s){
+      baseSlots=[]; merged=mergeSchedule(baseSlots,exceptions); round=null; applications=[];
+      renderSchedule(); renderApply();
+    }
+    closeModal(); toast(`${s} 시간 정보가 삭제됐습니다`,'ok');
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.openDeleteTeamsModal=function(){
+  showModal('팀 정보 삭제',
+    `<div style="color:var(--danger);font-weight:600;font-size:13px">모든 팀 정보를 삭제합니다. 이 작업은 되돌릴 수 없습니다.</div>
+     <div class="fl">삭제하려면 하단에 <b>'삭제'</b>를 입력해주세요.</div>
+     <input class="fi" type="text" id="delTeamsInput" placeholder="삭제"/>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-d" onclick="doDeleteTeams()">삭제</button>`
+  );
+};
+window.doDeleteTeams=async function(){
+  const val=document.getElementById('delTeamsInput').value;
+  if(val!=='삭제'){toast('"삭제"를 정확히 입력해주세요','err');return;}
+  try{
+    await supabase.from('teams').delete().neq('id',0);
+    teams=[]; baseSlots=[]; merged=[]; exceptions=[];
+    closeModal(); toast('팀 정보가 삭제됐습니다','ok'); renderTeams(); renderSchedule();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.changeAdminPassword=async function(){
+  const pw1=document.getElementById('newPw1').value;
+  const pw2=document.getElementById('newPw2').value;
+  if(pw1!==pw2){toast('비밀번호가 일치하지 않습니다','err');return;}
+  if(pw1.length<6){toast('비밀번호는 6자 이상이어야 합니다','err');return;}
+  const {error}=await supabase.auth.updateUser({password:pw1});
+  if(error){toast(errMsg(error),'err');return;}
+  document.getElementById('newPw1').value='';
+  document.getElementById('newPw2').value='';
+  toast('비밀번호가 변경됐습니다','ok');
+};
 
 // ── TOAST ─────────────────────────────────────────────────────────────
 let toastT;

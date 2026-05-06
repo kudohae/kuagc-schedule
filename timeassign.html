@@ -140,7 +140,7 @@ const timeStr = h => h<24?h+':00':'0'+(h-24)+':00';
 const fmtTime = ts => {
   if(!ts) return '';
   const d=new Date(ts);
-  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;
 };
 const errMsg = e => {
   const m = e?.message||'';

@@ -186,7 +186,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 /* STATUS POPUP */
 .status-bd{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(6px);animation:fi .2s;}
 .status-popup{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:340px;max-width:92vw;display:flex;flex-direction:column;overflow:hidden;animation:su .2s;}
-.status-popup-main{padding:28px 24px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;}
+.status-popup-main{padding:20px 24px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;}
 .status-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
 .status-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
 .status-label.empty{color:var(--accent);}
@@ -195,6 +195,10 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 .status-sub{font-size:12px;color:var(--text2);}
 .status-popup-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
 .status-popup-foot .btn{flex:1;padding:9px;font-size:13px;}
+.notif-bar{width:100%;display:flex;flex-direction:column;gap:6px;padding:10px 14px 2px;}
+.notif-item{display:flex;align-items:center;justify-content:space-between;background:rgba(232,255,71,.07);border:1px solid rgba(232,255,71,.2);border-radius:6px;padding:8px 10px;gap:8px;}
+body.dark .notif-item{background:rgba(232,255,71,.05);}
+.notif-txt{font-size:12px;font-weight:600;color:var(--text);flex:1;text-align:left;}
 
 /* ── MOBILE DAY TAB ── */
 .day-tab-bar{display:none;}
@@ -427,6 +431,7 @@ function weekLabel(off){
 let weekOff=0, season='1학기';
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let merged=[];
+let activeRound=null, activeEnsemble=null;
 let searchQ='', collapsed=new Set();
 let mobileDayIdx=(new Date().getDay()+6)%7; // 모바일 선택 요일 (기본=오늘)
 const isMobile=()=>window.innerWidth<=700;
@@ -459,10 +464,15 @@ async function loadAll(){
   const ldEl = document.getElementById('ld');
   ldEl.style.display='flex';
   try{
-    [teams,baseSlots,exceptions,requests,notices,contacts] = await Promise.all([
+    const [t,bs,ex,rq,nt,ct,roundRes,ensRes] = await Promise.all([
       fetchTeams(), fetchBaseSlots(season), fetchExceptions(weekOff),
-      fetchRequests(weekOff), fetchNotices(), fetchContacts()
+      fetchRequests(weekOff), fetchNotices(), fetchContacts(),
+      import('./js/supabase.js').then(({supabase})=>supabase.from('application_rounds').select('*').in('status',['open','closed']).order('created_at',{ascending:false}).limit(1).maybeSingle()),
+      import('./js/supabase.js').then(({supabase})=>supabase.from('ensemble_rounds').select('*').not('phase','eq','closed').order('created_at',{ascending:false}).limit(1).maybeSingle())
     ]);
+    [teams,baseSlots,exceptions,requests,notices,contacts]=[t,bs,ex,rq,nt,ct];
+    activeRound=roundRes.data||null;
+    activeEnsemble=ensRes.data||null;
     teams=korSort(teams,'name');
     merged=mergeSchedule(baseSlots,exceptions);
     ldEl.style.display='none';
@@ -943,10 +953,33 @@ function showStatus(){
   const el = document.getElementById('statusMain');
   const bd = document.getElementById('statusBd');
   if(!el||!bd) return;
+
+  // 신청 알림 배너
+  const notifs=[];
+  if(activeRound){
+    const isOpen=activeRound.status==='open'&&(!activeRound.open_at||new Date(activeRound.open_at)<=now);
+    const isSched=activeRound.status==='open'&&activeRound.open_at&&new Date(activeRound.open_at)>now;
+    const isClosed=activeRound.status==='closed';
+    if(isOpen||isSched||isClosed){
+      const label=isSched?'시간 신청 예약됨':isClosed?'시간 신청 마감됨 (배정 대기)':'시간 신청 진행 중';
+      notifs.push(`<div class="notif-item"><span class="notif-txt">⏱ ${label}</span><a href="timeassign.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none">신청하기</a></div>`);
+    }
+  }
+  if(activeEnsemble){
+    const phase=activeEnsemble.phase;
+    const isSongSched=phase==='draft'&&activeEnsemble.song_scheduled_at&&new Date(activeEnsemble.song_scheduled_at)>now;
+    const isSessSched=phase==='song'&&activeEnsemble.session_scheduled_at&&new Date(activeEnsemble.session_scheduled_at)>now;
+    if(phase==='song'||phase==='session'||isSongSched||isSessSched){
+      const label=isSongSched?'합주 곡 신청 예약됨':isSessSched?'합주 세션 신청 예약됨':phase==='song'?'합주 곡 신청 진행 중':'합주 세션 신청 진행 중';
+      notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${label}</span><a href="ensemble.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none">신청하기</a></div>`);
+    }
+  }
+  const notifBar=notifs.length?`<div class="notif-bar">${notifs.join('')}</div>`:'';
+
   if(slot){
     const t = slot.teams;
     const c = teamClr(t);
-    el.innerHTML=`
+    el.innerHTML=notifBar+`
       <div style="width:52px;height:52px;border-radius:50%;background:${c}22;border:2px solid ${c};display:flex;align-items:center;justify-content:center;font-size:22px">🎸</div>
       <div>
         <div class="status-label busy">현재 동아리방 사용 중</div>
@@ -955,7 +988,7 @@ function showStatus(){
         <div class="status-sub" style="margin-top:4px">${['월','화','수','목','금','토','일'][dow]} ${h}:00 — ${h+1}:00</div>
       </div>`;
   } else {
-    el.innerHTML=`
+    el.innerHTML=notifBar+`
       <div style="width:52px;height:52px;border-radius:50%;background:rgba(232,255,71,.1);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px">✅</div>
       <div>
         <div class="status-label empty">현재 동아리방 비어 있음</div>
