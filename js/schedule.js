@@ -18,8 +18,8 @@ export async function fetchTeams() {
   if (error) throw error;
   return data;
 }
-export async function createTeam({ name, type, color, info = '' }) {
-  const { data, error } = await supabase.from('teams').insert({ name, type, color, info }).select().single();
+export async function createTeam({ name, type, color, info = '', members = [] }) {
+  const { data, error } = await supabase.from('teams').insert({ name, type, color, info, members }).select().single();
   if (error) throw error;
   return data;
 }

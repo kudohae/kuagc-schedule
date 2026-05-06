@@ -1045,6 +1045,7 @@ function renderTeams(){
               placeholder="${g.k==='스쿨'?'선생님':g.k==='합주'?'합주곡':'추가정보'}"/>
             <button class="btn btn-s btn-xs" onclick="saveTeamInfo(${t.id})">저장</button>
           </div>
+          ${t.members&&t.members.length?`<div style="font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:2px;margin-top:2px;padding:4px 6px;background:var(--surface2);border-radius:3px">${t.members.map(m=>`<span>${m.name}(${m.student_id_last3}) <span style="color:var(--accent2)">${m.sessions.join('·')}</span></span>`).join('')}</div>`:''}
           <div style="display:flex;justify-content:flex-end">
             <button class="btn btn-d btn-xs" onclick="doDeleteTeam(${t.id})">삭제</button>
           </div>
@@ -1499,8 +1500,12 @@ function renderEnsemble(){
     if(!bodyEl) return;
 
     let ctrl='';
-    if(!r||phase==='closed'){
+    if(!r){
       ctrl=`<button class="btn btn-p btn-xs" onclick="openCreateRoundModal('${type}')">회차 생성</button>`;
+    } else if(phase==='closed'){
+      const confirmedCount=songList.filter(s=>s.status==='confirmed').length;
+      ctrl=`${confirmedCount?`<button class="btn btn-p btn-xs" onclick="confirmEnsembleTeams('${type}')">선택한 팀 확정</button>`:''}
+            <button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">회차 생성</button>`;
     } else if(phase==='draft'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
             ${r.song_scheduled_at?`<button class="btn btn-s btn-xs" onclick="openScheduleSettingsModal(${r.id})">예약 설정</button>`:''}
@@ -1548,25 +1553,32 @@ function renderEnsemble(){
         </div>`:'';
         const actions=r&&phase!=='closed'?`<div class="e-song-actions">
           ${s.status!=='confirmed'?`<button class="btn btn-p btn-xs" onclick="confirmSong(${s.id})">확정</button>`:''}
-          ${s.status!=='rejected'?`<button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">거절</button>`:''}
+          ${phase==='session'
+            ?(s.status!=='rejected'?`<button class="btn btn-s btn-xs" onclick="disableSong(${s.id})">이 곡 비활성화</button>`:'')
+            :(s.status!=='rejected'?`<button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">거절</button>`:'')}
         </div>`:'';
-        return `<div class="e-song-item${unformed?' unformed':''}">
-          <div class="e-song-hdr">
-            <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
-            <div style="flex:1;min-width:0">
-              <div class="e-song-title">${s.title}</div>
-              <div class="e-song-artist">${s.artist}</div>
+        const chkHtml=phase==='closed'&&s.status==='confirmed'
+          ?`<input type="checkbox" class="e-team-chk" data-song="${s.id}" data-type="${type}" checked style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;cursor:pointer;margin-top:3px">`:'';
+        return `<div class="e-song-item${unformed?' unformed':''}" ${chkHtml?'style="flex-direction:row;align-items:flex-start;gap:8px"':''}>
+          ${chkHtml}
+          <div ${chkHtml?'style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"':''}>
+            <div class="e-song-hdr">
+              <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
+              <div style="flex:1;min-width:0">
+                <div class="e-song-title">${s.title}</div>
+                <div class="e-song-artist">${s.artist}</div>
+              </div>
+              ${unformed?`<span class="e-unformed-badge">미구성</span>`:''}
+              <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
             </div>
-            ${unformed?`<span class="e-unformed-badge">미구성</span>`:''}
-            <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
+            <div class="e-song-meta">
+              <span>${s.applicant_name} <span style="color:var(--text3)">${s.student_id}</span></span>
+              <span style="color:var(--text3)">${fmtTime(s.created_at)}</span>
+              <span style="color:var(--text3)">${s.sessions.join(' · ')}</span>
+            </div>
+            ${sessHtml}
+            ${actions}
           </div>
-          <div class="e-song-meta">
-            <span>${s.applicant_name} <span style="color:var(--text3)">${s.student_id}</span></span>
-            <span style="color:var(--text3)">${fmtTime(s.created_at)}</span>
-            <span style="color:var(--text3)">${s.sessions.join(' · ')}</span>
-          </div>
-          ${sessHtml}
-          ${actions}
         </div>`;
       }).join('');
     }
@@ -1583,6 +1595,14 @@ async function loadEnsemble(){
     if(!r){ eSongs[type]=[]; continue; }
     const {data:s}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
     eSongs[type]=s||[];
+    if(r.phase==='session'||r.phase==='closed'){
+      const toReject=(eSongs[type]||[]).filter(s=>s.status==='pending');
+      if(toReject.length){
+        await supabase.from('song_applications').update({status:'rejected'}).in('id',toReject.map(s=>s.id));
+        const {data:s2}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
+        eSongs[type]=s2||[];
+      }
+    }
   }
   const allIds=[...eSongs.regular,...eSongs.busking].map(s=>s.id);
   if(allIds.length){
@@ -1819,12 +1839,45 @@ window.rejectSession=async function(id){
 window.formTeam=async function(songId){
   const checkboxes=[...document.querySelectorAll(`input.e-sess-chk[data-song="${songId}"]`)];
   const toConfirm=checkboxes.filter(c=>c.checked).map(c=>parseInt(c.value));
+  const toReject=checkboxes.filter(c=>!c.checked).map(c=>parseInt(c.value));
   if(!toConfirm.length){toast('구성할 세션을 선택해주세요','err');return;}
   try{
-    for(const id of toConfirm){
-      await supabase.from('session_applications').update({status:'confirmed'}).eq('id',id);
-    }
+    if(toConfirm.length) await supabase.from('session_applications').update({status:'confirmed'}).in('id',toConfirm);
+    if(toReject.length) await supabase.from('session_applications').update({status:'rejected'}).in('id',toReject);
     toast('구성됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.disableSong=async function(id){
+  if(!confirm('이 곡을 비활성화할까요?\n비활성화된 곡은 목록에서 제외됩니다.')) return;
+  try{
+    await supabase.from('song_applications').update({status:'rejected'}).eq('id',id);
+    toast('비활성화됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.confirmEnsembleTeams=async function(type){
+  const checkboxes=[...document.querySelectorAll(`input.e-team-chk[data-type="${type}"]:checked`)];
+  if(!checkboxes.length){toast('선택된 곡이 없습니다','err');return;}
+  const songIds=checkboxes.map(c=>parseInt(c.dataset.song));
+  const teamNames=songIds.map((_,i)=>`${i+1}팀`);
+  const {data:existing}=await supabase.from('teams').select('name').in('name',teamNames);
+  if(existing&&existing.length){
+    toast('중복된 팀명이 있습니다. 기존 팀 정보를 확인해주세요.','err'); return;
+  }
+  if(!confirm(`${songIds.length}개의 팀을 생성하시겠습니까?`)) return;
+  try{
+    for(let i=0;i<songIds.length;i++){
+      const songId=songIds[i];
+      const song=eSongs[type].find(s=>s.id===songId);
+      if(!song) continue;
+      const sessApps=(eSessionMap[songId]||[]).filter(a=>a.status==='confirmed');
+      const members=sessApps.map(a=>({name:a.applicant_name,student_id_last3:a.student_id.slice(-3),sessions:a.sessions}));
+      await createTeam({name:`${i+1}팀`,type:'합주',color:'#888888',info:song.title,members});
+    }
+    toast(`${songIds.length}개 팀이 생성됐습니다`,'ok');
+    teams=await fetchTeams(); teams=korSort(teams,'name');
+    renderTeams(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 
