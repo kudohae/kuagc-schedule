@@ -588,7 +588,7 @@ window.onSongSelect=function(){
   }
   area.innerHTML=`
     <div class="session-area">
-      <div class="fl">참여할 세션 * (이 곡에 필요한 세션만 표시)</div>
+      <div class="fl">참여할 세션 *</div>
       <div class="session-grid">
         ${neededSessions.map(s=>`
           <input type="checkbox" class="session-chk" id="sss_${s.replace(/\s/g,'_')}" value="${s}"/>
