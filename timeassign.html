@@ -297,10 +297,10 @@ function render(){
         <div style="display:flex;gap:10px;align-items:center">
           <input class="fi" type="text" id="apTeamInput" placeholder="팀명 입력"
             oninput="onApplyTeamInput(this.value)"
-            value="${applyTeamName}" style="flex:1"/>
+            value="${applyTeamName}" style="width:160px;flex-shrink:0"/>
           <div id="apTeamInfo" style="font-size:12px;min-width:80px;flex-shrink:0">${(()=>{
             if(!applyTeamName) return '';
-            const _t=teams.find(t=>t.name===applyTeamName);
+            const _t=teams.find(t=>normTeam(t.name)===normTeam(applyTeamName));
             return _t
               ? `<span style="color:var(--accent)">${_t.info||'—'}</span>`
               : `<span style="color:var(--danger)">없는 팀입니다. 팀명을 확인해주세요.</span>`;
@@ -373,13 +373,14 @@ function renderList(){
 }
 
 // ── INTERACTIONS ──────────────────────────────────────────────────────
+const normTeam=s=>s.replace(/\s/g,'');
 window.onApplyTeamInput=function(val){
   applyTeamName=val;
-  const trimmed=val.trim();
+  const norm=normTeam(val);
   const infoEl=document.getElementById('apTeamInfo');
   if(!infoEl) return;
-  if(!trimmed){ applyTeamId=null; infoEl.innerHTML=''; return; }
-  const t=teams.find(t=>t.name===trimmed);
+  if(!norm){ applyTeamId=null; infoEl.innerHTML=''; return; }
+  const t=teams.find(t=>normTeam(t.name)===norm);
   if(t){
     applyTeamId=t.id;
     infoEl.innerHTML=`<span style="color:var(--accent)">${t.info||'—'}</span>`;

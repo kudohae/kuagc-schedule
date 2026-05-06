@@ -39,8 +39,6 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 .week-nav button{background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:1px 3px;line-height:1;transition:color .12s;}
 .week-nav button:hover{color:var(--accent);}
 .week-lbl{font-family:'Space Mono',monospace;font-size:11px;color:var(--text);white-space:nowrap;min-width:70px;text-align:center;}
-.hdr-search{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 9px;font-size:12px;color:var(--text);font-family:'Noto Sans KR',sans-serif;outline:none;width:130px;}
-.hdr-search:focus{border-color:var(--accent);}
 .hdr-contacts-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s;white-space:nowrap;}
 .hdr-contacts-btn:hover{color:var(--text);border-color:var(--accent2);}
 .hdr-ensemble-btn{background:rgba(92,158,0,.1);border:1px solid rgba(92,158,0,.35);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;transition:all .12s;}
@@ -210,7 +208,7 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
   body{font-size:15px;}
 
   /* 헤더 */
-  .hdr-search,.season-chip,.desktop-only{display:none;}
+  .season-chip,.desktop-only{display:none;}
   .hdr-apply-btn,.hdr-ensemble-btn{display:none;}
   header>div[style*="width:1px"]{display:none;}
   .week-lbl{min-width:60px;font-size:11px;}
@@ -310,7 +308,6 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
   <a class="hdr-apply-btn" href="timeassign.html">📅 시간 배정</a>
   <a class="hdr-ensemble-btn" href="ensemble.html">🎸 합주 신청</a>
   <div class="hdr-right">
-    <input class="hdr-search desktop-only" id="searchInput" placeholder="팀 검색..." oninput="onSearch(this.value)"/>
     <div class="season-chip desktop-only" id="seasonChip">—</div>
     <button class="hdr-contacts-btn desktop-only" onclick="openContactsModal()">📞 연락처</button>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="다크/라이트 모드 전환">🌙</button>
@@ -432,7 +429,7 @@ let weekOff=0, season='1학기';
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let merged=[];
 let activeRound=null, activeEnsemble=null;
-let searchQ='', collapsed=new Set();
+let collapsed=new Set();
 let mobileDayIdx=(new Date().getDay()+6)%7; // 모바일 선택 요일 (기본=오늘)
 const isMobile=()=>window.innerWidth<=700;
 
@@ -527,11 +524,10 @@ function render(){
   renderSchedule();
 }
 
-function teamListHTML(q=''){
+function teamListHTML(){
   const groups=[{k:'합주'},{k:'스쿨'},{k:'이외'}];
   return groups.map(g=>{
     let list=korSort(teams.filter(t=>t.type===g.k),'name');
-    if(q) list=list.filter(t=>t.name.includes(q)||(t.info&&t.info.includes(q)));
     if(!list.length) return '';
     const open=!collapsed.has(g.k);
     return `<div>
@@ -553,8 +549,7 @@ function teamListHTML(q=''){
 }
 
 function renderTeams(){
-  const q=searchQ.toLowerCase();
-  const html=teamListHTML(q);
+  const html=teamListHTML();
   document.getElementById('teamListEl').innerHTML=html;
 }
 
@@ -566,7 +561,6 @@ window.toggleGroup=function(k){
   collapsed.has(k)?collapsed.delete(k):collapsed.add(k);
   renderTeams();
 };
-window.onSearch=function(v){ searchQ=v; renderTeams(); };
 
 function renderNotice(){
   const el=document.getElementById('noticeBarEl');
