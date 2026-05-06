@@ -739,15 +739,15 @@ function showVacancyPopup(report){
 }
 
 window.copyVacancyReport=function(text){
-  navigator.clipboard.writeText(text).then(()=>toast('클립보드에 복사됐습니다','ok')).catch(()=>toast('복사에 실패했습니다','err'));
+  navigator.clipboard.writeText(text).then(()=>toast('클립보드에 복사되었습니다','ok')).catch(()=>toast('복사에 실패했습니다','err'));
 };
 
 window.confirmVacancyReport=async function(id,text){
   const input=prompt(`신고를 확인하고 삭제하려면 "확인"을 입력하세요.\n\n${text}`);
-  if(input?.trim()!=='확인'){toast('취소됐습니다');return;}
+  if(input?.trim()!=='확인'){toast('취소되었습니다');return;}
   try{
     await deleteVacancyReport(id);
-    closeModal(); toast('신고가 삭제됐습니다','ok');
+    closeModal(); toast('신고가 삭제되었습니다','ok');
     await checkVacancyReports();
   }catch(e){toast(errMsg(e),'err');}
 };
@@ -788,7 +788,7 @@ window.changeSeason=async function(s){
   merged=mergeSchedule(baseSlots,exceptions);
   round=await fetchActiveRound(season);
   applications=round?await fetchApplications(round.id):[];
-  render(); toast(`${s}으로 전환됐습니다`,'ok');
+  render(); toast(`${s}으로 전환되었습니다`,'ok');
 };
 
 // ── SCHEDULE ──────────────────────────────────────────────────────────
@@ -881,14 +881,14 @@ function openSlotModal(s){
 window.removeException=async function(id){
   try{
     await deleteException(id); exceptions=await fetchExceptions(weekOff);
-    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('예외 제거됐습니다','ok');
+    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('예외 제거되었습니다','ok');
   }catch(e){toast(errMsg(e),'err');}
 };
 window.markAbsent=async function(teamId,day,hour){
   try{
     await createException({team_id:teamId,day,hour,week_offset:weekOff,exception_type:'absent'});
     exceptions=await fetchExceptions(weekOff); merged=mergeSchedule(baseSlots,exceptions);
-    closeModal(); renderSchedule(); toast('미사용 처리됐습니다','ok');
+    closeModal(); renderSchedule(); toast('미사용 처리되었습니다','ok');
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openEditSlotModal=function(slotId){
@@ -908,14 +908,14 @@ window.saveSlot=async function(id){
   try{
     await updateBaseSlot(id,{team_id:parseInt(document.getElementById('eTeam').value),day:parseInt(document.getElementById('eDay').value),hour:parseInt(document.getElementById('eHour').value)});
     baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
-    closeModal(); renderSchedule(); toast('슬롯이 수정됐습니다','ok');
+    closeModal(); renderSchedule(); toast('슬롯이 수정되었습니다','ok');
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 window.deleteSlot=async function(id){
   if(!confirm('이 슬롯을 삭제할까요?')) return;
   try{
     await deleteBaseSlot(id); baseSlots=await fetchBaseSlots(season);
-    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('삭제됐습니다');
+    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('삭제되었습니다');
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openAddSlotModal=function(day=0,hour=10){
@@ -956,7 +956,7 @@ window.addSlot=async function(){
       exceptions=await fetchExceptions(weekOff);
     }
     merged=mergeSchedule(baseSlots,exceptions);
-    closeModal(); renderSchedule(); toast('슬롯이 추가됐습니다','ok');
+    closeModal(); renderSchedule(); toast('슬롯이 추가되었습니다','ok');
   }catch(e){toast(e.message.includes('unique')?'이미 해당 시간에 슬롯이 있습니다':errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1000,7 +1000,7 @@ function openPendingSlotModal(req){
 window.doApprove=async function(id){
   const req=pendingAll.find(r=>r.id===id); if(!req) return;
   try{
-    await approveRequest(req,req.week_offset); toast('승인됐습니다','ok');
+    await approveRequest(req,req.week_offset); toast('승인되었습니다','ok');
     [exceptions,requests,pendingAll]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff),fetchAllPendingRequests()]);
     merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
@@ -1008,14 +1008,14 @@ window.doApprove=async function(id){
 window.doApproveTerminate=async function(id){
   const req=pendingAll.find(r=>r.id===id); if(!req) return;
   try{
-    await approveTerminate(req,season); toast('종강 처리됐습니다 — 기본 배정 슬롯이 삭제됐습니다','ok');
+    await approveTerminate(req,season); toast('종강 처리되었습니다 — 기본 배정 슬롯이 삭제되었습니다','ok');
     [baseSlots,exceptions,requests,pendingAll]=await Promise.all([fetchBaseSlots(season),fetchExceptions(weekOff),fetchRequests(weekOff),fetchAllPendingRequests()]);
     merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.doReject=async function(id){
   try{
-    await rejectRequest(id); toast('거절됐습니다');
+    await rejectRequest(id); toast('거절되었습니다');
     pendingAll=await fetchAllPendingRequests(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
 };
@@ -1080,7 +1080,7 @@ window.saveTeamAll=async function(id){
     const t=teams.find(t=>t.id===id);
     if(t){t.name=name;t.info=info;t.members=members;}
     teams=korSort(teams,'name');
-    toast('저장됐습니다','ok'); renderTeams(); renderSchedule();
+    toast('저장되었습니다','ok'); renderTeams(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.doDeleteTeam=async function(id){
@@ -1088,7 +1088,7 @@ window.doDeleteTeam=async function(id){
   try{
     await deleteTeam(id); teams=teams.filter(t=>t.id!==id);
     baseSlots=baseSlots.filter(s=>s.team_id!==id); merged=mergeSchedule(baseSlots,exceptions);
-    toast('팀이 삭제됐습니다'); render();
+    toast('팀이 삭제되었습니다'); render();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.toggleTeamSelect=function(id,checked){
@@ -1122,7 +1122,7 @@ window.deleteSelectedTeams=async function(){
     teams=teams.filter(t=>!deleted.includes(t.id));
     baseSlots=baseSlots.filter(s=>!deleted.includes(s.team_id));
     merged=mergeSchedule(baseSlots,exceptions);
-    toast(`${deleted.length}개 팀이 삭제됐습니다`,'ok'); render();
+    toast(`${deleted.length}개 팀이 삭제되었습니다`,'ok'); render();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openAddTeamModal=function(){
@@ -1161,7 +1161,7 @@ window.addTeam=async function(){
   const btn=document.getElementById('nBtn'); btn.disabled=true;
   try{
     const t=await createTeam({name,type,color}); teams.push(t); teams=korSort(teams,'name');
-    toast(`${name} 팀이 추가됐습니다`,'ok'); closeModal(); renderTeams();
+    toast(`${name} 팀이 추가되었습니다`,'ok'); closeModal(); renderTeams();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1257,7 +1257,7 @@ window.createNewRound=async function(){
     } else {
       round=await createRound({season,open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
     }
-    applications=[]; closeModal(); toast('신청이 설정됐습니다','ok'); renderApply();
+    applications=[]; closeModal(); toast('신청이 설정되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1265,7 +1265,7 @@ window.closeRoundNow=async function(){
   if(!confirm('신청을 마감할까요? 이후 배정을 실행할 수 있습니다.')) return;
   try{
     round=await updateRound(round.id,{status:'closed'});
-    toast('신청이 마감됐습니다','ok'); renderApply();
+    toast('신청이 마감되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1273,7 +1273,7 @@ window.reopenRound=async function(){
   if(!confirm('신청을 다시 열까요?')) return;
   try{
     round=await updateRound(round.id,{status:'open'});
-    toast('신청이 재오픈됐습니다','ok'); renderApply();
+    toast('신청이 재오픈되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1284,7 +1284,7 @@ window.runAssignmentOnly=async function(){
     applications=await fetchApplications(round.id);
     await runAssignment(round,applications,season);
     round=await fetchActiveRound(season); applications=await fetchApplications(round.id);
-    toast('배정이 완료됐습니다. 확인 후 확정하세요.','ok'); renderApply();
+    toast('배정이 완료되었습니다. 확인 후 확정하세요.','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1316,13 +1316,13 @@ window.saveCloseDeadline=async function(){
   const btn=document.getElementById('cdBtn'); btn.disabled=true;
   try{
     round=await updateRound(round.id,{close_at:new Date(ca).toISOString()});
-    closeModal(); toast('마감 일시가 저장됐습니다','ok'); renderApply();
+    closeModal(); toast('마감 일시가 저장되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 window.clearCloseDeadline=async function(){
   try{
     round=await updateRound(round.id,{close_at:null});
-    closeModal(); toast('마감 예약이 해제됐습니다','ok'); renderApply();
+    closeModal(); toast('마감 예약이 해제되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openDiscardModal=function(){
@@ -1342,14 +1342,14 @@ window.discardRound=async function(){
       await supabase.from('time_applications').delete().eq('round_id',round.id);
       await updateRound(round.id,{status:'closed',draft_approved:true});
     }
-    round=null; applications=[]; closeModal(); toast('신청이 폐기됐습니다','ok'); renderApply();
+    round=null; applications=[]; closeModal(); toast('신청이 폐기되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.delApp=async function(id){
   if(!confirm('이 신청을 취소할까요?')) return;
   try{
     await deleteApplication(id); applications=applications.filter(a=>a.id!==id);
-    toast('취소됐습니다'); renderApply();
+    toast('취소되었습니다'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openChangeScheduleModal=function(){
@@ -1372,7 +1372,7 @@ window.doChangeSchedule=async function(){
   const btn=document.getElementById('csBtn'); btn.disabled=true;
   try{
     round=await updateRound(round.id,{open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
-    closeModal(); toast('예약이 변경됐습니다','ok'); renderApply();
+    closeModal(); toast('예약이 변경되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1414,13 +1414,13 @@ window.addNotice=async function(){
   const btn=document.getElementById('ncBtn'); btn.disabled=true;
   try{
     await createNotice(content); notices=await fetchNotices();
-    closeModal(); toast('공지가 등록됐습니다','ok'); renderNotices();
+    closeModal(); toast('공지가 등록되었습니다','ok'); renderNotices();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 window.delNotice=async function(id){
   try{
     await deleteNotice(id); notices=notices.filter(n=>n.id!==id);
-    toast('공지가 삭제됐습니다'); renderNotices();
+    toast('공지가 삭제되었습니다'); renderNotices();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1477,7 +1477,7 @@ window.saveContact=async function(id){
     const c=await upsertContact({id,role,name,phone});
     if(id) { const idx=contacts.findIndex(x=>x.id===id); if(idx>=0) contacts[idx]=c; }
     else contacts.push(c);
-    toast('저장됐습니다','ok'); closeModal(); renderContacts();
+    toast('저장되었습니다','ok'); closeModal(); renderContacts();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1485,7 +1485,7 @@ window.delContact=async function(id){
   if(!confirm('연락처를 삭제할까요?')) return;
   try{
     await deleteContact(id); contacts=contacts.filter(c=>c.id!==id);
-    toast('삭제됐습니다'); renderContacts();
+    toast('삭제되었습니다'); renderContacts();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1650,7 +1650,7 @@ window.createRound=async function(type){
   const btn=document.getElementById('ecBtn'); btn.disabled=true;
   try{
     await supabase.from('ensemble_rounds').insert({type,name,phase:'draft',max_songs,max_songs_per_person,max_sessions_per_person});
-    toast('회차가 생성됐습니다. 곡 신청을 열어주세요.','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('회차가 생성되었습니다. 곡 신청을 열어주세요.','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1679,7 +1679,7 @@ window.saveRoundSettings=async function(id){
       max_songs_per_person:parseInt(document.getElementById('eMaxSP').value),
       max_sessions_per_person:parseInt(document.getElementById('eMaxSess').value),
     }).eq('id',id);
-    toast('저장됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1703,7 +1703,7 @@ window.doOpenSongPhase=async function(id){
     if(openVal){
       upd.song_scheduled_at=new Date(openVal).toISOString();
       await supabase.from('ensemble_rounds').update(upd).eq('id',id);
-      toast('곡 신청 예약됐습니다','ok');
+      toast('곡 신청 예약되었습니다','ok');
     } else {
       upd.phase='song'; upd.song_scheduled_at=null;
       await supabase.from('ensemble_rounds').update(upd).eq('id',id);
@@ -1731,11 +1731,11 @@ window.doOpenSessionPhase=async function(id){
     if(openVal){
       upd.session_scheduled_at=new Date(openVal).toISOString();
       await supabase.from('ensemble_rounds').update(upd).eq('id',id);
-      toast('세션 신청 예약됐습니다','ok');
+      toast('세션 신청 예약되었습니다','ok');
     } else {
       upd.phase='session'; upd.session_scheduled_at=null;
       await supabase.from('ensemble_rounds').update(upd).eq('id',id);
-      toast('세션 신청 단계로 전환됐습니다','ok');
+      toast('세션 신청 단계로 전환되었습니다','ok');
     }
     closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
@@ -1745,7 +1745,7 @@ window.deleteRound=async function(id){
   if(!confirm('이 회차(준비 중)를 삭제할까요?')) return;
   try{
     await supabase.from('ensemble_rounds').delete().eq('id',id);
-    toast('삭제됐습니다'); await loadEnsemble(); renderEnsemble();
+    toast('삭제되었습니다'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1787,13 +1787,13 @@ window.saveSongSchedule=async function(id){
     const upd={song_scheduled_at:oa?new Date(oa).toISOString():null, song_close_at:ca?new Date(ca).toISOString():null};
     if(!oa) upd.phase='song';
     await supabase.from('ensemble_rounds').update(upd).eq('id',id);
-    toast('저장됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 window.cancelSongSchedule=async function(id){
   try{
     await supabase.from('ensemble_rounds').update({song_scheduled_at:null,song_close_at:null}).eq('id',id);
-    toast('예약이 취소됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('예약이 취소되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.saveSongClose=async function(id){
@@ -1801,7 +1801,7 @@ window.saveSongClose=async function(id){
   const btn=document.getElementById('ssBtn2'); btn.disabled=true;
   try{
     await supabase.from('ensemble_rounds').update({song_close_at:ca?new Date(ca).toISOString():null}).eq('id',id);
-    toast('저장됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 window.saveSessionClose=async function(id){
@@ -1809,7 +1809,7 @@ window.saveSessionClose=async function(id){
   const btn=document.getElementById('seBtn'); btn.disabled=true;
   try{
     await supabase.from('ensemble_rounds').update({session_close_at:ca?new Date(ca).toISOString():null}).eq('id',id);
-    toast('저장됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1824,7 +1824,7 @@ window.closeRound=async function(id){
 window.confirmSong=async function(id){
   try{
     await supabase.from('song_applications').update({status:'confirmed'}).eq('id',id);
-    toast('확정됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('확정되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1832,21 +1832,21 @@ window.rejectSong=async function(id){
   if(!confirm('이 곡을 거절할까요?')) return;
   try{
     await supabase.from('song_applications').update({status:'rejected'}).eq('id',id);
-    toast('거절됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('거절되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
 window.confirmSession=async function(id){
   try{
     await supabase.from('session_applications').update({status:'confirmed'}).eq('id',id);
-    toast('확정됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('확정되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
 window.rejectSession=async function(id){
   try{
     await supabase.from('session_applications').update({status:'rejected'}).eq('id',id);
-    toast('거절됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('거절되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1858,7 +1858,7 @@ window.formTeam=async function(songId){
   try{
     if(toConfirm.length) await supabase.from('session_applications').update({status:'confirmed'}).in('id',toConfirm);
     if(toReject.length) await supabase.from('session_applications').update({status:'rejected'}).in('id',toReject);
-    toast('구성됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('구성되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1866,7 +1866,7 @@ window.disableSong=async function(id){
   if(!confirm('이 곡을 비활성화할까요?\n비활성화된 곡은 목록에서 제외됩니다.')) return;
   try{
     await supabase.from('song_applications').update({status:'rejected'}).eq('id',id);
-    toast('비활성화됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('비활성화되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1889,7 +1889,7 @@ window.confirmEnsembleTeams=async function(type){
       const members=sessApps.map(a=>({name:a.applicant_name,student_id_last3:a.student_id.slice(-3),sessions:a.sessions}));
       await createTeam({name:`${i+1}팀`,type:'합주',color:'#888888',info:song.title,members});
     }
-    toast(`${songIds.length}개 팀이 생성됐습니다`,'ok');
+    toast(`${songIds.length}개 팀이 생성되었습니다`,'ok');
     teams=await fetchTeams(); teams=korSort(teams,'name');
     renderTeams(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
@@ -1940,7 +1940,7 @@ window.doDeleteTime=async function(s){
       baseSlots=[]; merged=mergeSchedule(baseSlots,exceptions); round=null; applications=[];
       renderSchedule(); renderApply();
     }
-    closeModal(); toast(`${s} 시간 정보가 삭제됐습니다`,'ok');
+    closeModal(); toast(`${s} 시간 정보가 삭제되었습니다`,'ok');
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openDeleteTeamsModal=function(){
@@ -1958,7 +1958,7 @@ window.doDeleteTeams=async function(){
   try{
     await supabase.from('teams').delete().neq('id',0);
     teams=[]; baseSlots=[]; merged=[]; exceptions=[];
-    closeModal(); toast('팀 정보가 삭제됐습니다','ok'); renderTeams(); renderSchedule();
+    closeModal(); toast('팀 정보가 삭제되었습니다','ok'); renderTeams(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.changeAdminPassword=async function(){
@@ -1970,7 +1970,7 @@ window.changeAdminPassword=async function(){
   if(error){toast(errMsg(error),'err');return;}
   document.getElementById('newPw1').value='';
   document.getElementById('newPw2').value='';
-  toast('비밀번호가 변경됐습니다','ok');
+  toast('비밀번호가 변경되었습니다','ok');
 };
 
 // ── TOAST ─────────────────────────────────────────────────────────────
