@@ -1539,7 +1539,7 @@ function renderEnsemble(){
                    +((phase==='draft'||phase==='song')&&r?.song_close_at?`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 곡 신청 마감: ${fmtScheduled(r.song_close_at)}</div>`:'')
                    +(phase==='song'&&r?.session_scheduled_at?`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 세션 신청 오픈: ${fmtScheduled(r.session_scheduled_at)}</div>`:'')
                    +(phase==='session'&&r?.session_close_at?`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 세션 신청 마감: ${fmtScheduled(r.session_close_at)}</div>`:'');
-    const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 곡${r.max_songs_per_person} · 세션${r.max_sessions_per_person}</div>${schedInfo}`:'';
+    const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡 · 세션 ${r.max_sessions_per_person}곡</div>${schedInfo}`:'';
     const ctrlHtml=`<div class="ensemble-col-ctrl">${ctrl}</div>`;
 
     let songsHtml='';
