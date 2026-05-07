@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>동아리방 관리자</title>
+<title>그루터기 회장단</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
 :root{
@@ -77,6 +77,13 @@ body.dark .admin-bar{background:rgba(232,255,71,.05);border-color:rgba(232,255,7
 .sch-title-row{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .sch-title{font-size:13px;font-weight:700;}
 .sch-season{font-size:11px;color:var(--text2);}
+.week-now-badge{font-size:11px;font-weight:700;background:rgba(92,158,0,.1);color:var(--accent);border:1px solid rgba(92,158,0,.3);border-radius:4px;padding:2px 7px;vertical-align:middle;display:inline-block;}
+body.dark .week-now-badge{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.25);}
+.week-goto-badge{font-size:11px;font-weight:700;color:var(--accent2);cursor:pointer;border:1px solid rgba(0,119,204,.3);border-radius:4px;padding:2px 7px;background:rgba(0,119,204,.06);transition:all .12s;vertical-align:middle;display:inline-block;}
+body.dark .week-goto-badge{background:rgba(71,197,255,.06);border-color:rgba(71,197,255,.25);}
+.week-goto-badge:hover{background:rgba(0,119,204,.12);}
+.sch-day-date{font-size:9px;font-weight:400;color:var(--text3);}
+.day-tab-bar{display:none;}
 .sch-hdr{display:grid;grid-template-columns:46px repeat(7,1fr);border-bottom:1px solid var(--border);}
 .sch-day{padding:6px 2px;text-align:center;font-size:12px;font-weight:700;color:var(--text2);border-right:1px solid var(--border);}
 .sch-day:last-child{border-right:none;}
@@ -105,7 +112,7 @@ body.dark .blk{box-shadow:0 1px 3px rgba(0,0,0,.35);}
 .blk-info{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9;color:#fff;}
 .blk-tag{font-size:9px;font-weight:700;background:rgba(0,0,0,.2);padding:1px 3px;border-radius:2px;flex-shrink:0;margin-left:auto;color:#fff;}
 .blk.absent{box-shadow:none;}
-.blk.extra{box-shadow:0 0 0 1.5px var(--accent2);}
+.blk.extra{border-left:4px solid var(--accent2) !important;box-shadow:0 1px 3px rgba(0,0,0,.15);}
 .blk-empty{position:absolute;inset:2px;border-radius:4px;border:1px dashed rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);cursor:pointer;transition:all .12s;}
 body.dark .blk-empty{border-color:rgba(255,255,255,.1);}
 .blk-empty:hover{border-color:var(--accent);color:var(--accent);}
@@ -114,10 +121,15 @@ body.dark .blk-empty{border-color:rgba(255,255,255,.1);}
 
 /* ── TEAMS PAGE ── */
 #pgTeams{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:10px;}
+.teams-toolbar{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.teams-sel-count{font-size:11px;color:var(--text3);margin-left:2px;}
 .teams-section{display:flex;flex-direction:column;gap:6px;}
 .teams-section-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);padding:4px 2px;border-bottom:1px solid var(--border);}
 .teams-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;}
-.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;display:flex;flex-direction:column;gap:6px;}
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;display:flex;flex-direction:column;gap:6px;transition:border-color .12s;}
+.tcard.tcard-sel{border-color:var(--accent2);background:rgba(0,119,204,.04);}
+body.dark .tcard.tcard-sel{background:rgba(71,197,255,.05);}
+.team-chk{width:15px;height:15px;cursor:pointer;accent-color:var(--accent2);flex-shrink:0;}
 .tcard-hdr{display:flex;align-items:center;gap:7px;}
 .tcard-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .tcard-name-static{font-size:12px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -125,7 +137,8 @@ body.dark .blk-empty{border-color:rgba(255,255,255,.1);}
 .tcard-row{display:flex;gap:4px;}
 
 /* ── APPLY PAGE ── */
-#pgApply{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:8px;}
+#pgApply{flex-direction:column;overflow-y:auto;padding:10px 14px;align-items:center;}
+.focused-inner{width:660px;max-width:96%;display:flex;flex-direction:column;gap:10px;}
 .apply-status{border-radius:var(--radius);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
 .apply-status.open{background:rgba(232,255,71,.06);border:1px solid rgba(232,255,71,.2);}
 .apply-status.closed{background:var(--surface);border:1px solid var(--border);}
@@ -231,28 +244,58 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 .e-sess-tag{font-size:9px;padding:1px 4px;border-radius:2px;background:rgba(71,197,255,.1);border:1px solid rgba(71,197,255,.2);color:var(--accent2);}
 .e-sess-tag.confirmed{background:rgba(232,255,71,.1);border-color:rgba(232,255,71,.2);color:var(--accent);}
 .e-sess-actions{display:flex;gap:3px;flex-shrink:0;}
+.e-sess-chk{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+.e-sess-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.e-sess-dot.confirmed{background:var(--accent);}
+.e-sess-dot.rejected{background:var(--danger);}
+.e-form-btn{margin-top:6px;display:flex;justify-content:flex-end;}
+.e-song-item.unformed{border-left:3px solid var(--warn);}
+.e-unformed-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(200,118,10,.15);color:var(--warn);}
+/* DnD team builder */
+.dnd-builder{display:grid;grid-template-columns:190px 1fr;gap:8px;padding:8px;}
+.dnd-pool{border:2px dashed var(--border);border-radius:var(--radius);padding:7px;display:flex;flex-direction:column;gap:4px;min-height:60px;transition:border-color .12s,background .12s;}
+.dnd-pool.dnd-over-pool{border-color:var(--accent2);background:rgba(71,197,255,.05);}
+.dnd-pool-hdr{font-size:10px;font-weight:700;color:var(--text2);margin-bottom:4px;display:flex;align-items:center;gap:4px;}
+.dnd-songs{display:flex;flex-direction:column;gap:5px;}
+.dnd-song-zone{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;min-height:40px;transition:border-color .12s,background .12s;}
+.dnd-song-zone.dnd-over{border-color:var(--accent);background:rgba(232,255,71,.06);}
+.dnd-song-zone.dnd-invalid{border-color:var(--danger);background:rgba(255,71,71,.05);}
+.dnd-song-hdr-row{display:flex;align-items:center;gap:5px;margin-bottom:4px;}
+.dnd-song-title{font-size:11px;font-weight:700;}
+.dnd-song-members{display:flex;flex-wrap:wrap;gap:3px;min-height:20px;}
+.dnd-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 7px;cursor:grab;user-select:none;display:flex;flex-direction:column;gap:2px;}
+.dnd-card.dnd-assigned{background:rgba(232,255,71,.06);border-color:rgba(232,255,71,.3);}
+.dnd-card:active{cursor:grabbing;opacity:.6;}
+.dnd-card-name{font-size:11px;font-weight:600;}
+.dnd-card-hint{font-size:9px;color:var(--text3);}
+.dnd-badge{background:var(--surface2);border:1px solid var(--border);border-radius:3px;font-size:9px;font-weight:700;padding:0 4px;color:var(--text2);flex-shrink:0;}
 
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 
 /* ── MOBILE ── */
+.mob-tab-bar{display:none;}
 @media(max-width:700px){
   body{font-size:14px;}
-  :root{--hh:50px;}
+  :root{--hh:50px;--tab-h:56px;}
 
-  /* 헤더 nav 가로 스크롤 */
+  /* 헤더: nav 숨기고 필수 요소만 */
   header{padding:0 10px;gap:7px;flex-wrap:nowrap;}
-  .nav{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:1;}
-  .nav::-webkit-scrollbar{display:none;}
-  .nb{padding:6px 11px;font-size:12px;white-space:nowrap;min-height:40px;}
+  .nav{display:none;}
   .week-lbl{min-width:56px;font-size:11px;}
   .season-sel{font-size:11px;padding:4px 7px;}
   .theme-btn{padding:5px 8px;}
   .logout-btn{padding:5px 9px;font-size:11px;}
 
+  /* 모바일 하단 탭바 */
+  .mob-tab-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:var(--header-bg);border-top:1px solid var(--border);z-index:100;backdrop-filter:blur(8px);}
+  .mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:10px;font-family:'Noto Sans KR',sans-serif;min-height:var(--tab-h);padding:0 2px;}
+  .mob-tab.active{color:var(--accent);}
+  .mob-tab svg{width:20px;height:20px;}
+
   /* 페이지 */
-  .page{height:calc(100vh - var(--hh));}
+  .page{height:calc(100vh - var(--hh));padding-bottom:var(--tab-h);}
   .page.active{overflow:hidden;}
 
   /* 시간표 + 신청대기 → 세로 스태킹 */
@@ -266,13 +309,23 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   .pcard-detail{font-size:12px;}
   .pa-ok,.pa-no{min-height:40px;font-size:13px;}
 
-  /* 시간표 그리드 */
+  /* 시간표 그리드 — 모바일 1일 뷰 */
   .sch-times{width:40px;}
-  .sch-hdr{grid-template-columns:40px repeat(7,1fr);}
-  .sch-time{height:56px;font-size:10px;}
-  .sch-slot{height:56px;}
+  .sch-time{height:60px;font-size:10px;}
+  .sch-slot{height:60px;}
   .blk-name{font-size:11px;}
   .blk-info{font-size:10px;}
+  .sch-hdr{display:none;}
+  .sch-grid{grid-template-columns:1fr;}
+  .sch-col{display:none;}
+  .sch-col.mobile-active{display:block;}
+  /* 요일 탭바 */
+  .day-tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
+  .day-tab-bar::-webkit-scrollbar{display:none;}
+  .day-tab{flex:1;min-width:44px;padding:8px 3px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;text-align:center;transition:all .12s;white-space:nowrap;}
+  .day-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700;}
+  .day-tab.today-tab{color:var(--accent2);}
+  .day-tab.active.today-tab{color:var(--accent);border-bottom-color:var(--accent);}
 
   /* 팀 관리 1열 */
   .teams-grid{grid-template-columns:1fr;}
@@ -287,12 +340,16 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   /* 공지/연락처 카드 */
   .centered-card{width:96%;}
 
-  /* 팀 탭 페이지 */
-  #pgTeams{padding:8px;}
-  #pgNotices{padding:8px;}
-  #pgContacts{padding:8px;}
-  #pgApply{padding:8px;overflow-y:auto;}
-  #pgEnsemble{padding:8px 0;}
+  /* 팀 탭 페이지 — 하단 탭바 높이 만큼 패딩 */
+  #pgTeams{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  #pgNotices{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  #pgContacts{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  #pgApply,#pgSchool{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  .focused-inner{width:100%;max-width:100%;}
+  #pgEnsemble{padding:8px 0;padding-bottom:calc(var(--tab-h)+8px);}
+  #pgSch .sch-main{padding-bottom:calc(var(--tab-h)+8px);}
+  .pend-sidebar{max-height:180px;}
+  .toast{bottom:calc(var(--tab-h)+10px);}
 
   /* 버튼 터치 타겟 */
   .btn{min-height:44px;padding:10px 14px;font-size:14px;}
@@ -306,6 +363,11 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   .modal{border-radius:16px 16px 0 0;width:100%;max-width:100%;max-height:88vh;}
   .modal::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;}
 }
+#pgData{flex-direction:column;overflow-y:auto;padding:10px 14px;gap:10px;}
+.data-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.data-section-title{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2);}
+.btn-danger{background:rgba(255,80,80,.12);color:var(--danger);border:1px solid rgba(255,80,80,.3);}
+.btn-danger:hover{background:rgba(255,80,80,.2);}
 </style>
 </head>
 <body>
@@ -314,16 +376,21 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 <div class="login-wrap" id="loginWrap">
   <div class="login-box">
     <div>
-      <div class="login-title">BAND 관리자</div>
-      <div class="login-sub">동아리방 시간표 관리 시스템</div>
+      <div class="login-title">관리자 페이지</div>
+      <div class="login-sub">동아리 관리 시스템</div>
     </div>
     <div>
-      <div class="fl">관리자 비밀번호</div>
+      <div class="fl">이메일</div>
+      <input class="fi" type="email" id="emailInput" placeholder="이메일 입력"
+        onkeydown="if(event.key==='Enter')document.getElementById('pwInput').focus()"/>
+    </div>
+    <div>
+      <div class="fl">비밀번호</div>
       <input class="fi" type="password" id="pwInput" placeholder="비밀번호 입력"
         onkeydown="if(event.key==='Enter')doLogin()"/>
     </div>
-    <div class="login-err" id="loginErr">비밀번호가 틀렸습니다</div>
-    <button class="btn btn-p" style="width:100%;padding:9px" onclick="doLogin()">로그인</button>
+    <div class="login-err" id="loginErr">이메일 또는 비밀번호가 틀렸습니다</div>
+    <button class="btn btn-p" style="width:100%;padding:9px" id="loginBtn" onclick="doLogin()">로그인</button>
     <div style="text-align:center">
       <a href="index.html" style="font-size:11px;color:var(--text3);text-decoration:none;">← 일반 시간표로 돌아가기</a>
     </div>
@@ -334,14 +401,16 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 <div id="adminUI" style="display:none">
 
 <header>
-  <a class="logo" href="https://kuagc.com" target="_blank" style="text-decoration:none">BAND <span class="logo-sub">관리자</span></a>
+  <a class="logo" href="https://kuagc.com" target="_blank" style="text-decoration:none">KUAGC <span class="logo-sub">관리자</span></a>
   <div class="nav">
     <button class="nb active" id="nb-sch"      onclick="showPage('sch')">시간표</button>
     <button class="nb"        id="nb-teams"    onclick="showPage('teams')">팀 관리</button>
     <button class="nb"        id="nb-apply"    onclick="showPage('apply')">시간신청</button>
+    <button class="nb"        id="nb-school"   onclick="showPage('school')">스쿨신청</button>
     <button class="nb"        id="nb-ensemble" onclick="showPage('ensemble')">합주신청</button>
     <button class="nb"        id="nb-notices"  onclick="showPage('notices')">공지</button>
     <button class="nb"        id="nb-contacts" onclick="showPage('contacts')">연락처</button>
+    <button class="nb"        id="nb-data"     onclick="showPage('data')" style="color:var(--danger)">데이터 관리</button>
   </div>
   <div class="hdr-r">
     <select class="season-sel" id="seasonSel" onchange="changeSeason(this.value)">
@@ -352,7 +421,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
       <div class="week-lbl" id="weekLbl">—</div>
       <button onclick="changeWeek(1)">›</button>
     </div>
-    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="다크/라이트 모드 전환">🌙</button>
   </div>
 </header>
@@ -370,6 +439,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
         <span class="sch-title" id="schTitle">—</span>
         <span class="sch-season" id="schSeason"></span>
       </div>
+      <div class="day-tab-bar" id="dayTabBar"></div>
       <div class="sch-hdr" id="schHdr"></div>
       <div class="sch-body">
         <div class="sch-times" id="schTimes"></div>
@@ -380,7 +450,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   <!-- 신청대기 사이드패널 -->
   <div class="pend-sidebar">
     <div class="pend-sidebar-hdr">
-      <div class="pend-sidebar-title">신청 대기</div>
+      <div class="pend-sidebar-title">승인 대기</div>
       <span class="pend-badge" id="pendBadge" style="display:none"></span>
     </div>
     <div class="pend-list" id="pendList"></div>
@@ -393,13 +463,34 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
     <div class="section-title">팀 관리</div>
     <button class="btn btn-p btn-xs" onclick="openAddTeamModal()">+ 팀 추가</button>
   </div>
+  <div class="teams-toolbar">
+    <button class="btn btn-s btn-xs" onclick="selectAllTeams()">전체 선택</button>
+    <button class="btn btn-d btn-xs" onclick="deleteSelectedTeams()">선택한 팀 삭제</button>
+    <span class="teams-sel-count" id="teamSelCount"></span>
+  </div>
   <div id="teamsContent" style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;"></div>
 </div>
 
 <!-- APPLY -->
 <div class="page" id="pgApply">
-  <div class="section-hdr"><div class="section-title">시간 신청 관리</div></div>
-  <div id="applyContent" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;"></div>
+  <div class="focused-inner">
+    <div class="section-hdr"><div class="section-title">시간 신청 관리</div></div>
+    <div id="applyContent" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- SCHOOL -->
+<div class="page" id="pgSchool" style="flex-direction:column;overflow-y:auto;padding:10px 14px;align-items:center;">
+  <div class="focused-inner">
+    <div class="section-hdr">
+      <div class="section-title">스쿨 신청 관리</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <a href="school.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">신청 페이지로 이동</a>
+        <button class="btn btn-p btn-xs" onclick="openCreateSchoolRoundModal()">+ 새 회차 만들기</button>
+      </div>
+    </div>
+    <div id="schoolAdminContent" style="display:flex;flex-direction:column;gap:12px;"></div>
+  </div>
 </div>
 
 <!-- NOTICES -->
@@ -452,7 +543,65 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
   </div>
 </div>
 
+<div class="page" id="pgData" style="flex-direction:column;overflow-y:auto;padding:10px 14px;gap:10px;">
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)">시간 정보 삭제</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">선택한 학기의 기본 시간표, 신청 회차 및 모든 신청 정보를 삭제합니다.</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+      <select class="fs" id="delSeasonSel" style="width:auto">
+        <option>1학기</option><option>여름방학</option><option>2학기</option><option>겨울방학</option>
+      </select>
+    </div>
+    <button class="btn btn-d" onclick="openDeleteTimeModal()">시간 정보 삭제</button>
+  </div>
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)">팀 정보 삭제</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">등록된 모든 팀 정보를 삭제합니다.</div>
+    <button class="btn btn-d" onclick="openDeleteTeamsModal()">팀 정보 삭제</button>
+  </div>
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2)">관리자 비밀번호 변경</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div><div class="fl">새 비밀번호</div><input class="fi" type="password" id="newPw1" placeholder="새 비밀번호 (6자 이상)"/></div>
+      <div><div class="fl">새 비밀번호 확인</div><input class="fi" type="password" id="newPw2" placeholder="새 비밀번호 재입력"/></div>
+      <button class="btn btn-p" style="width:fit-content" onclick="changeAdminPassword()">비밀번호 변경</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /adminUI -->
+
+<!-- ADMIN MOBILE TAB BAR -->
+<div class="mob-tab-bar" id="mobTabBar" style="display:none">
+  <button class="mob-tab active" id="mt-sch" onclick="showPage('sch')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    시간표
+  </button>
+  <button class="mob-tab" id="mt-teams" onclick="showPage('teams')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>
+    팀 관리
+  </button>
+  <button class="mob-tab" id="mt-apply" onclick="showPage('apply')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    시간신청
+  </button>
+  <button class="mob-tab" id="mt-school" onclick="showPage('school')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    스쿨신청
+  </button>
+  <button class="mob-tab" id="mt-ensemble" onclick="showPage('ensemble')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    합주신청
+  </button>
+  <button class="mob-tab" id="mt-notices" onclick="showPage('notices')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    공지
+  </button>
+  <button class="mob-tab" id="mt-data" onclick="showPage('data')" style="color:var(--danger)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    데이터
+  </button>
+</div>
 
 <!-- MODAL -->
 <div class="modal-bd" id="modalBd" style="display:none" onclick="onMBd(event)">
@@ -473,11 +622,12 @@ import {
   fetchTeams, createTeam, updateTeam, deleteTeam,
   fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
   fetchExceptions, createException, deleteException, mergeSchedule,
-  fetchRequests, approveRequest, rejectRequest, approveTerminate,
+  fetchRequests, fetchAllPendingRequests, approveRequest, rejectRequest, approveTerminate,
   fetchNotices, createNotice, deleteNotice,
   fetchActiveRound, createRound, updateRound,
   fetchApplications, deleteApplication, runAssignment, approveDraft,
-  fetchContacts, upsertContact, deleteContact
+  fetchContacts, upsertContact, deleteContact,
+  fetchVacancyReports, deleteVacancyReport
 } from './js/schedule.js';
 
 // ── THEME ─────────────────────────────────────────────────────────────
@@ -494,15 +644,16 @@ window.toggleTheme=function(){
   if(btn) btn.textContent=document.body.classList.contains('dark')?'☀️':'🌙';
 };
 
-const ADMIN_PW = 'kuagc513';
 const DAYS  = ['월','화','수','목','금','토','일'];
 const HOURS = Array.from({length:18},(_,i)=>i+8);
 const GRAY  = '#888888';
 const COLORS= ['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47ffea','#ffd447','#b4ff47','#ff9d47'];
 const korSort=(a,k)=>[...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
+const getWeekDates=off=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);return Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return `${d.getMonth()+1}/${d.getDate()}`;});};
+const reqActualDate=(weekOffset,day)=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+weekOffset*7);const d=new Date(mon);d.setDate(mon.getDate()+day);return `${d.getMonth()+1}/${d.getDate()}`;};
 const teamClr=t=>t.type==='합주'?GRAY:(t.color||GRAY);
 const timeStr=h=>h<24?h+':00':'0'+(h-24)+':00';
-const fmtTime=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+const fmtTime=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;};
 const errMsg=e=>{const m=e?.message||'';if(m.includes('unique')||m.includes('duplicate'))return'이미 동일한 데이터가 존재합니다';if(m.includes('foreign key'))return'참조 데이터가 존재하지 않습니다';if(m.includes('network')||m.includes('fetch'))return'네트워크 오류가 발생했습니다';if(m.includes('JWT')||m.includes('auth'))return'인증 오류입니다. 새로고침 후 시도해주세요';return m||'오류가 발생했습니다';};
 function weekLabel(off){
   const now=new Date(),m=new Date(now);
@@ -516,38 +667,57 @@ function weekLabelWithThis(off){
 }
 
 let weekOff=0, season='1학기';
+let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
+let pendingAll=[];
+let selectedTeams=new Set();
 let merged=[], round=null, applications=[];
+let adminSchools=[], adminSchoolApps=[], adminSchoolRounds=[];
+let pendingSchoolRoundId=null;
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
-function isLoggedIn(){ return sessionStorage.getItem('adm')==='1'; }
+function showAdminUI(){
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('adminUI').style.display='block';
+  document.getElementById('mobTabBar').style.display='';
+  loadAll();
+}
 
-window.doLogin=function(){
+window.doLogin=async function(){
+  const email=document.getElementById('emailInput').value.trim();
   const pw=document.getElementById('pwInput').value;
   const err=document.getElementById('loginErr');
-  if(pw===ADMIN_PW){
-    sessionStorage.setItem('adm','1');
-    document.getElementById('loginWrap').style.display='none';
-    document.getElementById('adminUI').style.display='block';
-    loadAll();
-  } else {
+  const btn=document.getElementById('loginBtn');
+  err.style.display='none';
+  btn.disabled=true; btn.textContent='로그인 중...';
+  const {error}=await supabase.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false; btn.textContent='로그인';
+  if(error){
     err.style.display='block';
     document.getElementById('pwInput').value='';
     document.getElementById('pwInput').focus();
   }
 };
 
-window.doLogout=function(){
-  sessionStorage.removeItem('adm');
-  location.reload();
+window.doLogout=async function(){
+  await supabase.auth.signOut();
 };
 
-// auto-login if session active
-if(isLoggedIn()){
-  document.getElementById('loginWrap').style.display='none';
-  document.getElementById('adminUI').style.display='block';
-  loadAll();
-}
+// auth state listener
+supabase.auth.onAuthStateChange((_event,session)=>{
+  if(session){
+    showAdminUI();
+  } else {
+    document.getElementById('loginWrap').style.display='';
+    document.getElementById('adminUI').style.display='none';
+    document.getElementById('mobTabBar').style.display='none';
+  }
+});
+
+// restore session on load
+supabase.auth.getSession().then(({data:{session}})=>{
+  if(session) showAdminUI();
+});
 
 // ── LOAD ──────────────────────────────────────────────────────────────
 async function loadAll(){
@@ -561,34 +731,383 @@ async function loadAll(){
   merged=mergeSchedule(baseSlots,exceptions);
   round=await fetchActiveRound(season);
   if(round) applications=await fetchApplications(round.id);
+  pendingAll=await fetchAllPendingRequests();
   await loadEnsemble();
+  await loadSchoolData();
+  supabase.channel('admin-school-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},async()=>{
+      await loadSchoolData(); renderSchool();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'schools'},async()=>{
+      await loadSchoolData(); renderSchool();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async()=>{
+      await loadSchoolData(); renderSchool();
+    })
+    .subscribe();
+  supabase.channel('admin-pending-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'requests'},async()=>{
+      pendingAll=await fetchAllPendingRequests();
+      renderPending();
+    })
+    .subscribe();
+  supabase.channel('admin-ens-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},async()=>{
+      await loadEnsemble();
+      renderEnsemble();
+    })
+    .subscribe();
+  supabase.channel('admin-apply-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},async()=>{
+      if(round) applications=await fetchApplications(round.id);
+      renderApply();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'application_rounds'},async()=>{
+      round=await fetchActiveRound(season);
+      if(round) applications=await fetchApplications(round.id);
+      renderApply();
+    })
+    .subscribe();
+  supabase.channel('admin-vacancy-rt')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'vacancy_reports'},async()=>{
+      await checkVacancyReports();
+    })
+    .subscribe();
   render();
+  await checkVacancyReports();
 }
+
+async function checkVacancyReports(){
+  const reports=await fetchVacancyReports().catch(()=>[]);
+  if(reports.length) showVacancyPopup(reports[0]);
+}
+
+function showVacancyPopup(report){
+  const {id,incident_month:mo,incident_day:d,incident_hour:hh,incident_minute:mm}=report;
+  const min=String(mm).padStart(2,'0');
+  const text=`${mo}월 ${d}일 ${hh}시 ${min}분에, 시간표와 다르게 동아리방이 비어있었어요.`;
+  showModal('시간표 불일치 신고 접수',
+    `<div style="background:var(--surface2);border-radius:6px;padding:12px 14px;font-size:14px;line-height:1.6;color:var(--text)">${text}</div>`,
+    `<button class="btn btn-s" onclick="copyVacancyReport(${JSON.stringify(text).replace(/"/g,'&quot;')})">클립보드에 복사</button>
+     <button class="btn btn-d" onclick="confirmVacancyReport(${id},${JSON.stringify(text).replace(/"/g,'&quot;')})">신고 확인</button>`
+  );
+}
+
+window.copyVacancyReport=function(text){
+  navigator.clipboard.writeText(text).then(()=>toast('클립보드에 복사되었습니다','ok')).catch(()=>toast('복사에 실패했습니다','err'));
+};
+
+window.confirmVacancyReport=async function(id,text){
+  const input=prompt(`신고를 확인하고 삭제하려면 "확인"을 입력하세요.\n\n${text}`);
+  if(input?.trim()!=='확인'){toast('취소되었습니다');return;}
+  try{
+    await deleteVacancyReport(id);
+    closeModal(); toast('신고가 삭제되었습니다','ok');
+    await checkVacancyReports();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+// ── SCHOOL ────────────────────────────────────────────────────────────
+async function loadSchoolData(){
+  const [{data:rd},{data:sc},{data:ap}]=await Promise.all([
+    supabase.from('school_rounds').select('*').order('created_at',{ascending:false}),
+    supabase.from('schools').select('*').order('created_at'),
+    supabase.from('school_applications').select('*').order('created_at')
+  ]);
+  adminSchoolRounds=rd||[];
+  adminSchools=sc||[];
+  adminSchoolApps=ap||[];
+}
+
+function fmtSchoolDate(ts){
+  if(!ts) return '';
+  const d=new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function renderSchool(){
+  const el=document.getElementById('schoolAdminContent');
+  if(!el) return;
+  if(!adminSchoolRounds.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">등록된 회차가 없습니다. "+ 새 회차 만들기"로 추가하세요.</div>';
+    return;
+  }
+  const totalRounds=adminSchoolRounds.length;
+  el.innerHTML=adminSchoolRounds.map((r,ri)=>{
+    const roundSchools=adminSchools.filter(s=>s.round_id===r.id);
+    const roundNum=totalRounds-ri;
+    const statusLabel={'draft':'초안','open':'모집중','closed':'마감'}[r.status]||r.status;
+    const statusColor={'draft':'var(--text3)','open':'var(--accent)','closed':'var(--text2)'}[r.status];
+    const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+
+    const schoolsHtml=roundSchools.map(s=>{
+      const apps=adminSchoolApps.filter(a=>a.school_id===s.id);
+      const normal=apps.filter(a=>a.status==='normal').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      const waitlist=apps.filter(a=>a.status==='waitlist').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      const allSorted=[...normal,...waitlist];
+      return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:10px 12px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:700">${s.name}</div>
+            <div style="font-size:11px;color:var(--text2)">담임: ${s.teacher_name||'미정'} · 정원 ${s.capacity}명 · 확정 ${normal.length}명 / 대기 ${waitlist.length}명</div>
+            ${s.description?`<div style="font-size:11px;color:var(--text2);margin-top:2px">${s.description}</div>`:''}
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button class="btn btn-s btn-xs" onclick="openEditSchoolModal(${s.id})">편집</button>
+            <button class="btn btn-d btn-xs" onclick="schoolDelete(${s.id})">삭제</button>
+          </div>
+        </div>
+        ${allSorted.length?`<div style="display:flex;flex-direction:column;gap:2px">
+          ${allSorted.map(a=>{
+            const isW=a.status==='waitlist';
+            const num=isW?'대'+(waitlist.indexOf(a)+1):''+(normal.indexOf(a)+1);
+            return `<div style="display:flex;align-items:center;gap:7px;padding:4px 7px;background:var(--surface);border-radius:3px">
+              <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);min-width:26px">${num}</span>
+              <span style="flex:1;font-size:12px">${a.applicant_name}</span>
+              <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${a.student_id}</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;${isW?'background:rgba(200,118,10,.1);color:var(--warn)':'background:rgba(92,158,0,.1);color:var(--accent)'}">${isW?'대기':'확정'}</span>
+              <button class="btn btn-d btn-xs" onclick="schoolDeleteApp(${a.id})">삭제</button>
+            </div>`;
+          }).join('')}
+        </div>`:'<div style="font-size:11px;color:var(--text3)">신청자 없음</div>'}
+      </div>`;
+    }).join('');
+
+    return `<div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:700">${r.name||`스쿨 신청 ${roundNum}회차`}</span>
+          <span style="font-size:11px;color:var(--text3)">${fmtSchoolDate(r.created_at)} 생성</span>
+          ${r.close_at?`<span style="font-size:11px;color:var(--text3)">마감: ${fmtSchoolDate(r.close_at)}</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--surface2);color:${statusColor};border:1px solid var(--border)">${statusLabel}</span>
+          ${r.status==='draft'?`<button class="btn btn-p btn-xs" onclick="schoolRoundOpen(${r.id})">열기</button>`:''}
+          ${r.status==='open'?`<button class="btn btn-s btn-xs" onclick="schoolRoundClose(${r.id})">닫기</button>`:''}
+          ${r.status==='closed'?`<button class="btn btn-s btn-xs" onclick="schoolRoundOpen(${r.id})">다시 열기</button>`:''}
+          <button class="btn btn-s btn-xs" onclick="openEditSchoolRoundModal(${r.id})">설정</button>
+          <button class="btn btn-d btn-xs" onclick="schoolRoundDelete(${r.id})">삭제</button>
+        </div>
+      </div>
+      <div style="padding:10px 16px;display:flex;flex-direction:column;gap:8px">
+        ${roundSchools.length?schoolsHtml:'<div style="font-size:12px;color:var(--text3)">이 회차에 등록된 스쿨이 없습니다.</div>'}
+        <button class="btn btn-s btn-xs" style="width:fit-content" onclick="openAddSchoolModal(${r.id})">+ 스쿨 추가</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 회차 관리 ─────────────────────────────────────────────────────────
+window.openCreateSchoolRoundModal=function(){
+  showModal('스쿨 신청 회차 만들기',
+    `<div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">회차 이름</div><input class="fi" id="newSchRoundName" placeholder="m학기 n차 스쿨 신청" /></div>
+      <div><div class="fl">오픈 예약 시각 (선택)</div><input class="fi" id="newSchRoundOpenAt" type="datetime-local" /></div>
+      <div><div class="fl">마감 예약 시각 (선택)</div><input class="fi" id="newSchRoundCloseAt" type="datetime-local" /></div>
+    </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="createSchRoundBtn" onclick="submitCreateSchoolRound()">만들기</button>`
+  );
+  setTimeout(()=>document.getElementById('newSchRoundName')?.focus(),50);
+};
+window.submitCreateSchoolRound=async function(){
+  const name=(document.getElementById('newSchRoundName')?.value||'').trim();
+  const openAtVal=document.getElementById('newSchRoundOpenAt')?.value;
+  const closeAtVal=document.getElementById('newSchRoundCloseAt')?.value;
+  if(!name){toast('회차 이름을 입력해주세요','err');return;}
+  const btn=document.getElementById('createSchRoundBtn');
+  if(btn){btn.disabled=true;btn.textContent='생성 중...';}
+  try{
+    const {error}=await supabase.from('school_rounds').insert({
+      name,
+      status:'draft',
+      open_at:openAtVal?new Date(openAtVal).toISOString():null,
+      close_at:closeAtVal?new Date(closeAtVal).toISOString():null
+    });
+    if(error) throw error;
+    closeModal(); toast('회차가 생성됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='만들기';}}
+};
+window.openEditSchoolRoundModal=function(id){
+  const r=adminSchoolRounds.find(x=>x.id===id);
+  if(!r) return;
+  const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+  showModal('회차 설정',
+    `<div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">회차 이름</div><input class="fi" id="editSchRoundName" value="${r.name||''}" placeholder="예: 2025년 1학기 스쿨 신청" /></div>
+      <div><div class="fl">오픈 예약 시각 (선택)</div><input class="fi" id="editSchRoundOpenAt" type="datetime-local" value="${toLocal(r.open_at)}" /></div>
+      <div><div class="fl">마감 예약 시각 (선택)</div><input class="fi" id="editSchRoundCloseAt" type="datetime-local" value="${toLocal(r.close_at)}" /></div>
+    </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="editSchRoundBtn" onclick="submitEditSchoolRound(${id})">저장</button>`
+  );
+};
+window.submitEditSchoolRound=async function(id){
+  const name=(document.getElementById('editSchRoundName')?.value||'').trim();
+  const openAtVal=document.getElementById('editSchRoundOpenAt')?.value;
+  const closeAtVal=document.getElementById('editSchRoundCloseAt')?.value;
+  if(!name){toast('회차 이름을 입력해주세요','err');return;}
+  const btn=document.getElementById('editSchRoundBtn');
+  if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+  try{
+    const {error}=await supabase.from('school_rounds').update({
+      name,
+      open_at:openAtVal?new Date(openAtVal).toISOString():null,
+      close_at:closeAtVal?new Date(closeAtVal).toISOString():null
+    }).eq('id',id);
+    if(error) throw error;
+    closeModal(); toast('저장됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='저장';}}
+};
+window.schoolRoundOpen=async function(id){
+  try{
+    await supabase.from('school_rounds').update({status:'open'}).eq('id',id);
+    toast('회차가 열렸습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.schoolRoundClose=async function(id){
+  try{
+    await supabase.from('school_rounds').update({status:'closed'}).eq('id',id);
+    toast('회차가 마감됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.schoolRoundDelete=async function(id){
+  const r=adminSchoolRounds.find(x=>x.id===id);
+  const cnt=adminSchools.filter(s=>s.round_id===id).length;
+  if(!confirm(`${adminSchoolRounds.length-adminSchoolRounds.indexOf(r)}회차를 삭제하시겠습니까?${cnt?'\n스쿨 '+cnt+'개와 모든 신청 데이터도 삭제됩니다.':''}`)) return;
+  try{
+    const schoolIds=adminSchools.filter(s=>s.round_id===id).map(s=>s.id);
+    if(schoolIds.length){
+      await supabase.from('school_applications').delete().in('school_id',schoolIds);
+      await supabase.from('schools').delete().in('id',schoolIds);
+    }
+    await supabase.from('school_rounds').delete().eq('id',id);
+    toast('삭제됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+// ── 스쿨 관리 ─────────────────────────────────────────────────────────
+window.openAddSchoolModal=function(roundId){
+  pendingSchoolRoundId=roundId;
+  showModal('스쿨 추가',
+    `<div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">스쿨 이름</div><input class="fi" id="addSchName" placeholder="예: 보컬 스쿨 A반" /></div>
+      <div><div class="fl">담임 이름</div><input class="fi" id="addSchTeacher" placeholder="홍길동 선생님" /></div>
+      <div><div class="fl">정원 (명)</div><input class="fi" id="addSchCap" type="number" min="1" value="10" /></div>
+      <div><div class="fl">설명 (선택)</div><textarea class="fi" id="addSchDesc" rows="3" placeholder="스쿨 소개, 일정, 장소 등" style="resize:vertical"></textarea></div>
+    </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="addSchBtn" onclick="submitAddSchool()">추가</button>`
+  );
+  setTimeout(()=>document.getElementById('addSchName')?.focus(),50);
+};
+window.submitAddSchool=async function(){
+  const name=(document.getElementById('addSchName')?.value||'').trim();
+  const teacher=(document.getElementById('addSchTeacher')?.value||'').trim();
+  const cap=parseInt(document.getElementById('addSchCap')?.value)||0;
+  const desc=(document.getElementById('addSchDesc')?.value||'').trim();
+  if(!name){toast('스쿨 이름을 입력해주세요','err');return;}
+  if(cap<1){toast('정원을 1명 이상으로 입력해주세요','err');return;}
+  const btn=document.getElementById('addSchBtn');
+  if(btn){btn.disabled=true;btn.textContent='추가 중...';}
+  try{
+    const {error}=await supabase.from('schools').insert({name,teacher_name:teacher,capacity:cap,description:desc,round_id:pendingSchoolRoundId});
+    if(error) throw error;
+    closeModal(); toast('스쿨이 추가됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='추가';}}
+};
+window.openEditSchoolModal=function(id){
+  const s=adminSchools.find(x=>x.id===id);
+  if(!s) return;
+  showModal('스쿨 편집',
+    `<div style="display:flex;flex-direction:column;gap:10px">
+      <div><div class="fl">스쿨 이름</div><input class="fi" id="edSchName" value="${s.name}" /></div>
+      <div><div class="fl">담임 이름</div><input class="fi" id="edSchTeacher" value="${s.teacher_name||''}" /></div>
+      <div><div class="fl">정원 (명)</div><input class="fi" id="edSchCap" type="number" min="1" value="${s.capacity}" /></div>
+      <div><div class="fl">설명</div><textarea class="fi" id="edSchDesc" rows="3" style="resize:vertical">${s.description||''}</textarea></div>
+    </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="edSchBtn" onclick="submitEditSchool(${id})">저장</button>`
+  );
+};
+window.submitEditSchool=async function(id){
+  const name=(document.getElementById('edSchName')?.value||'').trim();
+  const teacher=(document.getElementById('edSchTeacher')?.value||'').trim();
+  const cap=parseInt(document.getElementById('edSchCap')?.value)||0;
+  const desc=(document.getElementById('edSchDesc')?.value||'').trim();
+  if(!name){toast('스쿨 이름을 입력해주세요','err');return;}
+  if(cap<1){toast('정원을 1명 이상으로 입력해주세요','err');return;}
+  const btn=document.getElementById('edSchBtn');
+  if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+  try{
+    const {error}=await supabase.from('schools').update({name,teacher_name:teacher,capacity:cap,description:desc}).eq('id',id);
+    if(error) throw error;
+    closeModal(); toast('저장됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');if(btn){btn.disabled=false;btn.textContent='저장';}}
+};
+window.schoolDelete=async function(id){
+  const s=adminSchools.find(x=>x.id===id);
+  if(!confirm(`"${s?.name||'스쿨'}"을 삭제하시겠습니까?\n신청 데이터도 모두 삭제됩니다.`)) return;
+  try{
+    await supabase.from('school_applications').delete().eq('school_id',id);
+    await supabase.from('schools').delete().eq('id',id);
+    toast('삭제됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.schoolDeleteApp=async function(id){
+  const app=adminSchoolApps.find(a=>a.id===id);
+  if(!confirm(`"${app?.applicant_name||''}"의 신청을 삭제하시겠습니까?`)) return;
+  const wasNormal=app?.status==='normal';
+  const schoolId=app?.school_id;
+  try{
+    await supabase.from('school_applications').delete().eq('id',id);
+    if(wasNormal&&schoolId){
+      const wl=adminSchoolApps
+        .filter(a=>a.school_id===schoolId&&a.status==='waitlist'&&a.id!==id)
+        .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      if(wl.length) await supabase.from('school_applications').update({status:'normal'}).eq('id',wl[0].id);
+    }
+    toast('삭제됐습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
+};
 
 function render(){
   const wl=weekLabel(weekOff);
   document.getElementById('weekLbl').textContent=wl;
-  document.getElementById('schTitle').textContent=`${wl} 동아리방 사용 시간표`;
+  document.getElementById('schTitle').innerHTML=`${wl} 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
-  const pend=requests.filter(r=>r.status==='pending').length;
-  const badge=document.getElementById('pendBadge');
-  badge.textContent=pend; badge.style.display=pend?'':'none';
   renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts();
 }
 
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
 window.showPage=function(pg){
-  ['sch','teams','apply','notices','contacts','ensemble'].forEach(p=>{
+  ['sch','teams','apply','school','notices','contacts','ensemble','data'].forEach(p=>{
     document.getElementById('pg'+p.charAt(0).toUpperCase()+p.slice(1))?.classList.toggle('active',p===pg);
     document.getElementById('nb-'+p)?.classList.toggle('active',p===pg);
+    document.getElementById('mt-'+p)?.classList.toggle('active',p===pg);
   });
   document.getElementById('weekNavEl').style.display=pg==='sch'?'':'none';
   if(pg==='ensemble') renderEnsemble();
+  if(pg==='school') renderSchool();
 };
 
 window.changeWeek=async function(delta){
   weekOff+=delta;
   [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+  merged=mergeSchedule(baseSlots,exceptions); render();
+};
+window.goToThisWeek=async function(){
+  weekOff=0;
+  [exceptions,requests]=await Promise.all([fetchExceptions(0),fetchRequests(0)]);
   merged=mergeSchedule(baseSlots,exceptions); render();
 };
 
@@ -598,7 +1117,7 @@ window.changeSeason=async function(s){
   merged=mergeSchedule(baseSlots,exceptions);
   round=await fetchActiveRound(season);
   applications=round?await fetchApplications(round.id):[];
-  render(); toast(`${s}으로 전환됐습니다`,'ok');
+  render(); toast(`${s}으로 전환되었습니다`,'ok');
 };
 
 // ── SCHEDULE ──────────────────────────────────────────────────────────
@@ -606,8 +1125,22 @@ function renderSchedule(){
   const todayDow=(new Date().getDay()+6)%7;
   const nowH=new Date().getHours(),nowM=new Date().getMinutes();
   const isNow=weekOff===0;
+  const mobile=window.innerWidth<=700;
+  const wdates=getWeekDates(weekOff);
+
+  const dayTabBar=document.getElementById('dayTabBar');
+  if(dayTabBar){
+    if(mobile){
+      dayTabBar.innerHTML=DAYS.map((d,i)=>`
+        <button class="day-tab${i===mobileDayIdx?' active':''}${isNow&&i===todayDow?' today-tab':''}"
+          onclick="selectMobileDay(${i})">${d}<br><span style="font-size:9px;font-weight:400">${wdates[i]}</span></button>`).join('');
+    } else {
+      dayTabBar.innerHTML='';
+    }
+  }
+
   document.getElementById('schHdr').innerHTML='<div class="sch-day"></div>'+
-    DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}</div>`).join('');
+    DAYS.map((d,i)=>`<div class="sch-day${isNow&&i===todayDow?' today':''}">${d}<br><span class="sch-day-date">${wdates[i]}</span></div>`).join('');
   document.getElementById('schTimes').innerHTML=HOURS.map(h=>
     `<div class="sch-time"><span>${timeStr(h)}</span>${h>=24?`<span class="sch-time-next">익일</span>`:''}</div>`).join('');
   const grid=document.getElementById('schGrid'); grid.innerHTML='';
@@ -615,7 +1148,7 @@ function renderSchedule(){
   const pm=new Map(requests.filter(r=>r.type==='extra'&&r.status==='pending').map(r=>[`${r.day}-${r.hour}`,r]));
   for(let d=0;d<7;d++){
     const col=document.createElement('div');
-    col.className='sch-col'+(isNow&&d===todayDow?' today':'');
+    col.className='sch-col'+(isNow&&d===todayDow?' today':'')+(mobile?(d===mobileDayIdx?' mobile-active':''):'');
     if(isNow&&d===todayDow&&nowH>=HOURS[0]&&nowH<=HOURS[HOURS.length-1]){
       const slotH=window.innerWidth<=700?56:62;
       const line=document.createElement('div'); line.className='now-line';
@@ -633,7 +1166,9 @@ function renderSchedule(){
           blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}88">${t.name}</span><span class="blk-tag" style="color:${c}88">미사용</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}66">${t.info||''}</span></div>`;
         } else {
           blk.style.background=c;
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="color:#000">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
+          if(isExtra) blk.style.borderLeft='4px solid var(--accent2)';
+          const tagStyle=isExtra?'background:var(--accent2);color:#000':'color:#000';
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
         }
         blk.onclick=()=>openSlotModal(s); cell.appendChild(blk);
       } else if(pe){
@@ -652,6 +1187,12 @@ function renderSchedule(){
   }
 }
 
+window.selectMobileDay=function(idx){
+  mobileDayIdx=idx;
+  document.querySelectorAll('.day-tab').forEach((btn,i)=>btn.classList.toggle('active',i===idx));
+  document.querySelectorAll('.sch-col').forEach((col,i)=>col.classList.toggle('mobile-active',i===idx));
+};
+
 function openSlotModal(s){
   const t=s.teams,absent=s.status==='absent',isExtra=s.source==='extra',c=teamClr(t);
   showModal(`${t.name} · ${DAYS[s.day]} ${s.hour}:00`,
@@ -662,21 +1203,21 @@ function openSlotModal(s){
     `<button class="btn btn-s" onclick="closeModal()">닫기</button>
      ${s.exceptionId?`<button class="btn btn-s" onclick="removeException(${s.exceptionId})">예외 제거</button>`:''}
      ${!absent&&s.source==='base'?`<button class="btn btn-d" onclick="markAbsent(${s.team_id},${s.day},${s.hour})">이번 주 미사용</button>`:''}
-     <button class="btn btn-p" onclick="openEditSlotModal(${s.id})">수정</button>`
+     ${s.source==='base'?`<button class="btn btn-p" onclick="openEditSlotModal(${s.id})">수정</button>`:''}`
   );
 }
 
 window.removeException=async function(id){
   try{
     await deleteException(id); exceptions=await fetchExceptions(weekOff);
-    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('예외 제거됐습니다','ok');
+    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('예외 제거되었습니다','ok');
   }catch(e){toast(errMsg(e),'err');}
 };
 window.markAbsent=async function(teamId,day,hour){
   try{
     await createException({team_id:teamId,day,hour,week_offset:weekOff,exception_type:'absent'});
     exceptions=await fetchExceptions(weekOff); merged=mergeSchedule(baseSlots,exceptions);
-    closeModal(); renderSchedule(); toast('미사용 처리됐습니다','ok');
+    closeModal(); renderSchedule(); toast('미사용 처리되었습니다','ok');
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openEditSlotModal=function(slotId){
@@ -696,14 +1237,14 @@ window.saveSlot=async function(id){
   try{
     await updateBaseSlot(id,{team_id:parseInt(document.getElementById('eTeam').value),day:parseInt(document.getElementById('eDay').value),hour:parseInt(document.getElementById('eHour').value)});
     baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
-    closeModal(); renderSchedule(); toast('슬롯이 수정됐습니다','ok');
+    closeModal(); renderSchedule(); toast('슬롯이 수정되었습니다','ok');
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 window.deleteSlot=async function(id){
   if(!confirm('이 슬롯을 삭제할까요?')) return;
   try{
     await deleteBaseSlot(id); baseSlots=await fetchBaseSlots(season);
-    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('삭제됐습니다');
+    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('삭제되었습니다');
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openAddSlotModal=function(day=0,hour=10){
@@ -711,7 +1252,7 @@ window.openAddSlotModal=function(day=0,hour=10){
   // ±4주 범위 옵션 생성
   const weekOpts=Array.from({length:9},(_,i)=>i-4).map(off=>{
     const label=weekLabelWithThis(off);
-    return `<option value="week_${off}" ${off===weekOff?'selected':''}>${label}</option>`;
+    return `<option value="week_${off}">${label}</option>`;
   }).join('');
   showModal('슬롯 추가',
     `<div>
@@ -744,24 +1285,24 @@ window.addSlot=async function(){
       exceptions=await fetchExceptions(weekOff);
     }
     merged=mergeSchedule(baseSlots,exceptions);
-    closeModal(); renderSchedule(); toast('슬롯이 추가됐습니다','ok');
+    closeModal(); renderSchedule(); toast('슬롯이 추가되었습니다','ok');
   }catch(e){toast(e.message.includes('unique')?'이미 해당 시간에 슬롯이 있습니다':errMsg(e),'err');btn.disabled=false;}
 };
 
 // ── PENDING SIDEBAR ───────────────────────────────────────────────────
 function renderPending(){
-  const pend=requests.filter(r=>r.status==='pending');
   const badge=document.getElementById('pendBadge');
-  badge.textContent=pend.length; badge.style.display=pend.length?'':'none';
+  badge.textContent=pendingAll.length; badge.style.display=pendingAll.length?'':'none';
   const list=document.getElementById('pendList');
-  if(!pend.length){list.innerHTML='<div class="no-pend">대기 중인 신청 없음</div>';return;}
-  list.innerHTML=pend.map(r=>{
+  if(!pendingAll.length){list.innerHTML='<div class="no-pend">대기 중인 신청 없음</div>';return;}
+  list.innerHTML=pendingAll.map(r=>{
     const isTerminate=r.teams.type==='스쿨'&&r.type==='absent';
     const typeLabel=isTerminate?'종강 신고':r.type==='absent'?'미사용':'추가사용';
+    const dateStr=reqActualDate(r.week_offset,r.day);
     return `
     <div class="pcard ${r.type}">
       <div class="pcard-name" style="color:${teamClr(r.teams)}">${r.teams.name}</div>
-      <div class="pcard-detail">${DAYS[r.day]} ${r.hour}:00 · ${typeLabel}</div>
+      <div class="pcard-detail">${dateStr} ${r.hour}:00 · ${typeLabel}</div>
       <div class="pcard-detail">${r.reason}</div>
       ${r.requester_name?`<div class="pcard-detail">신청자: ${r.requester_name}</div>`:''}
       <div class="pcard-detail" style="color:var(--text3)">${fmtTime(r.created_at)}</div>
@@ -786,26 +1327,25 @@ function openPendingSlotModal(req){
   );
 }
 window.doApprove=async function(id){
-  const req=requests.find(r=>r.id===id); if(!req) return;
+  const req=pendingAll.find(r=>r.id===id); if(!req) return;
   try{
-    await approveRequest(req,weekOff); toast('승인됐습니다','ok');
-    [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+    await approveRequest(req,req.week_offset); toast('승인되었습니다','ok');
+    [exceptions,requests,pendingAll]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff),fetchAllPendingRequests()]);
     merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.doApproveTerminate=async function(id){
-  const req=requests.find(r=>r.id===id); if(!req) return;
+  const req=pendingAll.find(r=>r.id===id); if(!req) return;
   try{
-    await approveTerminate(req,season); toast('종강 처리됐습니다 — 기본 배정 슬롯이 삭제됐습니다','ok');
-    baseSlots=await fetchBaseSlots(season);
-    [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+    await approveTerminate(req,season); toast('종강 처리되었습니다 — 기본 배정 슬롯이 삭제되었습니다','ok');
+    [baseSlots,exceptions,requests,pendingAll]=await Promise.all([fetchBaseSlots(season),fetchExceptions(weekOff),fetchRequests(weekOff),fetchAllPendingRequests()]);
     merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.doReject=async function(id){
   try{
-    await rejectRequest(id); toast('거절됐습니다');
-    requests=await fetchRequests(weekOff); renderPending();
+    await rejectRequest(id); toast('거절되었습니다');
+    pendingAll=await fetchAllPendingRequests(); renderPending();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -818,42 +1358,58 @@ function renderTeams(){
     return `<div class="teams-section">
       <div class="teams-section-title">${g.label} (${list.length}팀)</div>
       <div class="teams-grid">
-        ${list.map(t=>`<div class="tcard">
+        ${list.map(t=>`<div class="tcard${selectedTeams.has(t.id)?' tcard-sel':''}">
           <div class="tcard-hdr">
+            <input type="checkbox" class="team-chk" ${selectedTeams.has(t.id)?'checked':''} onchange="toggleTeamSelect(${t.id},this.checked)"/>
             <div class="tcard-dot" style="background:${teamClr(t)}"></div>
             <div class="tcard-name-static">${t.name}</div>
             <div class="tcard-type">${t.type}</div>
           </div>
           <div class="tcard-row">
-            <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.name}" id="tname-${t.id}"/>
-            <button class="btn btn-s btn-xs" onclick="saveTeamName(${t.id})">이름</button>
+            <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.name}" id="tname-${t.id}" placeholder="팀명"/>
           </div>
           <div class="tcard-row">
             <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.info||''}" id="tinfo-${t.id}"
               placeholder="${g.k==='스쿨'?'선생님':g.k==='합주'?'합주곡':'추가정보'}"/>
-            <button class="btn btn-s btn-xs" onclick="saveTeamInfo(${t.id})">저장</button>
           </div>
-          <div style="display:flex;justify-content:flex-end">
+          ${t.members&&t.members.length?`<div style="display:flex;flex-direction:column;gap:4px;background:var(--surface2);border-radius:3px;padding:6px 8px">
+            <div style="font-size:10px;font-weight:700;color:var(--text2)">참여자</div>
+            ${t.members.map((m,i)=>`<div style="display:grid;grid-template-columns:1fr 50px 1fr;gap:3px">
+              <input class="fi" style="padding:3px 6px;font-size:11px" id="tmn-${t.id}-${i}" value="${(m.name||'').replace(/"/g,'&quot;')}" placeholder="이름"/>
+              <input class="fi" style="padding:3px 6px;font-size:11px;text-align:center" id="tms-${t.id}-${i}" maxlength="3" value="${m.student_id_last3||''}" placeholder="학번"/>
+              <input class="fi" style="padding:3px 6px;font-size:11px" id="tmse-${t.id}-${i}" value="${(m.sessions||[]).join(',')}" placeholder="보컬1,기타1"/>
+            </div>`).join('')}
+            <div style="font-size:9px;color:var(--text3)">세션은 쉼표로 구분</div>
+          </div>`:''}
+          <div style="display:flex;justify-content:flex-end;gap:5px">
             <button class="btn btn-d btn-xs" onclick="doDeleteTeam(${t.id})">삭제</button>
+            <button class="btn btn-p btn-xs" onclick="saveTeamAll(${t.id})">저장</button>
           </div>
         </div>`).join('')}
       </div>
     </div>`;
   }).join('');
 }
-window.saveTeamName=async function(id){
-  const val=document.getElementById('tname-'+id)?.value.trim();
-  if(!val){toast('이름을 입력해주세요','err');return;}
+window.saveTeamAll=async function(id){
+  const name=document.getElementById('tname-'+id)?.value.trim();
+  if(!name){toast('팀명을 입력해주세요','err');return;}
+  const info=document.getElementById('tinfo-'+id)?.value.trim()??'';
+  const members=[];
+  let i=0;
+  while(document.getElementById(`tmn-${id}-${i}`)){
+    const mname=document.getElementById(`tmn-${id}-${i}`)?.value.trim()??'';
+    const msid=document.getElementById(`tms-${id}-${i}`)?.value.trim()??'';
+    const msessRaw=document.getElementById(`tmse-${id}-${i}`)?.value.trim()??'';
+    const msess=msessRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    if(mname) members.push({name:mname,student_id_last3:msid,sessions:msess});
+    i++;
+  }
   try{
-    await updateTeam(id,{name:val}); const t=teams.find(t=>t.id===id); if(t) t.name=val;
-    teams=korSort(teams,'name'); toast('이름이 수정됐습니다','ok'); renderTeams();
-  }catch(e){toast(errMsg(e),'err');}
-};
-window.saveTeamInfo=async function(id){
-  const val=document.getElementById('tinfo-'+id)?.value.trim()??'';
-  try{
-    await updateTeam(id,{info:val}); const t=teams.find(t=>t.id===id); if(t) t.info=val;
-    toast('저장됐습니다','ok'); renderSchedule();
+    await updateTeam(id,{name,info,members});
+    const t=teams.find(t=>t.id===id);
+    if(t){t.name=name;t.info=info;t.members=members;}
+    teams=korSort(teams,'name');
+    toast('저장되었습니다','ok'); renderTeams(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.doDeleteTeam=async function(id){
@@ -861,7 +1417,41 @@ window.doDeleteTeam=async function(id){
   try{
     await deleteTeam(id); teams=teams.filter(t=>t.id!==id);
     baseSlots=baseSlots.filter(s=>s.team_id!==id); merged=mergeSchedule(baseSlots,exceptions);
-    toast('팀이 삭제됐습니다'); render();
+    toast('팀이 삭제되었습니다'); render();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.toggleTeamSelect=function(id,checked){
+  checked?selectedTeams.add(id):selectedTeams.delete(id);
+  const c=document.getElementById('teamSelCount');
+  if(c) c.textContent=selectedTeams.size?selectedTeams.size+'개 선택됨':'';
+  document.querySelectorAll('.tcard').forEach(el=>{
+    const chk=el.querySelector('.team-chk');
+    if(chk&&chk.getAttribute('onchange')&&chk.getAttribute('onchange').includes(id+',')){
+      el.classList.toggle('tcard-sel',checked);
+    }
+  });
+};
+window.selectAllTeams=function(){
+  const allIds=teams.map(t=>t.id);
+  const allSelected=allIds.every(id=>selectedTeams.has(id));
+  if(allSelected){ selectedTeams.clear(); }
+  else { allIds.forEach(id=>selectedTeams.add(id)); }
+  renderTeams();
+  const c=document.getElementById('teamSelCount');
+  if(c) c.textContent=selectedTeams.size?selectedTeams.size+'개 선택됨':'';
+  document.querySelector('.teams-toolbar .btn-s').textContent=selectedTeams.size===allIds.length?'전체 해제':'전체 선택';
+};
+window.deleteSelectedTeams=async function(){
+  if(!selectedTeams.size){toast('삭제할 팀을 선택해주세요','err');return;}
+  if(!confirm(`선택한 ${selectedTeams.size}개 팀을 삭제합니다. 해당 팀의 모든 슬롯도 삭제됩니다. 계속할까요?`)) return;
+  try{
+    for(const id of selectedTeams){ await deleteTeam(id); }
+    const deleted=[...selectedTeams];
+    selectedTeams.clear();
+    teams=teams.filter(t=>!deleted.includes(t.id));
+    baseSlots=baseSlots.filter(s=>!deleted.includes(s.team_id));
+    merged=mergeSchedule(baseSlots,exceptions);
+    toast(`${deleted.length}개 팀이 삭제되었습니다`,'ok'); render();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openAddTeamModal=function(){
@@ -900,40 +1490,48 @@ window.addTeam=async function(){
   const btn=document.getElementById('nBtn'); btn.disabled=true;
   try{
     const t=await createTeam({name,type,color}); teams.push(t); teams=korSort(teams,'name');
-    toast(`${name} 팀이 추가됐습니다`,'ok'); closeModal(); renderTeams();
+    toast(`${name} 팀이 추가되었습니다`,'ok'); closeModal(); renderTeams();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
 // ── APPLY ─────────────────────────────────────────────────────────────
 function renderApply(){
-  const isOpen=round&&round.status==='open';
-  const isFin=round&&(round.status==='finished'||round.draft_approved);
-  const isClosed=round&&round.status==='closed'&&!round.draft_approved;
+  const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
+  const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
+  const isFin=round&&round.status==='finished'&&!round.draft_approved;
+  const isClosed=round&&round.status==='closed'&&!round.draft_approved&&!isFin;
+  const isFinOrApproved=round&&(round.status==='finished'||round.draft_approved);
 
-  let html=`<div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
+  let statusCls=isOpen?'open':isFin?'finished':'closed';
+  let statusIcon=isOpen?'🟢':isFin?'🔵':isScheduled?'⏳':isClosed?'🟡':'⭕';
+  let statusTitle=isOpen?'신청 진행 중':isFin?'배정 완료':isScheduled?'신청 예약됨':isClosed?'신청 마감됨 — 배정 대기':'신청 기간 아님';
+  let statusSub=isScheduled?`${fmtScheduled(round.open_at)}에 신청 시작`:isOpen&&round.close_at?'마감: '+new Date(round.close_at).toLocaleString('ko-KR'):'';
+
+  let html=`<div class="apply-status ${statusCls}">
     <div class="apply-status-left">
-      <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':isClosed?'🟡':'⭕'}</div>
+      <div class="apply-status-icon">${statusIcon}</div>
       <div>
-        <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'배정 완료':isClosed?'신청 마감됨 — 배정 대기':'신청 기간 아님'}</div>
-        <div class="apply-status-sub">${isOpen&&round.close_at?'마감: '+new Date(round.close_at).toLocaleString('ko-KR'):''}</div>
+        <div class="apply-status-title">${statusTitle}</div>
+        <div class="apply-status-sub">${statusSub}</div>
       </div>
     </div>
     <div class="apply-status-actions">`;
 
   if(!round||round.draft_approved){
-    // 상태: 없음 또는 완전히 완료 → 새 회차 시작 가능
-    html+=`<button class="btn btn-p btn-xs" onclick="openRoundNow()">신청 시작</button>`;
+    html+=`<button class="btn btn-p btn-xs" onclick="openNewRoundModal()">새 신청 설정</button>`;
+  } else if(isScheduled){
+    html+=`<button class="btn btn-s btn-xs" onclick="openChangeScheduleModal()">예약 변경</button>
+           <button class="btn btn-p btn-xs" onclick="openApplyNow()">지금 열기</button>`;
   } else if(isOpen){
-    // 상태: 신청 중 → 마감
-    html+=`<button class="btn btn-d btn-xs" onclick="closeRoundNow()">신청 마감</button>`;
-  } else if(isClosed){
-    // 상태: 마감됨 → 배정 실행 또는 재오픈
+    html+=`<button class="btn btn-d btn-xs" onclick="closeRoundNow()">신청 마감</button>
+           <button class="btn btn-s btn-xs" onclick="openCloseDeadlineModal()">마감 예약/변경</button>`;
+  } else if(isClosed&&!isFin){
     html+=`<button class="btn btn-s btn-xs" onclick="reopenRound()">신청 재오픈</button>
-           <button class="btn btn-p btn-xs" onclick="runAndConfirm()">배정 및 확정</button>`;
-  }
-  // 언제든 새 회차 시작 버튼 (완료 상태 제외)
-  if(round&&!round.draft_approved){
-    html+=`<button class="btn btn-s btn-xs" onclick="if(confirm('현재 회차를 종료하고 새 신청을 시작할까요?'))startNewRound()">새 신청 시작</button>`;
+           <button class="btn btn-p btn-xs" onclick="runAssignmentOnly()">배정 실행</button>
+           <button class="btn btn-d btn-xs" onclick="openDiscardModal()">신청 폐기</button>`;
+  } else if(isFin){
+    html+=`<button class="btn btn-p btn-xs" onclick="confirmDraftOnly()">확정</button>
+           <button class="btn btn-d btn-xs" onclick="openDiscardModal()">신청 폐기</button>`;
   }
 
   html+=`</div></div>`;
@@ -941,28 +1539,54 @@ function renderApply(){
   if(round&&applications.length){
     const pc=p=>p===1?'p1':p===2?'p2':p===3?'p3':'none';
     const pl=p=>p?p+'지망':'미배정';
+    // 팀별 최신 신청 ID 파악 (이미 submitted_at 오름차순 정렬됨)
+    const latestIdByTeam=new Map();
+    for(const a of applications) latestIdByTeam.set(a.team_id,a.id);
+    const isVoid=a=>latestIdByTeam.get(a.team_id)!==a.id;
+    const validCount=applications.filter(a=>!isVoid(a)).length;
     html+=`<div class="card">
+      <div style="font-size:11px;color:var(--text2);padding:8px 10px 0;font-weight:700">${validCount}팀 신청 중${applications.length>validCount?` (무효 ${applications.length-validCount}건 포함)`:''}</div>
       <table class="apply-tbl">
-        <thead><tr><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
-        <tbody>${applications.map(a=>`<tr>
-          <td style="font-weight:600">${a.teams.name}</td>
-          <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
-          <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
-          <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
-          ${isFin?`<td>${a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">미배정</span>`}</td>`:''}
-          <td style="font-size:11px;color:var(--text3)">${fmtTime(a.submitted_at)}</td>
-          <td><button class="btn btn-s btn-xs" onclick="delApp(${a.id})">취소</button></td>
-        </tr>`).join('')}</tbody>
+        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFinOrApproved?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
+        <tbody>${applications.map((a,i)=>{
+          const void_=isVoid(a);
+          return `<tr style="${void_?'opacity:.3;':''}">
+            <td style="color:var(--text3);font-family:'Space Mono',monospace">${String(i+1).padStart(2,'0')}</td>
+            <td style="font-weight:600${void_?';text-decoration:line-through':''}">${a.teams.name}${void_?` <span class="pbadge none" style="font-size:9px">무효</span>`:''}</td>
+            <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
+            <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
+            <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
+            ${isFinOrApproved?`<td>${!void_&&a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">${void_?'무효':'미배정'}</span>`}</td>`:''}
+            <td style="font-size:11px;color:var(--text3)">${fmtTime(a.submitted_at)}</td>
+            <td><button class="btn btn-s btn-xs" onclick="delApp(${a.id})">취소</button></td>
+          </tr>`;
+        }).join('')}</tbody>
       </table>
     </div>`;
   }
   document.getElementById('applyContent').innerHTML=html;
 }
 
-window.openRoundNow=async function(){
+window.openNewRoundModal=function(){
+  showModal('새 신청 설정',
+    `<div><div class="fl">신청 시작 일시 (비워두면 즉시 시작)</div><input class="fi" type="datetime-local" id="nOA"/></div>
+     <div><div class="fl">신청 마감 일시 (선택)</div><input class="fi" type="datetime-local" id="nCA"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" onclick="createNewRound()">설정</button>`
+  );
+};
+
+window.createNewRound=async function(){
+  const oa=document.getElementById('nOA').value,ca=document.getElementById('nCA').value;
   try{
-    round=await createRound({season});
-    applications=[]; toast('신청이 시작됐습니다','ok'); renderApply();
+    if(!oa&&!ca){
+      round=await createRound({season});
+    } else if(!oa&&ca){
+      round=await createRound({season,close_at:new Date(ca).toISOString()});
+    } else {
+      round=await createRound({season,open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
+    }
+    applications=[]; closeModal(); toast('신청이 설정되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -970,7 +1594,7 @@ window.closeRoundNow=async function(){
   if(!confirm('신청을 마감할까요? 이후 배정을 실행할 수 있습니다.')) return;
   try{
     round=await updateRound(round.id,{status:'closed'});
-    toast('신청이 마감됐습니다','ok'); renderApply();
+    toast('신청이 마감되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -978,61 +1602,114 @@ window.reopenRound=async function(){
   if(!confirm('신청을 다시 열까요?')) return;
   try{
     round=await updateRound(round.id,{status:'open'});
-    toast('신청이 재오픈됐습니다','ok'); renderApply();
+    toast('신청이 재오픈되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
-window.runAndConfirm=async function(){
-  if(!confirm('배정을 실행하고 시간표에 반영할까요?')) return;
+window.runAssignmentOnly=async function(){
+  if(!confirm('배정을 실행할까요? 각 팀에 시간이 배정됩니다.')) return;
   try{
     toast('배정 실행 중...');
     applications=await fetchApplications(round.id);
     await runAssignment(round,applications,season);
     round=await fetchActiveRound(season); applications=await fetchApplications(round.id);
-    // 즉시 확정
-    await approveDraft(round,applications,season);
-    baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
-    round=await fetchActiveRound(season);
-    toast('배정 및 시간표 확정 완료','ok'); renderSchedule(); renderApply();
+    toast('배정이 완료되었습니다. 확인 후 확정하세요.','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
-window.startNewRound=async function(){
+window.confirmDraftOnly=async function(){
+  if(!confirm('배정 결과를 확정하고 시간표에 반영할까요?')) return;
   try{
-    // 기존 회차 강제 종료
-    if(round) await updateRound(round.id,{status:'closed',draft_approved:true});
-    round=await createRound({season});
-    applications=[]; toast('새 신청이 시작됐습니다','ok'); renderApply();
+    applications=await fetchApplications(round.id);
+    await approveDraft(round,applications,season);
+    baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions);
+    round=await fetchActiveRound(season);
+    toast('시간표 확정 완료','ok'); renderSchedule(); renderApply();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.openCloseDeadlineModal=function(){
+  if(!round) return;
+  const pad=n=>String(n).padStart(2,'0');
+  let curCA='';
+  if(round.close_at){const d=new Date(round.close_at);curCA=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+  showModal('마감 예약/변경',
+    `<div><div class="fl">마감 일시</div><input class="fi" type="datetime-local" id="cdCA" value="${curCA}"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     ${curCA?`<button class="btn btn-s" onclick="clearCloseDeadline()">예약 해제</button>`:''}
+     <button class="btn btn-p" id="cdBtn" onclick="saveCloseDeadline()">저장</button>`
+  );
+};
+window.saveCloseDeadline=async function(){
+  const ca=document.getElementById('cdCA').value;
+  if(!ca){toast('마감 일시를 입력해주세요','err');return;}
+  const btn=document.getElementById('cdBtn'); btn.disabled=true;
+  try{
+    round=await updateRound(round.id,{close_at:new Date(ca).toISOString()});
+    closeModal(); toast('마감 일시가 저장되었습니다','ok'); renderApply();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+window.clearCloseDeadline=async function(){
+  try{
+    round=await updateRound(round.id,{close_at:null});
+    closeModal(); toast('마감 예약이 해제되었습니다','ok'); renderApply();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.openDiscardModal=function(){
+  showModal('신청 폐기',
+    `<div style="color:var(--danger);font-weight:600;font-size:13px">신청을 폐기하시겠습니까? 모든 신청 정보가 사라집니다.</div>
+     <div class="fl">폐기하려면 하단에 <b>'폐기'</b>를 입력해주세요.</div>
+     <input class="fi" type="text" id="discardInput" placeholder="폐기"/>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn" style="background:var(--danger);color:#fff" onclick="discardRound()">폐기</button>`
+  );
+};
+window.discardRound=async function(){
+  const val=document.getElementById('discardInput').value;
+  if(val!=='폐기'){toast('"폐기"를 정확히 입력해주세요','err');return;}
+  try{
+    if(round){
+      await supabase.from('time_applications').delete().eq('round_id',round.id);
+      await updateRound(round.id,{status:'closed',draft_approved:true});
+    }
+    round=null; applications=[]; closeModal(); toast('신청이 폐기되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.delApp=async function(id){
   if(!confirm('이 신청을 취소할까요?')) return;
   try{
     await deleteApplication(id); applications=applications.filter(a=>a.id!==id);
-    toast('취소됐습니다'); renderApply();
+    toast('취소되었습니다'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
-window.openScheduleRoundModal=function(){
-  const now=new Date(),pad=n=>String(n).padStart(2,'0');
-  const def=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  showModal('자동 열기 예약',
-    `<div><div class="fl">신청 시작 일시</div><input class="fi" type="datetime-local" id="sOA" value="${def}"/></div>
-     <div><div class="fl">신청 마감 일시 (선택)</div><input class="fi" type="datetime-local" id="sCA"/></div>`,
+window.openChangeScheduleModal=function(){
+  if(!round) return;
+  const pad=n=>String(n).padStart(2,'0');
+  let curOA='',curCA='';
+  if(round.open_at){const d=new Date(round.open_at);curOA=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+  if(round.close_at){const d=new Date(round.close_at);curCA=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+  showModal('예약 변경',
+    `<div><div class="fl">신청 시작 일시</div><input class="fi" type="datetime-local" id="csOA" value="${curOA}"/></div>
+     <div><div class="fl">신청 마감 일시 (선택)</div><input class="fi" type="datetime-local" id="csCA" value="${curCA}"/></div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-p" onclick="scheduleRound()">예약</button>`
+     <button class="btn btn-p" id="csBtn" onclick="doChangeSchedule()">저장</button>`
   );
 };
-window.scheduleRound=async function(){
-  const oa=document.getElementById('sOA').value,ca=document.getElementById('sCA').value;
+
+window.doChangeSchedule=async function(){
+  const oa=document.getElementById('csOA').value,ca=document.getElementById('csCA').value;
   if(!oa){toast('시작 일시를 입력해주세요','err');return;}
+  const btn=document.getElementById('csBtn'); btn.disabled=true;
   try{
-    round=await createRound({season,open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
-    applications=[]; closeModal(); toast('자동 열기가 예약됐습니다','ok'); renderApply();
-    const delay=new Date(oa)-Date.now();
-    if(delay>0&&delay<86400000) setTimeout(async()=>{
-      await updateRound(round.id,{status:'open'}); round=await fetchActiveRound(season);
-      toast('신청이 자동으로 열렸습니다','ok'); renderApply();
-    },delay);
+    round=await updateRound(round.id,{open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
+    closeModal(); toast('예약이 변경되었습니다','ok'); renderApply();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+
+window.openApplyNow=async function(){
+  if(!round) return;
+  try{
+    round=await updateRound(round.id,{open_at:null});
+    toast('신청이 즉시 열렸습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1066,13 +1743,13 @@ window.addNotice=async function(){
   const btn=document.getElementById('ncBtn'); btn.disabled=true;
   try{
     await createNotice(content); notices=await fetchNotices();
-    closeModal(); toast('공지가 등록됐습니다','ok'); renderNotices();
+    closeModal(); toast('공지가 등록되었습니다','ok'); renderNotices();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 window.delNotice=async function(id){
   try{
     await deleteNotice(id); notices=notices.filter(n=>n.id!==id);
-    toast('공지가 삭제됐습니다'); renderNotices();
+    toast('공지가 삭제되었습니다'); renderNotices();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1129,7 +1806,7 @@ window.saveContact=async function(id){
     const c=await upsertContact({id,role,name,phone});
     if(id) { const idx=contacts.findIndex(x=>x.id===id); if(idx>=0) contacts[idx]=c; }
     else contacts.push(c);
-    toast('저장됐습니다','ok'); closeModal(); renderContacts();
+    toast('저장되었습니다','ok'); closeModal(); renderContacts();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1137,25 +1814,24 @@ window.delContact=async function(id){
   if(!confirm('연락처를 삭제할까요?')) return;
   try{
     await deleteContact(id); contacts=contacts.filter(c=>c.id!==id);
-    toast('삭제됐습니다'); renderContacts();
+    toast('삭제되었습니다'); renderContacts();
   }catch(e){toast(errMsg(e),'err');}
 };
 
 // ── ENSEMBLE ──────────────────────────────────────────────────────────
 const SESSIONS=['보컬1','보컬2','기타1','기타2','베이스','키보드1','키보드2','드럼','이외 악기'];
-let eType='regular';
 let eRounds={regular:null,busking:null};
 let eSongs={regular:[],busking:[]};
 let eSessionMap={};
+let eDraggingId=null;
 
 function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
     const r=eRounds[type];
     const songList=eSongs[type]||[];
-    const typeName=type==='regular'?'일반 합주':'버스킹 합주';
-    const phaseMap={closed:{label:'닫힘',cls:'closed'},song:{label:'곡 신청 중',cls:'song'},session:{label:'세션 신청 중',cls:'session'}};
+    const phaseLabels={draft:{label:'1 준비 중',cls:'closed'},song:{label:'2 곡 신청',cls:'song'},song_end:{label:'3 세션 준비',cls:'song'},session:{label:'4 세션 신청',cls:'session'},session_end:{label:'5 팀 구성',cls:'session'},closed:{label:'6 확정',cls:'closed'}};
     const phase=r?.phase||'closed';
-    const pm=phaseMap[phase];
+    const pm=phaseLabels[phase]||phaseLabels.closed;
 
     // phase badge
     const badge=document.getElementById(`ephase${type==='regular'?'Regular':'Busking'}`);
@@ -1166,64 +1842,112 @@ function renderEnsemble(){
     if(!bodyEl) return;
 
     let ctrl='';
-    if(!r||phase==='closed'){
+    if(!r){
       ctrl=`<button class="btn btn-p btn-xs" onclick="openCreateRoundModal('${type}')">회차 생성</button>`;
+    } else if(phase==='draft'){
+      ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
+            <button class="btn btn-p btn-xs" onclick="startSongPhaseNow(${r.id})">곡 신청 즉시 열기</button>
+            <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">삭제</button>`;
     } else if(phase==='song'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
-            <button class="btn btn-p btn-xs" onclick="openSessionPhase(${r.id})">→ 세션신청</button>
+            <button class="btn btn-p btn-xs" onclick="startSongEndNow(${r.id})">곡 신청 종료</button>
+            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+    } else if(phase==='song_end'){
+      ctrl=`<button class="btn btn-p btn-xs" onclick="startSessionPhaseNow(${r.id})">세션 신청 즉시 열기</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session'){
-      ctrl=`<button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+      ctrl=`<button class="btn btn-p btn-xs" onclick="startSessionEndNow(${r.id})">세션 신청 종료</button>
+            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+    } else if(phase==='session_end'){
+      ctrl=`<button class="btn btn-p btn-xs" onclick="confirmAllTeams('${type}',${r.id})">팀 구성 확정</button>
+            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+    } else if(phase==='closed'){
+      ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>`;
     }
 
-    const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 곡${r.max_songs_per_person} · 세션${r.max_sessions_per_person}</div>`:'';
+    const fS=ts=>ts?fmtScheduled(ts):'—';
+    const schedLines=[];
+    if((phase==='draft'||phase==='song')&&r?.song_scheduled_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 곡 신청 오픈: ${fS(r.song_scheduled_at)}</div>`);
+    if((phase==='draft'||phase==='song')&&r?.song_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 곡 신청 마감: ${fS(r.song_close_at)}</div>`);
+    if((phase==='song_end'||phase==='session')&&r?.session_scheduled_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 세션 신청 오픈: ${fS(r.session_scheduled_at)}</div>`);
+    if((phase==='session'||phase==='session_end')&&r?.session_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 세션 신청 마감: ${fS(r.session_close_at)}</div>`);
+    const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡 · 세션 ${r.max_sessions_per_person}곡</div>${schedLines.join('')}`:'';
     const ctrlHtml=`<div class="ensemble-col-ctrl">${ctrl}</div>`;
 
     let songsHtml='';
-    const active=songList.filter(s=>s.status!=='rejected');
-    if(!active.length){
-      songsHtml=`<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">신청된 곡이 없습니다</div>`;
+    if(phase==='session_end'){
+      songsHtml=renderDnDBuilder(type,songList);
     } else {
-      songsHtml=active.map((s,i)=>{
-        const sessApps=eSessionMap[s.id]||[];
-        const sessHtml=sessApps.length?`<div class="e-sess-list">
-          ${sessApps.map(a=>`<div class="e-sess-row">
-            <span class="e-sess-name">${a.applicant_name} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
-            <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${x}</span>`).join('')}</div>
-            <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
-            <div class="e-sess-actions">
-              ${a.status==='pending'
-                ?`<button class="btn btn-s btn-xs" onclick="confirmSession(${a.id})">확</button><button class="btn btn-d btn-xs" onclick="rejectSession(${a.id})">✕</button>`
-                :`<span style="font-size:9px;font-weight:700;color:${a.status==='confirmed'?'var(--accent)':'var(--danger)'}">${a.status==='confirmed'?'확정':'거절'}</span>`}
+      const active=songList.filter(s=>s.status!=='rejected');
+      if(!active.length){
+        songsHtml=`<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">신청된 곡이 없습니다</div>`;
+      } else {
+        songsHtml=active.map((s,i)=>{
+          const sessApps=eSessionMap[s.id]||[];
+          let sessHtml='';
+          if(phase==='session'&&sessApps.length){
+            sessHtml=`<div class="e-sess-list">
+              ${sessApps.map(a=>`<div class="e-sess-row">
+                <span class="e-sess-dot ${a.status}"></span>
+                <span class="e-sess-name">${a.applicant_name} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
+                <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${x}</span>`).join('')}</div>
+                <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
+              </div>`).join('')}
+            </div>`;
+          } else if(phase==='closed'&&sessApps.length){
+            const conf=sessApps.filter(a=>a.status==='confirmed');
+            if(conf.length) sessHtml=`<div class="e-sess-list">${conf.map(a=>`<div class="e-sess-row"><span class="e-sess-dot confirmed"></span><span class="e-sess-name">${a.applicant_name}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag confirmed">${x}</span>`).join('')}</div></div>`).join('')}</div>`;
+          }
+          const actions=(phase==='song')?`<div class="e-song-actions">
+            ${s.status!=='confirmed'?`<button class="btn btn-p btn-xs" onclick="confirmSong(${s.id})">확정</button>`:''}
+            ${s.status!=='rejected'?`<button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">거절</button>`:''}
+          </div>`:'';
+          return `<div class="e-song-item">
+            <div class="e-song-hdr">
+              <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
+              <div style="flex:1;min-width:0">
+                <div class="e-song-title">${s.title}</div>
+                <div class="e-song-artist">${s.artist}</div>
+              </div>
+              <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
             </div>
-          </div>`).join('')}
-        </div>`:'';
-        const actions=r&&phase!=='closed'?`<div class="e-song-actions">
-          ${s.status!=='confirmed'?`<button class="btn btn-p btn-xs" onclick="confirmSong(${s.id})">확정</button>`:''}
-          ${s.status!=='rejected'?`<button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">거절</button>`:''}
-        </div>`:'';
-        return `<div class="e-song-item">
-          <div class="e-song-hdr">
-            <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
-            <div style="flex:1;min-width:0">
-              <div class="e-song-title">${s.title}</div>
-              <div class="e-song-artist">${s.artist}</div>
+            <div class="e-song-meta">
+              <span>${s.applicant_name} <span style="color:var(--text3)">${s.student_id}</span></span>
+              <span style="color:var(--text3)">${s.sessions.join(' · ')}</span>
             </div>
-            <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
-          </div>
-          <div class="e-song-meta">
-            <span>${s.applicant_name} <span style="color:var(--text3)">${s.student_id}</span></span>
-            <span style="color:var(--text3)">${fmtTime(s.created_at)}</span>
-            <span style="color:var(--text3)">${s.sessions.join(' · ')}</span>
-          </div>
-          ${sessHtml}
-          ${actions}
-        </div>`;
-      }).join('');
+            ${sessHtml}${actions}
+          </div>`;
+        }).join('');
+      }
     }
 
     bodyEl.innerHTML=ctrlHtml+meta+songsHtml;
   });
+}
+
+function renderDnDBuilder(type,songList){
+  const confirmedSongs=songList.filter(s=>s.status==='confirmed');
+  const allApps=confirmedSongs.flatMap(s=>eSessionMap[s.id]||[]);
+  const pending=allApps.filter(a=>a.status==='pending');
+  const card=(a,assigned)=>`<div class="dnd-card${assigned?' dnd-assigned':''}" draggable="true" data-id="${a.id}" ondragstart="eDragStart(event,${a.id})">
+    <div class="dnd-card-name">${a.applicant_name} <span style="color:var(--text3);font-size:9px">${a.student_id}</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:2px">${a.sessions.map(x=>`<span class="e-sess-tag${assigned?' confirmed':''}">${x}</span>`).join('')}</div>
+    ${!assigned?`<div class="dnd-card-hint">→ ${confirmedSongs.find(s=>s.id===a.song_id)?.title||'?'}</div>`:''}
+  </div>`;
+  const songZones=confirmedSongs.length?confirmedSongs.map(s=>{
+    const conf=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed');
+    return `<div class="dnd-song-zone" ondragover="eDragOver(event,${s.id})" ondragleave="eDragLeave(event)" ondrop="eDropToSong(event,${s.id})">
+      <div class="dnd-song-hdr-row"><span class="e-song-num">♪</span><div><div class="dnd-song-title">${s.title}</div><div style="font-size:10px;color:var(--text3)">${s.artist} · ${s.sessions.join('·')}</div></div></div>
+      <div class="dnd-song-members">${conf.map(a=>card(a,true)).join('')||'<span style="font-size:10px;color:var(--text3)">배정 없음</span>'}</div>
+    </div>`;
+  }).join(''):`<div style="font-size:11px;color:var(--text3);padding:8px">확정된 곡이 없습니다</div>`;
+  return `<div class="dnd-builder">
+    <div class="dnd-pool" ondragover="event.preventDefault();this.classList.add('dnd-over-pool')" ondragleave="this.classList.remove('dnd-over-pool')" ondrop="eDropToPool(event,this)">
+      <div class="dnd-pool-hdr">미배정 <span class="dnd-badge">${pending.length}</span></div>
+      ${pending.map(a=>card(a,false)).join('')||'<span style="font-size:10px;color:var(--text3)">없음</span>'}
+    </div>
+    <div class="dnd-songs">${songZones}</div>
+  </div>`;
 }
 
 async function loadEnsemble(){
@@ -1234,11 +1958,19 @@ async function loadEnsemble(){
     if(!r){ eSongs[type]=[]; continue; }
     const {data:s}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
     eSongs[type]=s||[];
+    if(['song_end','session','session_end','closed'].includes(r.phase)){
+      const toReject=(eSongs[type]||[]).filter(s=>s.status==='pending');
+      if(toReject.length){
+        await supabase.from('song_applications').update({status:'rejected'}).in('id',toReject.map(s=>s.id));
+        const {data:s2}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
+        eSongs[type]=s2||[];
+      }
+    }
   }
   const allIds=[...eSongs.regular,...eSongs.busking].map(s=>s.id);
+  eSessionMap={};
   if(allIds.length){
     const {data:sess}=await supabase.from('session_applications').select('*').in('song_id',allIds).order('created_at');
-    eSessionMap={};
     (sess||[]).forEach(s=>{ if(!eSessionMap[s.song_id]) eSessionMap[s.song_id]=[]; eSessionMap[s.song_id].push(s); });
   }
 }
@@ -1246,15 +1978,20 @@ async function loadEnsemble(){
 // 회차 생성
 window.openCreateRoundModal=function(type){
   const typeName=type==='regular'?'일반 합주':'버스킹 합주';
+  const nowPlus=h=>{const d=new Date(Date.now()+h*3600000),pad=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;};
   showModal(`${typeName} 회차 생성`,
     `<div><div class="fl">회차 이름</div><input class="fi" id="eName" value="${new Date().getFullYear()} ${typeName}" maxlength="50"/></div>
      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
        <div><div class="fl">총 최대 곡수</div><input class="fi" id="eMaxS" type="number" value="20" min="1"/></div>
        <div><div class="fl">인당 곡신청</div><input class="fi" id="eMaxSP" type="number" value="2" min="1"/></div>
        <div><div class="fl">인당 세션참여</div><input class="fi" id="eMaxSess" type="number" value="3" min="1"/></div>
-     </div>`,
+     </div>
+     <div><div class="fl">🎵 곡 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSongOpen" value="${nowPlus(1)}"/></div>
+     <div><div class="fl">🎵 곡 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSongClose" value="${nowPlus(25)}"/></div>
+     <div><div class="fl">👥 세션 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSessOpen" value="${nowPlus(49)}"/></div>
+     <div><div class="fl">👥 세션 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSessClose" value="${nowPlus(73)}"/></div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-p" id="ecBtn" onclick="createRound('${type}')">생성 + 곡 신청 열기</button>`
+     <button class="btn btn-p" id="ecBtn" onclick="createRound('${type}')">회차 생성</button>`
   );
 };
 
@@ -1263,10 +2000,30 @@ window.createRound=async function(type){
   const max_songs=parseInt(document.getElementById('eMaxS').value);
   const max_songs_per_person=parseInt(document.getElementById('eMaxSP').value);
   const max_sessions_per_person=parseInt(document.getElementById('eMaxSess').value);
+  const songOpenVal=document.getElementById('eSongOpen').value;
+  const songCloseVal=document.getElementById('eSongClose').value;
+  const sessOpenVal=document.getElementById('eSessOpen').value;
+  const sessCloseVal=document.getElementById('eSessClose').value;
   if(!name){toast('이름을 입력해주세요','err');return;}
+  const now=Date.now();
+  const chk=(val,label)=>{
+    if(!val){toast(`${label}을(를) 입력해주세요`,'err');return false;}
+    if(new Date(val).getTime()<=now){toast('예약 일시를 과거로 설정할 수 없습니다.','err');return false;}
+    return true;
+  };
+  if(!chk(songOpenVal,'곡 신청 오픈 일시')||!chk(songCloseVal,'곡 신청 마감 일시')||!chk(sessOpenVal,'세션 신청 오픈 일시')||!chk(sessCloseVal,'세션 신청 마감 일시')) return;
+  if(new Date(songCloseVal)<=new Date(songOpenVal)){toast('곡 신청 마감이 오픈보다 늦어야 합니다','err');return;}
+  if(new Date(sessOpenVal)<=new Date(songCloseVal)){toast('세션 신청 오픈이 곡 신청 마감보다 늦어야 합니다','err');return;}
+  if(new Date(sessCloseVal)<=new Date(sessOpenVal)){toast('세션 신청 마감이 오픈보다 늦어야 합니다','err');return;}
   const btn=document.getElementById('ecBtn'); btn.disabled=true;
   try{
-    await supabase.from('ensemble_rounds').insert({type,name,phase:'song',max_songs,max_songs_per_person,max_sessions_per_person});
+    await supabase.from('ensemble_rounds').insert({
+      type,name,phase:'draft',max_songs,max_songs_per_person,max_sessions_per_person,
+      song_scheduled_at:new Date(songOpenVal).toISOString(),
+      song_close_at:new Date(songCloseVal).toISOString(),
+      session_scheduled_at:new Date(sessOpenVal).toISOString(),
+      session_close_at:new Date(sessCloseVal).toISOString()
+    });
     toast('회차가 생성됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
@@ -1296,17 +2053,52 @@ window.saveRoundSettings=async function(id){
       max_songs_per_person:parseInt(document.getElementById('eMaxSP').value),
       max_sessions_per_person:parseInt(document.getElementById('eMaxSess').value),
     }).eq('id',id);
-    toast('저장됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
-window.openSessionPhase=async function(id){
-  if(!confirm('곡 신청을 마감하고 세션 신청 단계로 전환할까요?')) return;
+const dtLocalStr=ts=>{if(!ts)return'';const d=new Date(ts),pad=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;};
+
+// Phase advance controls
+window.startSongPhaseNow=async function(id){
   try{
-    await supabase.from('ensemble_rounds').update({phase:'session'}).eq('id',id);
-    toast('세션 신청 단계로 전환됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',id);
+    toast('곡 신청이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
+window.startSongEndNow=async function(id){
+  if(!confirm('곡 신청을 종료하시겠습니까?')) return;
+  try{
+    await supabase.from('ensemble_rounds').update({phase:'song_end'}).eq('id',id);
+    toast('곡 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.startSessionPhaseNow=async function(id){
+  try{
+    await supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',id);
+    toast('세션 신청이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.startSessionEndNow=async function(id){
+  if(!confirm('세션 신청을 종료하시겠습니까?')) return;
+  try{
+    await supabase.from('ensemble_rounds').update({phase:'session_end'}).eq('id',id);
+    toast('세션 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.deleteRound=async function(id){
+  if(!confirm('이 회차(준비 중)를 삭제할까요?')) return;
+  try{
+    await supabase.from('ensemble_rounds').delete().eq('id',id);
+    toast('삭제되었습니다'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+function fmtScheduled(ts){
+  const d=new Date(ts),pad=n=>String(n).padStart(2,'0');
+  return `${String(d.getFullYear()).slice(2)}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 
 window.closeRound=async function(id){
   if(!confirm('신청을 닫을까요?')) return;
@@ -1319,7 +2111,7 @@ window.closeRound=async function(id){
 window.confirmSong=async function(id){
   try{
     await supabase.from('song_applications').update({status:'confirmed'}).eq('id',id);
-    toast('확정됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('확정되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1327,21 +2119,74 @@ window.rejectSong=async function(id){
   if(!confirm('이 곡을 거절할까요?')) return;
   try{
     await supabase.from('song_applications').update({status:'rejected'}).eq('id',id);
-    toast('거절됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('거절되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
-window.confirmSession=async function(id){
+// ── DRAG & DROP TEAM BUILDER ──────────────────────────────────────────
+window.eDragStart=function(event,id){
+  eDraggingId=id;
+  event.dataTransfer.effectAllowed='move';
+};
+window.eDragOver=function(event,songId){
+  event.preventDefault();
+  const app=Object.values(eSessionMap).flat().find(a=>a.id===eDraggingId);
+  const el=event.currentTarget;
+  el.classList.remove('dnd-over','dnd-invalid');
+  if(app&&app.song_id===songId&&app.status!=='confirmed'){
+    event.dataTransfer.dropEffect='move'; el.classList.add('dnd-over');
+  } else {
+    event.dataTransfer.dropEffect='none'; el.classList.add('dnd-invalid');
+  }
+};
+window.eDragLeave=function(event){
+  event.currentTarget.classList.remove('dnd-over','dnd-invalid');
+};
+window.eDropToSong=async function(event,songId){
+  event.preventDefault();
+  event.currentTarget.classList.remove('dnd-over','dnd-invalid');
+  if(!eDraggingId) return;
+  const app=Object.values(eSessionMap).flat().find(a=>a.id===eDraggingId);
+  eDraggingId=null;
+  if(!app) return;
+  if(app.song_id!==songId){toast('이 곡에 신청하지 않은 참가자입니다','err');return;}
+  if(app.status==='confirmed') return;
   try{
-    await supabase.from('session_applications').update({status:'confirmed'}).eq('id',id);
-    toast('확정됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    await supabase.from('session_applications').update({status:'confirmed'}).eq('id',app.id);
+    toast('배정됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.eDropToPool=async function(event,el){
+  event.preventDefault();
+  el.classList.remove('dnd-over-pool');
+  if(!eDraggingId) return;
+  const app=Object.values(eSessionMap).flat().find(a=>a.id===eDraggingId);
+  eDraggingId=null;
+  if(!app||app.status==='pending') return;
+  try{
+    await supabase.from('session_applications').update({status:'pending'}).eq('id',app.id);
+    toast('배정이 취소됐습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
-window.rejectSession=async function(id){
+window.confirmAllTeams=async function(type,roundId){
+  const r=eRounds[type]; if(!r) return;
+  const confirmedSongs=(eSongs[type]||[]).filter(s=>s.status==='confirmed');
+  const allPending=confirmedSongs.flatMap(s=>(eSessionMap[s.id]||[]).filter(a=>a.status==='pending'));
+  const msg=allPending.length?`미배정 참가자가 ${allPending.length}명 있습니다.\n미배정자는 거절 처리됩니다. 팀 구성을 확정하시겠습니까?`:'팀 구성을 확정하시겠습니까?';
+  if(!confirm(msg)) return;
   try{
-    await supabase.from('session_applications').update({status:'rejected'}).eq('id',id);
-    toast('거절됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    if(allPending.length) await supabase.from('session_applications').update({status:'rejected'}).in('id',allPending.map(a=>a.id));
+    for(let i=0;i<confirmedSongs.length;i++){
+      const song=confirmedSongs[i];
+      const members=(eSessionMap[song.id]||[]).filter(a=>a.status==='confirmed').map(a=>({name:a.applicant_name,student_id_last3:a.student_id.slice(-3),sessions:a.sessions}));
+      await createTeam({name:`${r.name||''} ${i+1}팀`.trim(),type:type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,members});
+    }
+    await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
+    toast(`${confirmedSongs.length}개 팀이 확정됐습니다`,'ok');
+    await loadEnsemble(); renderEnsemble();
+    teams=await fetchTeams(); teams=korSort(teams,'name');
+    renderTeams(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1366,6 +2211,62 @@ function showModal(title,body,foot){
 }
 window.closeModal=()=>{document.getElementById('modalBd').style.display='none';document.body.style.overflow='';};
 window.onMBd=e=>{if(e.target===document.getElementById('modalBd'))closeModal();};
+
+// ── DATA MANAGEMENT ───────────────────────────────────────────────────
+window.openDeleteTimeModal=function(){
+  const s=document.getElementById('delSeasonSel').value;
+  showModal('시간 정보 삭제',
+    `<div style="color:var(--danger);font-weight:600;font-size:13px">${s}의 모든 시간 정보를 삭제합니다. 이 작업은 되돌릴 수 없습니다.</div>
+     <div class="fl">삭제하려면 하단에 <b>'삭제'</b>를 입력해주세요.</div>
+     <input class="fi" type="text" id="delTimeInput" placeholder="삭제"/>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-d" onclick="doDeleteTime('${s}')">삭제</button>`
+  );
+};
+window.doDeleteTime=async function(s){
+  const val=document.getElementById('delTimeInput').value;
+  if(val!=='삭제'){toast('"삭제"를 정확히 입력해주세요','err');return;}
+  try{
+    const {data:rds}=await supabase.from('application_rounds').select('id').eq('season',s);
+    if(rds&&rds.length) await supabase.from('time_applications').delete().in('round_id',rds.map(r=>r.id));
+    await supabase.from('application_rounds').delete().eq('season',s);
+    await supabase.from('base_slots').delete().eq('season',s);
+    if(season===s){
+      baseSlots=[]; merged=mergeSchedule(baseSlots,exceptions); round=null; applications=[];
+      renderSchedule(); renderApply();
+    }
+    closeModal(); toast(`${s} 시간 정보가 삭제되었습니다`,'ok');
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.openDeleteTeamsModal=function(){
+  showModal('팀 정보 삭제',
+    `<div style="color:var(--danger);font-weight:600;font-size:13px">모든 팀 정보를 삭제합니다. 이 작업은 되돌릴 수 없습니다.</div>
+     <div class="fl">삭제하려면 하단에 <b>'삭제'</b>를 입력해주세요.</div>
+     <input class="fi" type="text" id="delTeamsInput" placeholder="삭제"/>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-d" onclick="doDeleteTeams()">삭제</button>`
+  );
+};
+window.doDeleteTeams=async function(){
+  const val=document.getElementById('delTeamsInput').value;
+  if(val!=='삭제'){toast('"삭제"를 정확히 입력해주세요','err');return;}
+  try{
+    await supabase.from('teams').delete().neq('id',0);
+    teams=[]; baseSlots=[]; merged=[]; exceptions=[];
+    closeModal(); toast('팀 정보가 삭제되었습니다','ok'); renderTeams(); renderSchedule();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.changeAdminPassword=async function(){
+  const pw1=document.getElementById('newPw1').value;
+  const pw2=document.getElementById('newPw2').value;
+  if(pw1!==pw2){toast('비밀번호가 일치하지 않습니다','err');return;}
+  if(pw1.length<6){toast('비밀번호는 6자 이상이어야 합니다','err');return;}
+  const {error}=await supabase.auth.updateUser({password:pw1});
+  if(error){toast(errMsg(error),'err');return;}
+  document.getElementById('newPw1').value='';
+  document.getElementById('newPw2').value='';
+  toast('비밀번호가 변경되었습니다','ok');
+};
 
 // ── TOAST ─────────────────────────────────────────────────────────────
 let toastT;
