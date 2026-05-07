@@ -400,11 +400,22 @@ function render(){
     }
   }
 
+  const songClosed=phase==='song'&&r?.song_close_at&&new Date(r.song_close_at)<=new Date();
+  const sessClosed=phase==='session'&&r?.session_close_at&&new Date(r.session_close_at)<=new Date();
+
+  // 세션 대기 카운트다운 (곡 신청 마감 후 + session_scheduled_at 예약 있을 때)
+  const sessWaitTarget=songClosed&&r?.session_scheduled_at&&new Date(r.session_scheduled_at)>new Date()?r.session_scheduled_at:null;
+  const sessWaitDiff=sessWaitTarget?new Date(sessWaitTarget)-Date.now():0;
+
   const si={
     draft:{icon:'🕐',title:'신청 준비 중',sub:'관리자가 곡 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed',close:''},
     closed:{icon:'❌️',title:'신청 기간이 아닙니다',sub:'관리자가 신청을 열면 여기서 신청할 수 있습니다.',cls:'closed',close:''},
-    song:{icon:'🎵',title:'곡 신청 진행 중',sub:r?`최대 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡`:'',cls:'song',close:r?.song_close_at?'마감: '+fmtScheduled(r.song_close_at):''},
-    session:{icon:'👥️',title:'세션 신청 진행 중',sub:r?`인당 최대 ${r.max_sessions_per_person}곡 참여 가능`:'',cls:'session',close:r?.session_close_at?'마감: '+fmtScheduled(r.session_close_at):''},
+    song:songClosed
+      ?{icon:'⏸️',title:'곡 신청이 끝났습니다',sub:'세션 신청을 기다려주세요.',cls:'closed',close:''}
+      :{icon:'🎵',title:'곡 신청 진행 중',sub:r?`최대 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡`:'',cls:'song',close:r?.song_close_at?'마감: '+fmtScheduled(r.song_close_at):''},
+    session:sessClosed
+      ?{icon:'⏸️',title:'세션 신청이 끝났습니다',sub:'합주 팀 배정을 기다려주세요.',cls:'closed',close:''}
+      :{icon:'👥️',title:'세션 신청 진행 중',sub:r?`인당 최대 ${r.max_sessions_per_person}곡 참여 가능`:'',cls:'session',close:r?.session_close_at?'마감: '+fmtScheduled(r.session_close_at):''},
   }[phase]||{icon:'❌️',title:'신청 기간이 아닙니다',sub:'',cls:'closed',close:''};
   html+=`<div class="status-card ${si.cls}">
     <div class="status-icon">${si.icon}</div>
@@ -412,11 +423,29 @@ function render(){
       <div class="status-title">${r?.name||typeName} — ${si.title}</div>
       <div class="status-sub">${si.sub}</div>
       ${si.close?`<div class="status-sub" style="color:var(--warn)">⏰ ${si.close}</div>`:''}
+      ${sessWaitTarget?`<div class="status-sub" style="margin-top:4px">세션 신청까지: <span id="cd-sess-wait-${type}" style="font-family:'Space Mono',monospace;font-weight:700;color:var(--accent2)">${diffToHMS(sessWaitDiff)}</span></div>`:''}
     </div>
   </div>`;
 
-  // ─ 세션 신청 예약 카운트다운 (song + session_scheduled_at) ─
-  if(phase==='song'&&r?.session_scheduled_at){
+  // ─ 곡 마감 후 세션 대기 카운트다운 (상태 카드 내 인라인) ─
+  if(sessWaitTarget){
+    const swKey=type+'-sess-wait';
+    if(countdownTimers[swKey]) clearInterval(countdownTimers[swKey]);
+    countdownTimers[swKey]=setInterval(()=>{
+      const d=new Date(sessWaitTarget)-Date.now();
+      const el=document.getElementById(`cd-sess-wait-${type}`);
+      if(el) el.textContent=diffToHMS(d);
+      if(d<=0){
+        clearInterval(countdownTimers[swKey]); delete countdownTimers[swKey];
+        if(rounds[type]&&rounds[type].id===r.id){ rounds[type].phase='session'; rounds[type].session_scheduled_at=null; }
+        supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).then(()=>{});
+        render();
+      }
+    },1000);
+  }
+
+  // ─ 세션 신청 예약 카운트다운 (song + session_scheduled_at, 마감 전) ─
+  if(phase==='song'&&!songClosed&&r?.session_scheduled_at){
     const targetDate=r.session_scheduled_at;
     const diff=new Date(targetDate)-Date.now();
     if(diff>0){
@@ -452,7 +481,6 @@ function render(){
   if(phase==='song'){
     const active=songs[currentType].filter(s=>s.status!=='rejected');
     const remaining=r.max_songs-active.length;
-    const songClosed=r?.song_close_at&&new Date(r.song_close_at)<=new Date();
     if(!songClosed){
       html+=`<div class="form-card">
         <div class="form-title">곡 신청 (잔여 ${remaining}/${r.max_songs}곡)</div>
@@ -477,7 +505,6 @@ function render(){
 
   if(phase==='session'){
     const confirmedSongs=songs[currentType].filter(s=>s.status==='confirmed');
-    const sessClosed=r?.session_close_at&&new Date(r.session_close_at)<=new Date();
     if(!sessClosed){
       html+=`<div class="form-card">
         <div class="form-title">세션 신청</div>
