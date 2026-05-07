@@ -2017,13 +2017,14 @@ window.createRound=async function(type){
   if(new Date(sessCloseVal)<=new Date(sessOpenVal)){toast('세션 신청 마감이 오픈보다 늦어야 합니다','err');return;}
   const btn=document.getElementById('ecBtn'); btn.disabled=true;
   try{
-    await supabase.from('ensemble_rounds').insert({
+    const {error}=await supabase.from('ensemble_rounds').insert({
       type,name,phase:'draft',max_songs,max_songs_per_person,max_sessions_per_person,
       song_scheduled_at:new Date(songOpenVal).toISOString(),
       song_close_at:new Date(songCloseVal).toISOString(),
       session_scheduled_at:new Date(sessOpenVal).toISOString(),
       session_close_at:new Date(sessCloseVal).toISOString()
     });
+    if(error) throw error;
     toast('회차가 생성됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
@@ -2047,12 +2048,13 @@ window.openEditRoundModal=function(id){
 window.saveRoundSettings=async function(id){
   const btn=document.getElementById('eeBtn'); btn.disabled=true;
   try{
-    await supabase.from('ensemble_rounds').update({
+    const {error}=await supabase.from('ensemble_rounds').update({
       name:document.getElementById('eName').value.trim(),
       max_songs:parseInt(document.getElementById('eMaxS').value),
       max_songs_per_person:parseInt(document.getElementById('eMaxSP').value),
       max_sessions_per_person:parseInt(document.getElementById('eMaxSess').value),
     }).eq('id',id);
+    if(error) throw error;
     toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
@@ -2062,27 +2064,31 @@ const dtLocalStr=ts=>{if(!ts)return'';const d=new Date(ts),pad=n=>String(n).padS
 // Phase advance controls
 window.startSongPhaseNow=async function(id){
   try{
-    await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',id);
+    const {error}=await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',id);
+    if(error) throw error;
     toast('곡 신청이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.startSongEndNow=async function(id){
   if(!confirm('곡 신청을 종료하시겠습니까?')) return;
   try{
-    await supabase.from('ensemble_rounds').update({phase:'song_end'}).eq('id',id);
+    const {error}=await supabase.from('ensemble_rounds').update({phase:'song_end'}).eq('id',id);
+    if(error) throw error;
     toast('곡 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.startSessionPhaseNow=async function(id){
   try{
-    await supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',id);
+    const {error}=await supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',id);
+    if(error) throw error;
     toast('세션 신청이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.startSessionEndNow=async function(id){
   if(!confirm('세션 신청을 종료하시겠습니까?')) return;
   try{
-    await supabase.from('ensemble_rounds').update({phase:'session_end'}).eq('id',id);
+    const {error}=await supabase.from('ensemble_rounds').update({phase:'session_end'}).eq('id',id);
+    if(error) throw error;
     toast('세션 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
@@ -2103,7 +2109,8 @@ function fmtScheduled(ts){
 window.closeRound=async function(id){
   if(!confirm('신청을 닫을까요?')) return;
   try{
-    await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',id);
+    const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',id);
+    if(error) throw error;
     toast('닫혔습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
@@ -2176,13 +2183,17 @@ window.confirmAllTeams=async function(type,roundId){
   const msg=allPending.length?`미배정 참가자가 ${allPending.length}명 있습니다.\n미배정자는 거절 처리됩니다. 팀 구성을 확정하시겠습니까?`:'팀 구성을 확정하시겠습니까?';
   if(!confirm(msg)) return;
   try{
-    if(allPending.length) await supabase.from('session_applications').update({status:'rejected'}).in('id',allPending.map(a=>a.id));
+    if(allPending.length){
+      const {error:e1}=await supabase.from('session_applications').update({status:'rejected'}).in('id',allPending.map(a=>a.id));
+      if(e1) throw e1;
+    }
     for(let i=0;i<confirmedSongs.length;i++){
       const song=confirmedSongs[i];
       const members=(eSessionMap[song.id]||[]).filter(a=>a.status==='confirmed').map(a=>({name:a.applicant_name,student_id_last3:a.student_id.slice(-3),sessions:a.sessions}));
       await createTeam({name:`${r.name||''} ${i+1}팀`.trim(),type:type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,members});
     }
-    await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
+    const {error:e2}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
+    if(e2) throw e2;
     toast(`${confirmedSongs.length}개 팀이 확정됐습니다`,'ok');
     await loadEnsemble(); renderEnsemble();
     teams=await fetchTeams(); teams=korSort(teams,'name');
