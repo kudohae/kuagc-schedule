@@ -673,7 +673,7 @@ let pendingAll=[];
 let selectedTeams=new Set();
 let merged=[], round=null, applications=[];
 let adminSchools=[], adminSchoolApps=[], adminSchoolRounds=[];
-let schoolCdTimer=null;
+let pendingSchoolRoundId=null;
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
 function showAdminUI(){
@@ -818,10 +818,6 @@ async function loadSchoolData(){
   adminSchools=sc||[];
   adminSchoolApps=ap||[];
 }
-
-function schoolDiffToHMS(ms){...}
-function stopSchoolCd(){...}
-function startSchoolCd(targetTs,onExpired){...}
   
 function fmtSchoolDate(ts){
   if(!ts) return '';
