@@ -871,7 +871,10 @@ function renderSchool(){
   const curApps=adminSchoolApps.filter(a=>a.round_id===cur.id);
   const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   const fS=ts=>ts?fmtSchoolDate(ts):'—';
-  const getRoundName=r=>(r.semester&&r.round_num)?`${r.semester}학기 ${r.round_num}차 스쿨 신청`:(r.name||'스쿨 신청');
+  const getRoundName=r=>r.name||'스쿨 신청';
+  const nameMatch=(cur.name||'').match(/^(\d+)학기\s*(\d+)차/);
+  const initSem=nameMatch?nameMatch[1]:'';
+  const initRnd=nameMatch?nameMatch[2]:'';
 
   // ── DRAFT ──
   if(cur.status==='draft'){
@@ -898,11 +901,11 @@ function renderSchool(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div>
             <div class="fl">학기 (m)</div>
-            <input class="fi" id="scSemester" type="number" min="1" value="${cur.semester||''}" placeholder="1"/>
+            <input class="fi" id="scSemester" type="number" min="1" value="${initSem}" placeholder="1"/>
           </div>
           <div>
             <div class="fl">회차 (n)</div>
-            <input class="fi" id="scRoundNum" type="number" min="1" value="${cur.round_num||''}" placeholder="1"/>
+            <input class="fi" id="scRoundNum" type="number" min="1" value="${initRnd}" placeholder="1"/>
           </div>
         </div>
         <div style="font-size:12px;color:var(--text3)">
