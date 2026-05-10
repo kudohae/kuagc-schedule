@@ -294,6 +294,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 .ens-member-tag.conflict{background:rgba(200,118,10,.15);color:var(--warn);}
 .ens-section-hdr{font-size:11px;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:6px;margin-bottom:4px;}
 .ens-empty-hint{font-size:11px;color:var(--text3);text-align:center;padding:10px 0;font-style:italic;}
+.ens-pool-group{border:1px solid var(--border);border-radius:6px;padding:5px;background:var(--surface2);display:flex;flex-direction:column;gap:4px;}
 
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -576,8 +577,9 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
         <span id="ensDndRoundName" style="font-size:15px;font-weight:700"></span>
         <span id="ensDndTypeName" style="font-size:11px;color:var(--text2)"></span>
       </div>
-      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <span style="font-size:11px;color:var(--text3)">카드를 곡 칸이나 미배정 칸으로 드래그하세요 · <span style="color:var(--warn)">주황색</span>은 세션 중복</span>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text3)">드래그로 자유 배치 · <span style="color:var(--warn)">주황색</span>은 세션 중복</span>
+        <button class="btn btn-s" onclick="ensDndSave()">임시저장</button>
         <button class="btn btn-p" onclick="confirmEnsembleTeams()">팀 구성 완료</button>
         <button class="btn" onclick="closeEnsDndModal()">닫기</button>
       </div>
@@ -588,6 +590,7 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
            ondragleave="ensDndDragLeavePool(event)"
            ondrop="ensDndDropToPool(event)">
         <div class="ens-section-hdr">미배정 <span class="dnd-badge" id="ensDndPoolCount">0</span></div>
+        <div id="ensDndFilterRow" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
         <div id="ensDndPoolCards"></div>
       </div>
       <div class="ens-songs-grid" id="ensDndSongs"></div>
@@ -2037,6 +2040,7 @@ const SESSIONS=['보컬1','보컬2','기타1','기타2','베이스','키보드1'
 let eRounds={regular:null,busking:null};
 let eSongs={regular:[],busking:[]};
 let eSessionMap={};
+let eDraggingId=null;
 
 function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
@@ -2072,7 +2076,7 @@ function renderEnsemble(){
       ctrl=`<button class="btn btn-p btn-xs" onclick="startSessionEndNow(${r.id})">세션 신청 종료</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session_end'){
-      ctrl=`<button class="btn btn-p btn-xs" onclick="openEnsDndModal('${type}')">팀 구성하기</button>
+      ctrl=`<button class="btn btn-p btn-xs" onclick="confirmAllTeams('${type}',${r.id})">팀 구성 확정</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='closed'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>`;
@@ -2089,12 +2093,7 @@ function renderEnsemble(){
 
     let songsHtml='';
     if(phase==='session_end'){
-      const cSongs=songList.filter(s=>s.status==='confirmed');
-      const totalApps=cSongs.reduce((n,s)=>n+(eSessionMap[s.id]||[]).length,0);
-      songsHtml=`<div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
-        <div style="font-size:12px;color:var(--text2)">확정된 곡 ${cSongs.length}개 · 세션 신청자 ${totalApps}명</div>
-        <button class="btn btn-p" style="align-self:flex-start" onclick="openEnsDndModal('${type}')">팀 구성하기</button>
-      </div>`;
+      songsHtml=renderDnDBuilder(type,songList);
     } else {
       const active=songList.filter(s=>s.status!=='rejected');
       if(!active.length){
@@ -2146,83 +2145,134 @@ function renderEnsemble(){
 // ── ENSEMBLE DnD MODAL ───────────────────────────────────────────────
 let eDndSt=null;
 let eDndDrag=null;
+let eDndFilter=null;
+
+const ENS_SESS_ORDER=SESSIONS;
+function sessOrder(s){const i=ENS_SESS_ORDER.indexOf(s);return i===-1?99:i;}
+function sortSongSlots(slots){slots.sort((a,b)=>sessOrder(a.session)-sessOrder(b.session)||new Date(a.createdAt)-new Date(b.createdAt));}
+function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+function makeSlots(app){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at}));}
 
 function computeEnsDndInitial(type){
   const r=eRounds[type]; if(!r) return null;
   const confirmedSongs=(eSongs[type]||[]).filter(s=>s.status==='confirmed');
   const allApps=confirmedSongs.flatMap(s=>(eSessionMap[s.id]||[]));
+  const savedKey=`ensDnd_${type}_${r.id}`;
+  const songs=[]; const unassigned=[];
+  const savedRaw=localStorage.getItem(savedKey);
+  if(savedRaw){
+    try{
+      const locMap=Object.fromEntries(JSON.parse(savedRaw).map(({id,loc})=>[id,loc]));
+      for(const song of confirmedSongs) songs.push({song,slots:[]});
+      for(const app of allApps) for(const sl of makeSlots(app)){
+        const songEntry=songs.find(s=>s.song.id===locMap[sl.id]);
+        if(songEntry) songEntry.slots.push(sl); else unassigned.push(sl);
+      }
+      for(const s of songs) sortSongSlots(s.slots);
+      return {type,roundId:r.id,savedKey,songs,unassigned};
+    }catch{}
+  }
   const hasConfirmed=allApps.some(a=>a.status==='confirmed');
-  const songs=[];
-  const unassigned=[];
+  if(hasConfirmed){
+    for(const song of confirmedSongs){
+      const sApps=eSessionMap[song.id]||[];
+      const slots=sApps.filter(a=>a.status==='confirmed').flatMap(makeSlots);
+      sortSongSlots(slots);
+      songs.push({song,slots});
+      sApps.filter(a=>a.status==='pending').flatMap(makeSlots).forEach(sl=>unassigned.push(sl));
+    }
+    return {type,roundId:r.id,savedKey,songs,unassigned};
+  }
   for(const song of confirmedSongs){
     const apps=(eSessionMap[song.id]||[]).slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-    if(hasConfirmed){
-      songs.push({song,members:apps.filter(a=>a.status==='confirmed')});
-      apps.filter(a=>a.status==='pending').forEach(a=>unassigned.push(a));
-    } else {
-      const claimed=new Set();
-      const members=[];
-      for(const app of apps){
-        const avail=app.sessions.filter(s=>!claimed.has(s));
-        if(avail.length){ avail.forEach(s=>claimed.add(s)); members.push(app); }
-        else unassigned.push(app);
-      }
-      songs.push({song,members});
+    const claimed=new Set(); const slots=[];
+    for(const app of apps) for(const session of app.sessions){
+      const sl={id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at};
+      if(!claimed.has(session)){claimed.add(session);slots.push(sl);}else unassigned.push(sl);
     }
+    sortSongSlots(slots);
+    songs.push({song,slots});
   }
-  return {type,roundId:r.id,songs,unassigned};
+  return {type,roundId:r.id,savedKey,songs,unassigned};
+}
+
+function ensDndSaveState(){
+  if(!eDndSt) return;
+  localStorage.setItem(eDndSt.savedKey,JSON.stringify([...eDndSt.songs.flatMap(s=>s.slots.map(sl=>({id:sl.id,loc:s.song.id}))),...eDndSt.unassigned.map(sl=>({id:sl.id,loc:'pool'}))]));
 }
 
 window.openEnsDndModal=function(type){
+  const r=eRounds[type]; if(!r) return;
+  const savedKey=`ensDnd_${type}_${r.id}`;
+  if(localStorage.getItem(savedKey)&&!confirm('이전에 임시저장한 내용이 있습니다.\n이어서 진행하시겠습니까?\n(취소하면 처음부터 자동 배정합니다)')) localStorage.removeItem(savedKey);
   eDndSt=computeEnsDndInitial(type); if(!eDndSt) return;
-  const r=eRounds[type];
-  document.getElementById('ensDndRoundName').textContent=r?.name||'팀 구성';
+  eDndFilter=null;
+  document.getElementById('ensDndRoundName').textContent=r.name||'팀 구성';
   document.getElementById('ensDndTypeName').textContent=type==='regular'?'일반 합주':'버스킹 합주';
   renderEnsDndModal();
   document.getElementById('ensDndModal').style.display='flex';
   document.body.style.overflow='hidden';
 };
-
 window.closeEnsDndModal=function(){
   document.getElementById('ensDndModal').style.display='none';
   document.body.style.overflow='';
 };
+window.ensDndSave=function(){ensDndSaveState();toast('임시저장됐습니다','ok');};
+window.ensDndSetFilter=function(session){eDndFilter=session;renderEnsDndPool();};
 
-function getConflictedIds(members){
+function getConflictedSlotIds(slots){
   const cnt={};
-  for(const m of members) for(const s of m.sessions) cnt[s]=(cnt[s]||0)+1;
-  const ids=new Set();
-  for(const m of members) if(m.sessions.some(s=>cnt[s]>1)) ids.add(m.id);
-  return ids;
+  for(const sl of slots) cnt[sl.session]=(cnt[sl.session]||0)+1;
+  return new Set(slots.filter(sl=>cnt[sl.session]>1).map(sl=>sl.id));
 }
 
-function ensMemberCardHtml(app,conflicted){
-  return `<div class="ens-member-card${conflicted?' conflict':''}" draggable="true" data-id="${app.id}"
-    ondragstart="ensDndDragStart(event,${app.id})" ondragend="ensDndDragEnd(event)">
-    <div><span class="ens-member-name">${app.applicant_name}</span><span class="ens-member-sid">${app.student_id?.slice(-3)||''}</span></div>
-    <div class="ens-member-tags">${app.sessions.map(s=>`<span class="ens-member-tag${conflicted?' conflict':''}">${s}</span>`).join('')}</div>
+function ensSlotCardHtml(sl,conflicted){
+  const sid=sl.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return `<div class="ens-member-card${conflicted?' conflict':''}" draggable="true" data-id="${sl.id}"
+    ondragstart="ensDndDragStart(event,'${sid}')" ondragend="ensDndDragEnd(event)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
+      <div><span class="ens-member-name">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span></div>
+      <span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDndTime(sl.createdAt)}</span>
+    </div>
+    <div class="ens-member-tags"><span class="ens-member-tag${conflicted?' conflict':''}">${sl.session}</span></div>
   </div>`;
+}
+
+function renderEnsDndPool(){
+  if(!eDndSt) return;
+  document.getElementById('ensDndPoolCount').textContent=eDndSt.unassigned.length;
+  const usedSess=[...new Set(eDndSt.unassigned.map(sl=>sl.session))].sort((a,b)=>sessOrder(a)-sessOrder(b));
+  document.getElementById('ensDndFilterRow').innerHTML=usedSess.length
+    ?`<button class="btn btn-xs ${!eDndFilter?'btn-p':'btn-s'}" style="font-size:10px;padding:2px 7px" onclick="ensDndSetFilter(null)">전체</button>`
+      +usedSess.map(s=>`<button class="btn btn-xs ${eDndFilter===s?'btn-p':'btn-s'}" style="font-size:10px;padding:2px 7px" onclick="ensDndSetFilter('${s}')">${s}</button>`).join('')
+    :'';
+  const filtered=eDndFilter?eDndSt.unassigned.filter(sl=>sl.session===eDndFilter):eDndSt.unassigned;
+  const groups={};
+  for(const sl of filtered){
+    if(!groups[sl.appId]) groups[sl.appId]={createdAt:sl.createdAt,slots:[]};
+    groups[sl.appId].slots.push(sl);
+  }
+  const sorted=Object.values(groups).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  document.getElementById('ensDndPoolCards').innerHTML=sorted.length
+    ?sorted.map(g=>g.slots.length===1?ensSlotCardHtml(g.slots[0],false):`<div class="ens-pool-group">${g.slots.map(sl=>ensSlotCardHtml(sl,false)).join('')}</div>`).join('')
+    :'<div class="ens-empty-hint">없음</div>';
 }
 
 function renderEnsDndModal(){
   if(!eDndSt) return;
-  document.getElementById('ensDndPoolCount').textContent=eDndSt.unassigned.length;
-  document.getElementById('ensDndPoolCards').innerHTML=
-    eDndSt.unassigned.length
-      ? eDndSt.unassigned.map(a=>ensMemberCardHtml(a,false)).join('')
-      : '<div class="ens-empty-hint">없음</div>';
-  document.getElementById('ensDndSongs').innerHTML=eDndSt.songs.map(({song,members})=>{
-    const conflicts=getConflictedIds(members);
+  renderEnsDndPool();
+  document.getElementById('ensDndSongs').innerHTML=eDndSt.songs.map(({song,slots})=>{
+    const conflicts=getConflictedSlotIds(slots);
     return `<div class="ens-song-card" data-song-id="${song.id}"
       ondragover="ensDndDragOverSong(event,${song.id})"
       ondragleave="ensDndDragLeaveSong(event)"
       ondrop="ensDndDropToSong(event,${song.id})">
       <div class="ens-song-card-hdr">
         <div class="ens-song-card-title">${song.title}</div>
-        <div class="ens-song-card-meta">${song.artist} · ${(song.sessions||[]).join(' · ')} · ${members.length}명</div>
+        <div class="ens-song-card-meta">${song.artist} · ${(song.sessions||[]).join(' · ')} · ${slots.length}명</div>
       </div>
       <div class="ens-song-members">
-        ${members.length?members.map(m=>ensMemberCardHtml(m,conflicts.has(m.id))).join(''):'<div class="ens-empty-hint">멤버 없음</div>'}
+        ${slots.length?slots.map(sl=>ensSlotCardHtml(sl,conflicts.has(sl.id))).join(''):'<div class="ens-empty-hint">멤버 없음</div>'}
       </div>
     </div>`;
   }).join('');
@@ -2231,7 +2281,7 @@ function renderEnsDndModal(){
 window.ensDndDragStart=function(event,id){
   eDndDrag={id};
   event.dataTransfer.effectAllowed='move';
-  event.dataTransfer.setData('text/plain',String(id));
+  event.dataTransfer.setData('text/plain',id);
   setTimeout(()=>document.querySelector(`.ens-member-card[data-id="${id}"]`)?.classList.add('dragging'),0);
 };
 window.ensDndDragEnd=function(event){
@@ -2239,7 +2289,7 @@ window.ensDndDragEnd=function(event){
   eDndDrag=null;
 };
 window.ensDndDragOverSong=function(event,songId){
-  event.preventDefault(); event.stopPropagation();
+  event.preventDefault();event.stopPropagation();
   event.currentTarget.classList.add('drag-over');
 };
 window.ensDndDragLeaveSong=function(event){
@@ -2258,15 +2308,15 @@ window.ensDndDropToSong=function(event,songId){
   event.currentTarget.classList.remove('drag-over');
   if(!eDndDrag) return;
   const id=eDndDrag.id;
-  let app=null;
+  let sl=null;
   for(const s of eDndSt.songs){
-    const idx=s.members.findIndex(m=>m.id===id);
-    if(idx!==-1){ if(s.song.id===songId) return; app=s.members.splice(idx,1)[0]; break; }
+    const idx=s.slots.findIndex(x=>x.id===id);
+    if(idx!==-1){if(s.song.id===songId)return;sl=s.slots.splice(idx,1)[0];break;}
   }
-  if(!app){ const idx=eDndSt.unassigned.findIndex(m=>m.id===id); if(idx!==-1) app=eDndSt.unassigned.splice(idx,1)[0]; }
-  if(!app) return;
+  if(!sl){const idx=eDndSt.unassigned.findIndex(x=>x.id===id);if(idx!==-1)sl=eDndSt.unassigned.splice(idx,1)[0];}
+  if(!sl) return;
   const target=eDndSt.songs.find(s=>s.song.id===songId);
-  if(target) target.members.push(app);
+  if(target){target.slots.push(sl);sortSongSlots(target.slots);}
   renderEnsDndModal();
 };
 window.ensDndDropToPool=function(event){
@@ -2274,37 +2324,47 @@ window.ensDndDropToPool=function(event){
   document.getElementById('ensDndPool').classList.remove('drag-over-pool');
   if(!eDndDrag) return;
   const id=eDndDrag.id;
-  if(eDndSt.unassigned.find(m=>m.id===id)) return;
+  if(eDndSt.unassigned.find(x=>x.id===id)) return;
   for(const s of eDndSt.songs){
-    const idx=s.members.findIndex(m=>m.id===id);
-    if(idx!==-1){ eDndSt.unassigned.push(s.members.splice(idx,1)[0]); break; }
+    const idx=s.slots.findIndex(x=>x.id===id);
+    if(idx!==-1){eDndSt.unassigned.push(s.slots.splice(idx,1)[0]);break;}
   }
   renderEnsDndModal();
 };
 
 window.confirmEnsembleTeams=async function(){
   if(!eDndSt) return;
-  const unCnt=eDndSt.unassigned.length;
-  const msg=unCnt?`미배정 참가자 ${unCnt}명은 거절 처리됩니다.\n팀 구성을 완료하시겠습니까?`:'팀 구성을 완료하시겠습니까?';
+  const allSlots=[...eDndSt.songs.flatMap(s=>s.slots),...eDndSt.unassigned];
+  const allAppIds=[...new Set(allSlots.map(sl=>sl.appId))];
+  const placedAppIds=new Set(eDndSt.songs.flatMap(s=>s.slots.map(sl=>sl.appId)));
+  const rejCnt=allAppIds.filter(id=>!placedAppIds.has(id)).length;
+  const unslotCnt=eDndSt.unassigned.length;
+  const msg=(rejCnt||unslotCnt)?`완전 미배정 ${rejCnt}명 · 미배정 슬롯 ${unslotCnt}개.\n미배정자는 거절 처리됩니다. 팀 구성을 완료하시겠습니까?`:'팀 구성을 완료하시겠습니까?';
   if(!confirm(msg)) return;
   try{
-    const assignedIds=eDndSt.songs.flatMap(s=>s.members.map(m=>m.id));
-    const unassignedIds=eDndSt.unassigned.map(m=>m.id);
-    if(assignedIds.length){const{error}=await supabase.from('session_applications').update({status:'confirmed'}).in('id',assignedIds);if(error)throw error;}
-    if(unassignedIds.length){const{error}=await supabase.from('session_applications').update({status:'rejected'}).in('id',unassignedIds);if(error)throw error;}
+    const confirmedIds=allAppIds.filter(id=>placedAppIds.has(id));
+    const rejectedIds=allAppIds.filter(id=>!placedAppIds.has(id));
+    if(confirmedIds.length){const{error}=await supabase.from('session_applications').update({status:'confirmed'}).in('id',confirmedIds);if(error)throw error;}
+    if(rejectedIds.length){const{error}=await supabase.from('session_applications').update({status:'rejected'}).in('id',rejectedIds);if(error)throw error;}
     const r=eRounds[eDndSt.type];
-    for(const[i,{song,members}]of eDndSt.songs.entries()){
-      if(!members.length) continue;
+    for(const[i,{song,slots}]of eDndSt.songs.entries()){
+      if(!slots.length) continue;
+      const memberMap={};
+      for(const sl of slots){
+        if(!memberMap[sl.appId]) memberMap[sl.appId]={name:sl.applicantName,studentId:sl.studentId,sessions:[]};
+        memberMap[sl.appId].sessions.push(sl.session);
+      }
       await createTeam({name:`${r?.name||''} ${i+1}팀`.trim(),type:eDndSt.type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,
-        members:members.map(m=>({name:m.applicant_name,student_id_last3:m.student_id?.slice(-3)||'',sessions:m.sessions}))});
+        members:Object.values(memberMap).map(m=>({name:m.name,student_id_last3:m.studentId?.slice(-3)||'',sessions:m.sessions}))});
     }
     const{error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',eDndSt.roundId);
     if(error) throw error;
-    toast(`${eDndSt.songs.filter(s=>s.members.length).length}개 팀이 확정됐습니다`,'ok');
+    localStorage.removeItem(eDndSt.savedKey);
+    toast(`${eDndSt.songs.filter(s=>s.slots.length).length}개 팀이 확정됐습니다`,'ok');
     closeEnsDndModal();
-    await loadEnsemble(); renderEnsemble();
-    teams=await fetchTeams(); teams=korSort(teams,'name');
-    renderTeams(); renderSchedule();
+    await loadEnsemble();renderEnsemble();
+    teams=await fetchTeams();teams=korSort(teams,'name');
+    renderTeams();renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2488,6 +2548,76 @@ window.rejectSong=async function(id){
   }catch(e){toast(errMsg(e),'err');}
 };
 
+// ── DRAG & DROP TEAM BUILDER ──────────────────────────────────────────
+window.eDragStart=function(event,id){
+  eDraggingId=id;
+  event.dataTransfer.effectAllowed='move';
+};
+window.eDragOver=function(event,songId){
+  event.preventDefault();
+  const app=Object.values(eSessionMap).flat().find(a=>a.id===eDraggingId);
+  const el=event.currentTarget;
+  el.classList.remove('dnd-over','dnd-invalid');
+  if(app&&app.song_id===songId&&app.status!=='confirmed'){
+    event.dataTransfer.dropEffect='move'; el.classList.add('dnd-over');
+  } else {
+    event.dataTransfer.dropEffect='none'; el.classList.add('dnd-invalid');
+  }
+};
+window.eDragLeave=function(event){
+  event.currentTarget.classList.remove('dnd-over','dnd-invalid');
+};
+window.eDropToSong=async function(event,songId){
+  event.preventDefault();
+  event.currentTarget.classList.remove('dnd-over','dnd-invalid');
+  if(!eDraggingId) return;
+  const app=Object.values(eSessionMap).flat().find(a=>a.id===eDraggingId);
+  eDraggingId=null;
+  if(!app) return;
+  if(app.song_id!==songId){toast('이 곡에 신청하지 않은 참가자입니다','err');return;}
+  if(app.status==='confirmed') return;
+  try{
+    await supabase.from('session_applications').update({status:'confirmed'}).eq('id',app.id);
+    toast('배정됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.eDropToPool=async function(event,el){
+  event.preventDefault();
+  el.classList.remove('dnd-over-pool');
+  if(!eDraggingId) return;
+  const app=Object.values(eSessionMap).flat().find(a=>a.id===eDraggingId);
+  eDraggingId=null;
+  if(!app||app.status==='pending') return;
+  try{
+    await supabase.from('session_applications').update({status:'pending'}).eq('id',app.id);
+    toast('배정이 취소됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.confirmAllTeams=async function(type,roundId){
+  const r=eRounds[type]; if(!r) return;
+  const confirmedSongs=(eSongs[type]||[]).filter(s=>s.status==='confirmed');
+  const allPending=confirmedSongs.flatMap(s=>(eSessionMap[s.id]||[]).filter(a=>a.status==='pending'));
+  const msg=allPending.length?`미배정 참가자가 ${allPending.length}명 있습니다.\n미배정자는 거절 처리됩니다. 팀 구성을 확정하시겠습니까?`:'팀 구성을 확정하시겠습니까?';
+  if(!confirm(msg)) return;
+  try{
+    if(allPending.length){
+      const {error:e1}=await supabase.from('session_applications').update({status:'rejected'}).in('id',allPending.map(a=>a.id));
+      if(e1) throw e1;
+    }
+    for(let i=0;i<confirmedSongs.length;i++){
+      const song=confirmedSongs[i];
+      const members=(eSessionMap[song.id]||[]).filter(a=>a.status==='confirmed').map(a=>({name:a.applicant_name,student_id_last3:a.student_id.slice(-3),sessions:a.sessions}));
+      await createTeam({name:`${r.name||''} ${i+1}팀`.trim(),type:type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,members});
+    }
+    const {error:e2}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
+    if(e2) throw e2;
+    toast(`${confirmedSongs.length}개 팀이 확정됐습니다`,'ok');
+    await loadEnsemble(); renderEnsemble();
+    teams=await fetchTeams(); teams=korSort(teams,'name');
+    renderTeams(); renderSchedule();
+  }catch(e){toast(errMsg(e),'err');}
+};
 
 // ── MODAL ─────────────────────────────────────────────────────────────
 const isMobile=()=>window.innerWidth<=700;
