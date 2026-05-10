@@ -2093,7 +2093,7 @@ function renderEnsemble(){
 
     let songsHtml='';
     if(phase==='session_end'){
-      songsHtml=renderDnDBuilder(type,songList);
+      songsHtml=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
     } else {
       const active=songList.filter(s=>s.status!=='rejected');
       if(!active.length){
