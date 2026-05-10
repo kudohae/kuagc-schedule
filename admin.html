@@ -1067,7 +1067,7 @@ window.submitCreateSchoolRound=async function(){
   if(btn){btn.disabled=true;btn.textContent='생성 중...';}
   try{
     const {error}=await supabase.from('school_rounds').insert({
-      name:`${sem}학기 ${rnd}차 스쿨 신청`,semester:sem,round_num:rnd,status:'draft'
+      name:`${sem}학기 ${rnd}차 스쿨 신청`,status:'draft'
     });
     if(error) throw error;
     closeModal(); toast('회차가 생성됐습니다','ok');
@@ -1086,7 +1086,6 @@ window.saveDraftSettings=async function(id){
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
   try{
     const {error}=await supabase.from('school_rounds').update({
-      semester:sem,round_num:rnd,
       name:`${sem}학기 ${rnd}차 스쿨 신청`,
       open_at:openAtVal?new Date(openAtVal).toISOString():null,
       close_at:closeAtVal?new Date(closeAtVal).toISOString():null,
