@@ -2364,8 +2364,6 @@ window.confirmEnsembleTeams=async function(){
     toast(`${eDndSt.songs.filter(s=>s.slots.length).length}개 팀이 확정됐습니다`,'ok');
     closeEnsDndModal();
     await loadEnsemble();renderEnsemble();
-    teams=await fetchTeams();teams=korSort(teams,'name');
-    renderTeams();renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2615,8 +2613,6 @@ window.confirmAllTeams=async function(type,roundId){
     if(e2) throw e2;
     toast(`${confirmedSongs.length}개 팀이 확정됐습니다`,'ok');
     await loadEnsemble(); renderEnsemble();
-    teams=await fetchTeams(); teams=korSort(teams,'name');
-    renderTeams(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');}
 };
 
