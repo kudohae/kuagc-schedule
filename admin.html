@@ -2151,7 +2151,7 @@ const ENS_SESS_ORDER=SESSIONS;
 function sessOrder(s){const i=ENS_SESS_ORDER.indexOf(s);return i===-1?99:i;}
 function sortSongSlots(slots){slots.sort((a,b)=>sessOrder(a.session)-sessOrder(b.session)||new Date(a.createdAt)-new Date(b.createdAt));}
 function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
-function makeSlots(app){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at}));}
+function makeSlots(app,songTitle=''){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle}));}
 
 function computeEnsDndInitial(type){
   const r=eRounds[type]; if(!r) return null;
@@ -2164,7 +2164,8 @@ function computeEnsDndInitial(type){
     try{
       const locMap=Object.fromEntries(JSON.parse(savedRaw).map(({id,loc})=>[id,loc]));
       for(const song of confirmedSongs) songs.push({song,slots:[]});
-      for(const app of allApps) for(const sl of makeSlots(app)){
+      const songTitleById=Object.fromEntries(confirmedSongs.map(s=>[s.id,s.title]));
+      for(const app of allApps) for(const sl of makeSlots(app,songTitleById[app.song_id]||'')){
         const songEntry=songs.find(s=>s.song.id===locMap[sl.id]);
         if(songEntry) songEntry.slots.push(sl); else unassigned.push(sl);
       }
@@ -2176,10 +2177,10 @@ function computeEnsDndInitial(type){
   if(hasConfirmed){
     for(const song of confirmedSongs){
       const sApps=eSessionMap[song.id]||[];
-      const slots=sApps.filter(a=>a.status==='confirmed').flatMap(makeSlots);
+      const slots=sApps.filter(a=>a.status==='confirmed').flatMap(a=>makeSlots(a,song.title));
       sortSongSlots(slots);
       songs.push({song,slots});
-      sApps.filter(a=>a.status==='pending').flatMap(makeSlots).forEach(sl=>unassigned.push(sl));
+      sApps.filter(a=>a.status==='pending').flatMap(a=>makeSlots(a,song.title)).forEach(sl=>unassigned.push(sl));
     }
     return {type,roundId:r.id,savedKey,songs,unassigned};
   }
@@ -2187,7 +2188,7 @@ function computeEnsDndInitial(type){
     const apps=(eSessionMap[song.id]||[]).slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
     const claimed=new Set(); const slots=[];
     for(const app of apps) for(const session of app.sessions){
-      const sl={id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at};
+      const sl={id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle:song.title};
       if(!claimed.has(session)){claimed.add(session);slots.push(sl);}else unassigned.push(sl);
     }
     sortSongSlots(slots);
@@ -2231,7 +2232,7 @@ function ensSlotCardHtml(sl,conflicted){
   return `<div class="ens-member-card${conflicted?' conflict':''}" draggable="true" data-id="${sl.id}"
     ondragstart="ensDndDragStart(event,'${sid}')" ondragend="ensDndDragEnd(event)">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
-      <div><span class="ens-member-name">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span></div>
+      <div><span class="ens-member-name">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''}</div>
       <span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDndTime(sl.createdAt)}</span>
     </div>
     <div class="ens-member-tags"><span class="ens-member-tag${conflicted?' conflict':''}">${sl.session}</span></div>
