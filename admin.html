@@ -1144,7 +1144,7 @@ window.deleteSchoolRound=async function(id){
   const schoolIds=adminSchools.filter(s=>s.round_id===id).map(s=>s.id);
   if(!confirm(`이 회차를 삭제하시겠습니까?\n반 ${schoolIds.length}개와 신청 데이터가 모두 삭제됩니다.`)) return;
   try{
-    if(schoolIds.length) await supabase.from('school_applications').delete().eq('round_id',id);
+    await supabase.from('school_applications').delete().eq('round_id',id);
     await supabase.from('schools').delete().eq('round_id',id);
     const {error}=await supabase.from('school_rounds').delete().eq('id',id);
     if(error) throw error;
@@ -1212,7 +1212,10 @@ window.deleteClass=async function(id){
   const s=adminSchools.find(x=>x.id===id);
   if(!confirm(`"${s?.name||'반'}"을 삭제하시겠습니까?`)) return;
   try{
-    await supabase.from('school_applications').delete().eq('assigned_school_id',id);
+    const appIds=adminSchoolApps
+      .filter(a=>a.pref1_school_id===id||a.pref2_school_id===id||a.assigned_school_id===id)
+      .map(a=>a.id);
+    if(appIds.length) await supabase.from('school_applications').delete().in('id',appIds);
     const {error}=await supabase.from('schools').delete().eq('id',id);
     if(error) throw error;
     toast('삭제됐습니다','ok'); await loadSchoolData(); renderSchool();
