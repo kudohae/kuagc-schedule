@@ -269,7 +269,7 @@ function renderOpen(){
     <div class="rs-texts">
       <div class="rs-title">${name} — 신청 진행 중</div>
       ${closeAt?`<div class="rs-sub" style="color:var(--warn)">⏰ 마감: ${fmtDate(closeAt)} &nbsp;—&nbsp; <span id="cdEl" style="font-family:'Space Mono',monospace;font-weight:700">...</span></div>`:'<div class="rs-sub">성명·학번·1지망을 입력하고 신청하세요.</div>'}
-      ${round.prioritize_returning?'<div class="rs-notice">ℹ️ 이번 회차는 이전 회차 수강자를 마감 후에 배정합니다.</div>':''}
+      ${round.prioritize_returning?'<div class="rs-notice">ℹ️ 이전 회차 수강자는 이번 회차 최초 수강자 배정 완료 후에 배정됩니다.</div>':''}
     </div>
   </div>`;
 
