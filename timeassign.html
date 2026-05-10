@@ -9,21 +9,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --bg:#f5f5f0;--surface:#fff;--surface2:#f0f0ea;--border:#e0e0d8;
-  --text:#1a1a18;--text2:#666;--text3:#999;
+  --bg:#f4f4f5;--surface:#ffffff;--surface2:#f0f0f2;--border:#dddde0;
+  --text:#111111;--text2:#555555;--text3:#999999;
   --accent:#5c9e00;--accent2:#0077cc;--danger:#d93025;--warn:#c8760a;
-  --header-bg:rgba(245,245,240,.9);--radius:8px;--hh:52px;--tab-h:56px;
+  --header-bg:rgba(244,244,245,.97);--radius:6px;--hh:48px;--tab-h:56px;
 }
 body.dark{
-  --bg:#111110;--surface:#1c1c1a;--surface2:#242422;--border:#2e2e2c;
-  --text:#f0f0e8;--text2:#aaa;--text3:#666;
+  --bg:#121212;--surface:#1e1e1e;--surface2:#2a2a2e;--border:#333338;
+  --text:#f0f0f0;--text2:#888888;--text3:#505055;
   --accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;
-  --header-bg:rgba(17,17,16,.9);
+  --header-bg:rgba(18,18,18,.97);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
 header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;position:sticky;top:0;background:var(--header-bg);backdrop-filter:blur(8px);z-index:100;}
-.logo{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;}
+.logo{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;}
 .back-btn{font-size:12px;color:var(--text2);text-decoration:none;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;transition:color .12s;}
 .back-btn:hover{color:var(--text);}
 .hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
