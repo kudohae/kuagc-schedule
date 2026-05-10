@@ -978,7 +978,7 @@ function renderSchool(){
         ${closeAt?`<span style="font-size:11px;color:var(--warn)">⏰ 마감: ${fS(closeAt)} — <span id="schoolCdEl" style="font-family:'Space Mono',monospace;font-weight:700">...</span></span>`:''}
         ${cur.prioritize_returning?'<span style="font-size:11px;color:var(--accent2)">이전 회차 대기 적용 중</span>':''}
         <div style="margin-left:auto;display:flex;gap:5px">
-          <button class="btn btn-s btn-xs" onclick="schoolClose(${cur.id})">마감</button>
+          <button class="btn btn-s btn-xs" onclick="schoolClose(${cur.id})">마감하기</button>
         </div>
       </div>
       <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
