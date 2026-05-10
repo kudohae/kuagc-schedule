@@ -735,16 +735,21 @@ async function loadAll(){
   await loadEnsemble();
   await loadSchoolData();
   supabase.channel('admin-school-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},async()=>{
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},async(payload)=>{
+      console.log('[school-rt] school_rounds change',payload);
       await loadSchoolData(); renderSchool();
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'schools'},async()=>{
+    .on('postgres_changes',{event:'*',schema:'public',table:'schools'},async(payload)=>{
+      console.log('[school-rt] schools change',payload);
       await loadSchoolData(); renderSchool();
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async()=>{
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async(payload)=>{
+      console.log('[school-rt] school_applications change',payload);
       await loadSchoolData(); renderSchool();
     })
-    .subscribe();
+    .subscribe((status,err)=>{
+      console.log('[school-rt] subscribe status:',status, err||'');
+    });
   supabase.channel('admin-pending-rt')
     .on('postgres_changes',{event:'*',schema:'public',table:'requests'},async()=>{
       pendingAll=await fetchAllPendingRequests();
@@ -773,6 +778,10 @@ async function loadAll(){
       await checkVacancyReports();
     })
     .subscribe();
+  setInterval(async()=>{
+    await loadSchoolData();
+    renderSchool();
+  },8000);
   render();
   await checkVacancyReports();
 }
