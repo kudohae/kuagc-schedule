@@ -607,16 +607,17 @@ function renderSongItem(s,num,phase){
     `<span class="sneed ${filledSessions.has(sess)?'filled':''}">${sess}</span>`).join('');
   const sessionRows=sessApps.length?`
     <div class="session-list">
-      ${sessApps.map(a=>`
-        <div class="session-row">
-          <span class="session-row-name">${a.applicant_name}(${a.student_id.slice(-3)})</span>
+      ${sessApps.map(a=>{
+        const rejected=phase==='closed'&&a.status==='rejected';
+        return `<div class="session-row" style="${rejected?'opacity:.55':''}">
+          <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}">${a.applicant_name}(${a.student_id.slice(-3)})</span>
           <div class="session-row-right">
             <div class="session-row-sessions">
               ${a.sessions.map(sess=>`<span class="sess-tag ${a.status==='confirmed'?'confirmed':''}">${sess}</span>`).join('')}
             </div>
             <span class="sess-ts">${fmtTime(a.created_at)}</span>
           </div>
-        </div>`).join('')}
+        </div>`;}).join('')}
     </div>`:'';
   return `<div class="song-item">
     <div class="song-item-hdr">
