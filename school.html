@@ -31,78 +31,72 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 
 .container{max-width:680px;margin:0 auto;padding:16px 14px;display:flex;flex-direction:column;gap:14px;}
 
-/* STATUS CARD */
-.round-status{border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:12px;}
+.round-status{border-radius:var(--radius);padding:12px 16px;display:flex;align-items:flex-start;gap:12px;}
 .round-status.open{background:rgba(92,158,0,.06);border:1px solid rgba(92,158,0,.22);}
 body.dark .round-status.open{background:rgba(232,255,71,.06);border-color:rgba(232,255,71,.18);}
 .round-status.closed{background:var(--surface);border:1px solid var(--border);}
 .round-status.draft{background:var(--surface);border:1px solid var(--border);}
-.rs-icon{font-size:22px;flex-shrink:0;}
-.rs-texts{display:flex;flex-direction:column;gap:3px;}
+.rs-icon{font-size:22px;flex-shrink:0;margin-top:1px;}
+.rs-texts{display:flex;flex-direction:column;gap:4px;}
 .rs-title{font-size:15px;font-weight:700;}
 .rs-sub{font-size:12px;color:var(--text2);}
+.rs-notice{font-size:12px;color:var(--accent2);background:rgba(0,119,204,.06);border:1px solid rgba(0,119,204,.15);border-radius:4px;padding:5px 9px;margin-top:2px;}
+body.dark .rs-notice{background:rgba(71,197,255,.06);border-color:rgba(71,197,255,.2);}
 
-/* SCHOOL CARD */
-.school-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);}
-.school-card-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
-.school-name{font-size:16px;font-weight:700;}
-.school-teacher{font-size:12px;color:var(--text2);margin-top:3px;}
+.apply-form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.apply-form-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text2);margin-bottom:12px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fl{font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500;}
+.fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 11px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border-color .12s;}
+.fi:focus{border-color:var(--accent);}
+select.fi{cursor:pointer;}
+.form-foot{display:flex;justify-content:flex-end;margin-top:4px;}
+
+.school-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.school-card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.school-name{font-size:15px;font-weight:700;}
+.school-teacher{font-size:12px;color:var(--text2);margin-top:2px;}
 .school-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:3px;flex-shrink:0;white-space:nowrap;}
 .school-badge.open{background:rgba(92,158,0,.12);color:var(--accent);}
 body.dark .school-badge.open{background:rgba(232,255,71,.15);}
-.school-badge.waitlist{background:rgba(200,118,10,.1);color:var(--warn);}
-body.dark .school-badge.waitlist{background:rgba(255,170,71,.1);}
+.school-badge.full{background:rgba(200,118,10,.1);color:var(--warn);}
 .school-badge.closed{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
-
-.school-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
-.school-desc{font-size:13px;color:var(--text2);line-height:1.55;}
+.school-body{padding:12px 16px;display:flex;flex-direction:column;gap:10px;}
 .cap-row{display:flex;align-items:center;gap:8px;}
 .cap-bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
 .cap-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s;}
 .cap-fill.full{background:var(--warn);}
 .cap-text{font-size:12px;color:var(--text2);white-space:nowrap;}
 
-.applicant-section{display:flex;flex-direction:column;gap:5px;}
-.applicant-section-title{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;}
-.applicant-list{display:flex;flex-direction:column;gap:3px;}
+.applicant-section{display:flex;flex-direction:column;gap:4px;}
+.applicant-section-title{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.7px;text-transform:uppercase;}
+.applicant-list{display:flex;flex-direction:column;gap:2px;}
 .applicant-row{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:4px;background:var(--surface2);}
-.applicant-num{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);min-width:20px;}
+.applicant-num{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);min-width:18px;}
 .applicant-name{font-size:13px;flex:1;}
 .applicant-sid{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);}
-.applicant-badge-w{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(200,118,10,.1);color:var(--warn);white-space:nowrap;}
-body.dark .applicant-badge-w{background:rgba(255,170,71,.1);}
-.cancel-btn{font-size:11px;padding:2px 7px;background:var(--surface);border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--text2);font-family:'Noto Sans KR',sans-serif;white-space:nowrap;transition:all .12s;}
-.cancel-btn:hover{border-color:var(--danger);color:var(--danger);}
+.ret-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;background:rgba(0,119,204,.1);color:var(--accent2);flex-shrink:0;}
+body.dark .ret-badge{background:rgba(71,197,255,.1);}
 
-.school-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.unassigned-card{background:var(--surface);border:1px solid rgba(217,48,37,.25);border-radius:var(--radius);overflow:hidden;}
+body.dark .unassigned-card{border-color:rgba(255,71,71,.2);}
+.unassigned-hdr{padding:10px 16px;border-bottom:1px solid rgba(217,48,37,.15);background:rgba(217,48,37,.04);}
+body.dark .unassigned-hdr{border-color:rgba(255,71,71,.12);}
+.unassigned-title{font-size:13px;font-weight:700;color:var(--danger);}
+.pending-card{background:var(--surface);border:1px solid rgba(0,119,204,.2);border-radius:var(--radius);overflow:hidden;}
+body.dark .pending-card{border-color:rgba(71,197,255,.15);}
+.pending-hdr{padding:10px 16px;border-bottom:1px solid rgba(0,119,204,.1);background:rgba(0,119,204,.04);}
+body.dark .pending-hdr{border-color:rgba(71,197,255,.1);}
+.pending-title{font-size:13px;font-weight:700;color:var(--accent2);}
 
-.empty-state{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px;text-align:center;color:var(--text3);font-size:14px;line-height:1.7;}
+.empty-state{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px;text-align:center;color:var(--text3);font-size:14px;}
 
-/* FORM */
-.fl{font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500;}
-.fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 11px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border-color .12s;}
-.fi:focus{border-color:var(--accent);}
-
-/* BUTTONS */
 .btn{padding:7px 15px;border-radius:5px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .12s;white-space:nowrap;}
 .btn:hover{opacity:.8;}
 .btn:disabled{opacity:.35;cursor:not-allowed;}
 .btn-p{background:var(--accent);color:#000;}
 .btn-s{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
-.btn-d{background:var(--danger);color:#fff;}
-.btn-warn{background:var(--warn);color:#fff;}
 
-/* MODAL */
-.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;}
-.modal{background:var(--surface);border-radius:8px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.18);}
-.modal-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.modal-ttl{font-size:14px;font-weight:700;}
-.modal-x{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);line-height:1;padding:0 2px;}
-.modal-x:hover{color:var(--text);}
-.modal-body{padding:16px;display:flex;flex-direction:column;gap:12px;}
-.modal-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
-
-/* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 18px;border-radius:5px;font-size:13px;z-index:300;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;}
 .toast.show{opacity:1;}
 .toast.ok{background:var(--accent);color:#000;}
@@ -119,22 +113,8 @@ body.dark .applicant-badge-w{background:rgba(255,170,71,.1);}
   </div>
 </header>
 
-<div class="container">
-  <div id="roundStatusEl"></div>
-  <div id="schoolsContent">
-    <div class="empty-state">불러오는 중...</div>
-  </div>
-</div>
-
-<div class="modal-bd" id="modalBd" style="display:none" onclick="onMBd(event)">
-  <div class="modal">
-    <div class="modal-hdr">
-      <div class="modal-ttl" id="modalTtl"></div>
-      <button class="modal-x" onclick="closeModal()">×</button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-foot" id="modalFoot"></div>
-  </div>
+<div class="container" id="container">
+  <div class="empty-state">불러오는 중...</div>
 </div>
 
 <div class="toast" id="toastEl"></div>
@@ -160,262 +140,344 @@ function toast(msg,type=''){
   el.textContent=msg; el.className='toast'+(type?' '+type:'');
   void el.offsetWidth; el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>el.classList.remove('show'),3500);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),4000);
 }
 
-function showModal(ttl,body,foot){
-  document.getElementById('modalTtl').textContent=ttl;
-  document.getElementById('modalBody').innerHTML=body;
-  document.getElementById('modalFoot').innerHTML=foot;
-  document.getElementById('modalBd').style.display='flex';
+function diffToHMS(ms){
+  if(ms<=0) return '00:00:00';
+  const s=Math.floor(ms/1000);
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  return [h,m,sc].map(v=>String(v).padStart(2,'0')).join(':');
 }
-window.closeModal=function(){document.getElementById('modalBd').style.display='none';};
-window.onMBd=function(e){if(e.target===document.getElementById('modalBd'))closeModal();};
-
 function fmtDate(ts){
   if(!ts) return '';
   const d=new Date(ts);
   return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-let activeRound=null, schools=[], allApps=[];
+let round=null, prevRound=null, classes=[], apps=[], prevApps=[];
+let cdTimer=null;
+
+function stopCd(){if(cdTimer){clearInterval(cdTimer);cdTimer=null;}}
+
+function startCd(targetTs,onExpired){
+  stopCd();
+  const update=()=>{
+    const diff=new Date(targetTs)-Date.now();
+    const el=document.getElementById('cdEl');
+    if(el) el.textContent=diffToHMS(diff);
+    if(diff<=0){stopCd();onExpired();}
+  };
+  update();
+  cdTimer=setInterval(update,1000);
+}
 
 async function load(){
-  // 가장 최근 open 회차 조회
-  const {data:rd}=await supabase.from('school_rounds')
-    .select('*').eq('status','open')
-    .order('created_at',{ascending:false}).limit(1).maybeSingle();
-  activeRound=rd||null;
+  const {data:rds}=await supabase.from('school_rounds').select('*').order('created_at',{ascending:false}).limit(2);
+  round=(rds||[])[0]||null;
 
-  if(!activeRound){
-    // open 회차 없으면 가장 최근 회차 (closed) 표시
-    const {data:last}=await supabase.from('school_rounds')
-      .select('*').order('created_at',{ascending:false}).limit(1).maybeSingle();
-    activeRound=last||null;
+  if(round){
+    const {data:prev}=await supabase.from('school_rounds').select('*').eq('status','closed').neq('id',round.id).order('created_at',{ascending:false}).limit(1);
+    prevRound=prev?.[0]||null;
+
+    const [{data:sc},{data:ap}]=await Promise.all([
+      supabase.from('schools').select('*').eq('round_id',round.id).order('created_at'),
+      supabase.from('school_applications').select('*').eq('round_id',round.id).order('created_at')
+    ]);
+    classes=sc||[];
+    apps=ap||[];
+
+    if(prevRound&&round.prioritize_returning){
+      const {data:pa}=await supabase.from('school_applications').select('student_id')
+        .eq('round_id',prevRound.id).eq('status','assigned');
+      prevApps=pa||[];
+    } else {
+      prevApps=[];
+    }
   }
-
-  if(!activeRound){
-    document.getElementById('roundStatusEl').innerHTML='';
-    document.getElementById('schoolsContent').innerHTML=
-      '<div class="empty-state">스쿨 신청 기간이 아닙니다.</div>';
-    return;
-  }
-
-  const [{data:sc},{data:ap}]=await Promise.all([
-    supabase.from('schools').select('*').eq('round_id',activeRound.id).order('created_at'),
-    supabase.from('school_applications').select('*').order('created_at')
-  ]);
-  schools=sc||[];
-  const schoolIds=schools.map(s=>s.id);
-  allApps=(ap||[]).filter(a=>schoolIds.includes(a.school_id));
   render();
 }
 
-function render(){
-  renderRoundStatus();
-  renderSchools();
+function getRoundName(){
+  if(round?.semester&&round?.round_num) return `${round.semester}학기 ${round.round_num}차 스쿨 신청`;
+  return round?.name||'스쿨 신청';
 }
 
-function renderRoundStatus(){
-  const el=document.getElementById('roundStatusEl');
-  if(!el||!activeRound) return;
-  const isOpen=activeRound.status==='open';
-  const now=new Date();
-  const deadlinePassed=activeRound.close_at&&new Date(activeRound.close_at)<=now;
-  const effectiveOpen=isOpen&&!deadlinePassed;
+function isReturning(sid){
+  if(!round?.prioritize_returning) return false;
+  return prevApps.some(a=>a.student_id===sid);
+}
 
-  const icon=effectiveOpen?'📋':'🔒';
-  const title=effectiveOpen?'스쿨 신청 모집 중':'스쿨 신청 마감';
-  let sub='한 명당 하나의 스쿨만 신청할 수 있습니다.';
-  if(activeRound.close_at&&effectiveOpen) sub+=` · 마감: ${fmtDate(activeRound.close_at)}`;
-  else if(!effectiveOpen&&activeRound.status==='closed') sub='신청이 마감됐습니다.';
+function countAssigned(classId){
+  return apps.filter(a=>a.assigned_school_id===classId&&a.status==='assigned').length;
+}
 
-  el.innerHTML=`<div class="round-status ${effectiveOpen?'open':'closed'}">
-    <div class="rs-icon">${icon}</div>
+function pickClass(pref1,pref2){
+  const c1=classes.find(c=>c.id===pref1);
+  if(c1&&countAssigned(pref1)<(c1.capacity||0)) return pref1;
+  if(pref2){
+    const c2=classes.find(c=>c.id===pref2);
+    if(c2&&countAssigned(pref2)<(c2.capacity||0)) return pref2;
+  }
+  return null;
+}
+
+function render(){
+  stopCd();
+  if(!round){
+    document.getElementById('container').innerHTML='<div class="empty-state">스쿨 신청 기간이 아닙니다.</div>';
+    return;
+  }
+  const {status}=round;
+  if(status==='draft') renderDraft();
+  else if(status==='open') renderOpen();
+  else renderClosed();
+}
+
+function renderDraft(){
+  const name=getRoundName();
+  const openAt=round.open_at;
+  let html=`<div class="round-status draft">
+    <div class="rs-icon">⏳</div>
     <div class="rs-texts">
-      <div class="rs-title">${title}</div>
-      <div class="rs-sub">${sub}</div>
+      <div class="rs-title">${name}</div>
+      <div class="rs-sub">스쿨 신청 준비 중입니다.</div>
+      ${openAt?`<div class="rs-sub" style="margin-top:2px">오픈 예정: ${fmtDate(openAt)} &nbsp;—&nbsp; <span id="cdEl" style="font-family:'Space Mono',monospace;font-weight:700;color:var(--accent2)">...</span></div>`:''}
     </div>
   </div>`;
+  document.getElementById('container').innerHTML=html;
+  if(openAt){
+    if(new Date(openAt)<=Date.now()){autoOpen();}
+    else startCd(openAt,autoOpen);
+  }
 }
 
-function renderSchools(){
-  const el=document.getElementById('schoolsContent');
-  if(!activeRound) return;
-  const now=new Date();
-  const deadlinePassed=activeRound.close_at&&new Date(activeRound.close_at)<=now;
-  const roundOpen=activeRound.status==='open'&&!deadlinePassed;
+async function autoOpen(){
+  const {error}=await supabase.from('school_rounds').update({status:'open'}).eq('id',round.id);
+  if(!error){round.status='open';render();}
+}
 
-  if(!schools.length){
-    el.innerHTML='<div class="empty-state">이번 회차에 등록된 스쿨이 없습니다.</div>';
-    return;
+function renderOpen(){
+  const name=getRoundName();
+  const closeAt=round.close_at;
+  if(closeAt&&new Date(closeAt)<=Date.now()){autoClose();return;}
+
+  let html=`<div class="round-status open">
+    <div class="rs-icon">📋</div>
+    <div class="rs-texts">
+      <div class="rs-title">${name} — 신청 진행 중</div>
+      ${closeAt?`<div class="rs-sub" style="color:var(--warn)">⏰ 마감: ${fmtDate(closeAt)} &nbsp;—&nbsp; <span id="cdEl" style="font-family:'Space Mono',monospace;font-weight:700">...</span></div>`:'<div class="rs-sub">성명·학번·1지망을 입력하고 신청하세요.</div>'}
+      ${round.prioritize_returning?'<div class="rs-notice">ℹ️ 이번 회차는 이전 회차 수강자를 마감 후에 배정합니다.</div>':''}
+    </div>
+  </div>`;
+
+  html+=`<div class="apply-form-card">
+    <div class="apply-form-title">스쿨 신청</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="form-grid">
+        <div><div class="fl">성명 *</div><input class="fi" id="applyName" placeholder="홍길동" autocomplete="off"/></div>
+        <div><div class="fl">학번 *</div><input class="fi" id="applySid" placeholder="20250001" inputmode="numeric" autocomplete="off"/></div>
+      </div>
+      <div><div class="fl">1지망 *</div><select class="fi" id="applyPref1">
+        <option value="">— 선택하세요 —</option>
+        ${classes.map(c=>`<option value="${c.id}">${c.name}${c.teacher_name?` (담임: ${c.teacher_name})`:''}${countAssigned(c.id)>=(c.capacity||0)?' — 만석':''}</option>`).join('')}
+      </select></div>
+      <div><div class="fl">2지망 (선택)</div><select class="fi" id="applyPref2">
+        <option value="">— 없음 —</option>
+        ${classes.map(c=>`<option value="${c.id}">${c.name}${countAssigned(c.id)>=(c.capacity||0)?' — 만석':''}</option>`).join('')}
+      </select></div>
+      <div class="form-foot"><button class="btn btn-p" id="applySubmitBtn" onclick="submitApply()">신청하기</button></div>
+    </div>
+  </div>`;
+
+  html+=renderClassCards(true);
+  document.getElementById('container').innerHTML=html;
+  if(closeAt) startCd(closeAt,autoClose);
+}
+
+async function autoClose(){
+  const {error}=await supabase.from('school_rounds').update({status:'closed'}).eq('id',round.id);
+  if(!error){
+    round.status='closed';
+    if(round.prioritize_returning) await processReturning();
+    await load();
   }
+}
 
-  el.innerHTML=schools.map(s=>{
-    const apps=allApps.filter(a=>a.school_id===s.id);
-    const normal=apps.filter(a=>a.status==='normal').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-    const waitlist=apps.filter(a=>a.status==='waitlist').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-    const cap=s.capacity||0;
-    const isFull=normal.length>=cap;
-    const fillPct=Math.min(100,Math.round((normal.length/Math.max(1,cap))*100));
+async function processReturning(){
+  const pending=apps.filter(a=>a.status==='pending').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  const counts={};
+  apps.filter(a=>a.status==='assigned'&&a.assigned_school_id).forEach(a=>{
+    counts[a.assigned_school_id]=(counts[a.assigned_school_id]||0)+1;
+  });
+  for(const app of pending){
+    const p1=app.pref1_school_id, p2=app.pref2_school_id;
+    const c1=classes.find(c=>c.id===p1), c2=classes.find(c=>c.id===p2);
+    let assignedId=null;
+    if(c1&&(counts[p1]||0)<(c1.capacity||0)){assignedId=p1;counts[p1]=(counts[p1]||0)+1;}
+    else if(p2&&c2&&(counts[p2]||0)<(c2.capacity||0)){assignedId=p2;counts[p2]=(counts[p2]||0)+1;}
+    const {error}=await supabase.from('school_applications').update({
+      assigned_school_id:assignedId,status:assignedId?'assigned':'unassigned'
+    }).eq('id',app.id);
+    if(!error){
+      const a=apps.find(x=>x.id===app.id);
+      if(a){a.assigned_school_id=assignedId;a.status=assignedId?'assigned':'unassigned';}
+    }
+  }
+}
 
-    let badgeClass='closed', badgeText='마감';
-    if(roundOpen && isFull){ badgeClass='waitlist'; badgeText='대기모집'; }
-    else if(roundOpen){ badgeClass='open'; badgeText='모집중'; }
+function renderClosed(){
+  const name=getRoundName();
+  let html=`<div class="round-status closed">
+    <div class="rs-icon">🔒</div>
+    <div class="rs-texts">
+      <div class="rs-title">${name} — 마감</div>
+      <div class="rs-sub">스쿨 신청이 마감됐습니다. 배정 결과를 확인하세요.</div>
+    </div>
+  </div>`;
+  html+=renderClassCards(false);
+  document.getElementById('container').innerHTML=html;
+}
 
-    const normalRows=normal.map((a,i)=>`
-      <div class="applicant-row">
-        <span class="applicant-num">${i+1}</span>
-        <span class="applicant-name">${a.applicant_name}</span>
-        <span class="applicant-sid">···${a.student_id.slice(-3)}</span>
-        ${roundOpen?`<button class="cancel-btn" onclick="openCancelModal(${a.id},'${a.applicant_name.replace(/'/g,"\\'")}')">취소</button>`:''}
-      </div>`).join('');
-
-    const waitlistSection=waitlist.length?`
-      <div class="applicant-section">
-        <div class="applicant-section-title">대기 (${waitlist.length}명)</div>
-        <div class="applicant-list">${waitlist.map((a,i)=>`
-          <div class="applicant-row">
-            <span class="applicant-num">대${i+1}</span>
-            <span class="applicant-name">${a.applicant_name}</span>
-            <span class="applicant-sid">···${a.student_id.slice(-3)}</span>
-            <span class="applicant-badge-w">대기</span>
-            ${roundOpen?`<button class="cancel-btn" onclick="openCancelModal(${a.id},'${a.applicant_name.replace(/'/g,"\\'")}')">취소</button>`:''}
-          </div>`).join('')}
-        </div>
-      </div>`:'';
-
-    const footerBtn=roundOpen
-      ?`<button class="btn ${isFull?'btn-warn':'btn-p'}" onclick="openApplyModal(${s.id})">${isFull?'대기 신청':'신청하기'}</button>`
-      :'';
-
-    return `<div class="school-card">
+function renderClassCards(isOpen){
+  let html='';
+  classes.forEach(c=>{
+    const assigned=apps.filter(a=>a.assigned_school_id===c.id&&a.status==='assigned').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    const cap=c.capacity||0;
+    const isFull=assigned.length>=cap;
+    const fillPct=Math.min(100,Math.round((assigned.length/Math.max(1,cap))*100));
+    let badgeCls='closed',badgeTxt='마감';
+    if(isOpen&&isFull){badgeCls='full';badgeTxt='만석';}
+    else if(isOpen){badgeCls='open';badgeTxt='모집중';}
+    html+=`<div class="school-card">
       <div class="school-card-hdr">
         <div>
-          <div class="school-name">${s.name}</div>
-          <div class="school-teacher">담임: ${s.teacher_name||'미정'}</div>
+          <div class="school-name">${c.name}</div>
+          ${c.teacher_name?`<div class="school-teacher">담임: ${c.teacher_name}</div>`:''}
         </div>
-        <span class="school-badge ${badgeClass}">${badgeText}</span>
+        <span class="school-badge ${badgeCls}">${badgeTxt}</span>
       </div>
       <div class="school-body">
-        ${s.description?`<div class="school-desc">${s.description.replace(/\n/g,'<br>')}</div>`:''}
         <div class="cap-row">
           <div class="cap-bar"><div class="cap-fill${isFull?' full':''}" style="width:${fillPct}%"></div></div>
-          <div class="cap-text">${normal.length} / ${cap}명 확정</div>
+          <div class="cap-text">${assigned.length} / ${cap}명</div>
         </div>
-        ${normal.length?`
-        <div class="applicant-section">
-          <div class="applicant-section-title">확정 신청자 (${normal.length}명)</div>
-          <div class="applicant-list">${normalRows}</div>
-        </div>`:'<div style="font-size:12px;color:var(--text3)">아직 신청자가 없습니다.</div>'}
-        ${waitlistSection}
+        ${assigned.length?`<div class="applicant-section">
+          <div class="applicant-section-title">배정 확정 (${assigned.length}명)</div>
+          <div class="applicant-list">
+            ${assigned.map((a,i)=>`<div class="applicant-row">
+              <span class="applicant-num">${i+1}</span>
+              <span class="applicant-name">${a.applicant_name}</span>
+              <span class="applicant-sid">⋯⋯⋯${a.student_id.slice(-3)}</span>
+              ${a.is_returning?'<span class="ret-badge">재수강</span>':''}
+            </div>`).join('')}
+          </div>
+        </div>`:'<div style="font-size:12px;color:var(--text3)">배정된 학생이 없습니다.</div>'}
       </div>
-      ${footerBtn?`<div class="school-footer">${footerBtn}</div>`:''}
     </div>`;
-  }).join('');
+  });
+
+  const pending=apps.filter(a=>a.status==='pending');
+  if(isOpen&&pending.length){
+    html+=`<div class="pending-card">
+      <div class="pending-hdr">
+        <div class="pending-title">마감 후 배정 예정 — ${pending.length}명</div>
+        <div style="font-size:11px;color:var(--accent2);margin-top:2px">이전 회차 수강자입니다. 마감 후 남은 자리에 배정됩니다.</div>
+      </div>
+      <div style="padding:10px 16px"><div class="applicant-list">
+        ${pending.map(a=>{const p1=classes.find(c=>c.id===a.pref1_school_id);const p2=classes.find(c=>c.id===a.pref2_school_id);return`<div class="applicant-row">
+          <span class="applicant-name">${a.applicant_name}</span>
+          <span class="applicant-sid">⋯⋯⋯${a.student_id.slice(-3)}</span>
+          <span style="font-size:10px;color:var(--text3)">${p1?'1지: '+p1.name:''}${p2?' · 2지: '+p2.name:''}</span>
+        </div>`}).join('')}
+      </div></div>
+    </div>`;
+  }
+
+  const unassigned=apps.filter(a=>a.status==='unassigned');
+  if(unassigned.length){
+    html+=`<div class="unassigned-card">
+      <div class="unassigned-hdr">
+        <div class="unassigned-title">미배정 — ${unassigned.length}명</div>
+      </div>
+      <div style="padding:10px 16px"><div class="applicant-list">
+        ${unassigned.map(a=>{const p1=classes.find(c=>c.id===a.pref1_school_id);const p2=classes.find(c=>c.id===a.pref2_school_id);return`<div class="applicant-row">
+          <span class="applicant-name">${a.applicant_name}</span>
+          <span class="applicant-sid">⋯⋯⋯${a.student_id.slice(-3)}</span>
+          <span style="font-size:10px;color:var(--text3)">${p1?'1지: '+p1.name:''}${p2?' · 2지: '+p2.name:''}</span>
+        </div>`}).join('')}
+      </div></div>
+    </div>`;
+  }
+  return html||'<div class="empty-state">등록된 반이 없습니다.</div>';
 }
 
-window.openApplyModal=function(schoolId){
-  if(!activeRound||activeRound.status!=='open'){toast('신청 기간이 아닙니다','err');return;}
-  const s=schools.find(x=>x.id===schoolId);
-  if(!s) return;
-  const isFull=allApps.filter(a=>a.school_id===schoolId&&a.status==='normal').length>=s.capacity;
-  showModal(
-    isFull?`${s.name} — 대기 신청`:`${s.name} — 신청`,
-    `${isFull?`<div style="font-size:12px;color:var(--warn);background:rgba(200,118,10,.08);border:1px solid rgba(200,118,10,.2);border-radius:5px;padding:8px 12px;">정원 초과로 대기 순번으로 신청됩니다. 앞 신청자 취소 시 자동 확정됩니다.</div>`:''}
-    <div><div class="fl">이름</div><input class="fi" id="applyName" placeholder="홍길동" autocomplete="off" /></div>
-    <div><div class="fl">학번</div><input class="fi" id="applySid" placeholder="20250001" autocomplete="off" inputmode="numeric" /></div>`,
-    `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn ${isFull?'btn-warn':'btn-p'}" id="applySubmitBtn" onclick="submitApply(${schoolId})">${isFull?'대기 신청':'신청'}</button>`
-  );
-  setTimeout(()=>document.getElementById('applyName')?.focus(),50);
-};
-
-window.submitApply=async function(schoolId){
-  if(!activeRound||activeRound.status!=='open'){toast('신청 기간이 아닙니다','err');return;}
+window.submitApply=async function(){
+  if(!round||round.status!=='open'){toast('신청 기간이 아닙니다','err');return;}
   const name=(document.getElementById('applyName')?.value||'').trim();
   const sid=(document.getElementById('applySid')?.value||'').trim();
-  if(!name){toast('이름을 입력해주세요','err');return;}
+  const pref1Raw=document.getElementById('applyPref1')?.value;
+  const pref2Raw=document.getElementById('applyPref2')?.value;
+  if(!name){toast('성명을 입력해주세요','err');return;}
   if(sid.length<4){toast('학번을 올바르게 입력해주세요','err');return;}
+  if(!pref1Raw){toast('1지망을 선택해주세요','err');return;}
+  const pref1=parseInt(pref1Raw);
+  const pref2=pref2Raw?parseInt(pref2Raw):null;
+  if(pref2&&pref2===pref1){toast('1지망과 2지망이 같습니다','err');return;}
 
-  // 이미 다른 스쿨에 신청한 학번인지 확인
-  const existing=allApps.find(a=>a.student_id===sid);
+  const existing=apps.find(a=>a.student_id===sid);
   if(existing){
-    const exSchool=schools.find(x=>x.id===existing.school_id);
-    toast(`이미 "${exSchool?.name||'다른 스쿨'}"에 신청했습니다`,'err');
-    return;
+    if(!confirm('이미 신청한 내역이 있습니다.\n기존 신청이 철회되고 새로 신청됩니다. 계속하시겠습니까?')) return;
   }
-
-  const s=schools.find(x=>x.id===schoolId);
-  const normalCount=allApps.filter(a=>a.school_id===schoolId&&a.status==='normal').length;
-  const status=normalCount>=(s?.capacity||0)?'waitlist':'normal';
 
   const btn=document.getElementById('applySubmitBtn');
-  if(btn){btn.disabled=true;btn.textContent='신청 중...';}
-  try{
-    const {error}=await supabase.from('school_applications')
-      .insert({school_id:schoolId,applicant_name:name,student_id:sid,status});
-    if(error) throw error;
-    closeModal();
-    toast(status==='normal'?'신청이 완료됐습니다!':'대기 신청 완료. 앞 신청자 취소 시 자동 확정됩니다.','ok');
-  }catch(e){
-    const m=e?.message||'';
-    if(m.includes('unique')||m.includes('duplicate')) toast('이미 신청된 학번입니다','err');
-    else toast(m||'오류가 발생했습니다','err');
-    if(btn){btn.disabled=false;}
-  }
-};
-
-window.openCancelModal=function(appId,appName){
-  showModal(
-    '신청 취소',
-    `<div style="font-size:13px;color:var(--text2);margin-bottom:4px"><strong>${appName}</strong>님의 신청을 취소합니다.</div>
-    <div><div class="fl">본인 확인 — 학번 전체 입력</div><input class="fi" id="cancelSid" type="text" placeholder="20250001" autocomplete="off" inputmode="numeric" /></div>`,
-    `<button class="btn btn-s" onclick="closeModal()">뒤로</button>
-     <button class="btn btn-d" id="cancelSubmitBtn" onclick="submitCancel(${appId})">신청 취소</button>`
-  );
-  setTimeout(()=>document.getElementById('cancelSid')?.focus(),50);
-};
-
-window.submitCancel=async function(appId){
-  const sid=(document.getElementById('cancelSid')?.value||'').trim();
-  if(!sid){toast('학번을 입력해주세요','err');return;}
-
-  const app=allApps.find(a=>a.id===appId);
-  if(!app){toast('신청 정보를 찾을 수 없습니다','err');return;}
-  if(app.student_id!==sid){toast('학번이 일치하지 않습니다','err');return;}
-
-  const btn=document.getElementById('cancelSubmitBtn');
   if(btn){btn.disabled=true;btn.textContent='처리 중...';}
-
-  const wasNormal=app.status==='normal';
-  const schoolId=app.school_id;
-
   try{
-    const {error}=await supabase.from('school_applications').delete().eq('id',appId);
+    if(existing){
+      const {error}=await supabase.from('school_applications').delete().eq('id',existing.id);
+      if(error) throw error;
+      apps=apps.filter(a=>a.id!==existing.id);
+    }
+
+    const returning=isReturning(sid);
+    let assignedId=null, status;
+    if(returning){
+      status='pending';
+    } else {
+      assignedId=pickClass(pref1,pref2);
+      status=assignedId?'assigned':'unassigned';
+    }
+
+    const {error}=await supabase.from('school_applications').insert({
+      round_id:round.id,applicant_name:name,student_id:sid,
+      pref1_school_id:pref1,pref2_school_id:pref2||null,
+      assigned_school_id:assignedId,is_returning:returning,status
+    });
     if(error) throw error;
 
-    if(wasNormal){
-      const wl=allApps
-        .filter(a=>a.school_id===schoolId&&a.status==='waitlist'&&a.id!==appId)
-        .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-      if(wl.length){
-        await supabase.from('school_applications').update({status:'normal'}).eq('id',wl[0].id);
-      }
+    if(returning){
+      toast('신청 등록 완료. 이전 회차 수강자로 마감 후 남은 자리에 배정될 예정입니다.','ok');
+    } else if(assignedId){
+      const c=classes.find(x=>x.id===assignedId);
+      toast(`${c?.name||'반'}에 배정됐습니다!`,'ok');
+    } else {
+      toast('신청 등록 완료. 현재 모든 반이 만석입니다.','');
     }
-    closeModal();
-    toast('신청이 취소됐습니다','ok');
   }catch(e){
     toast(e?.message||'오류가 발생했습니다','err');
-    if(btn){btn.disabled=false;btn.textContent='신청 취소';}
+    if(btn){btn.disabled=false;btn.textContent='신청하기';}
   }
 };
 
-// ── 실시간 구독 ──────────────────────────────────────────────────────
 supabase.channel('school-public-rt')
   .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},()=>load())
   .on('postgres_changes',{event:'*',schema:'public',table:'schools'},()=>load())
-  .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},()=>load())
+  .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async()=>{
+    if(!round) return;
+    const {data}=await supabase.from('school_applications').select('*').eq('round_id',round.id).order('created_at');
+    apps=data||[];
+    render();
+  })
   .subscribe();
 
 load();
