@@ -2354,7 +2354,7 @@ window.confirmEnsembleTeams=async function(){
         if(!memberMap[sl.appId]) memberMap[sl.appId]={name:sl.applicantName,studentId:sl.studentId,sessions:[]};
         memberMap[sl.appId].sessions.push(sl.session);
       }
-      await createTeam({name:`${r?.name||''} ${i+1}팀`.trim(),type:eDndSt.type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,
+      await createTeam({name:`${i+1}팀`,type:eDndSt.type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,
         members:Object.values(memberMap).map(m=>({name:m.name,student_id_last3:m.studentId?.slice(-3)||'',sessions:m.sessions}))});
     }
     const{error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',eDndSt.roundId);
@@ -2608,7 +2608,7 @@ window.confirmAllTeams=async function(type,roundId){
     for(let i=0;i<confirmedSongs.length;i++){
       const song=confirmedSongs[i];
       const members=(eSessionMap[song.id]||[]).filter(a=>a.status==='confirmed').map(a=>({name:a.applicant_name,student_id_last3:a.student_id.slice(-3),sessions:a.sessions}));
-      await createTeam({name:`${r.name||''} ${i+1}팀`.trim(),type:type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,members});
+      await createTeam({name:`${i+1}팀`,type:type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,members});
     }
     const {error:e2}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
     if(e2) throw e2;
