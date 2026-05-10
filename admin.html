@@ -897,11 +897,11 @@ function renderSchool(){
       <div style="padding:14px 16px;display:flex;flex-direction:column;gap:14px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div>
-            <div class="fl">학기 (m)</div>
+            <div class="fl">학기(숫자로)</div>
             <input class="fi" id="scSemester" type="number" min="1" value="${cur.semester||''}" placeholder="1"/>
           </div>
           <div>
-            <div class="fl">회차 (n)</div>
+            <div class="fl">회차(숫자로)</div>
             <input class="fi" id="scRoundNum" type="number" min="1" value="${cur.round_num||''}" placeholder="1"/>
           </div>
         </div>
@@ -1059,8 +1059,8 @@ window.openCreateSchoolRoundModal=function(){
   showModal('새 스쿨 회차 만들기',
     `<div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div><div class="fl">학기 (m)</div><input class="fi" id="nSchSem" type="number" min="1" placeholder="1"/></div>
-        <div><div class="fl">회차 (n)</div><input class="fi" id="nSchRnd" type="number" min="1" placeholder="1"/></div>
+        <div><div class="fl">학기(숫자로)</div><input class="fi" id="nSchSem" type="number" min="1" placeholder="1"/></div>
+        <div><div class="fl">회차(숫자로)</div><input class="fi" id="nSchRnd" type="number" min="1" placeholder="1"/></div>
       </div>
     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
