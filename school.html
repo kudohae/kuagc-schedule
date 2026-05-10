@@ -269,7 +269,7 @@ function renderOpen(){
     <div class="rs-texts">
       <div class="rs-title">${name} — 신청 진행 중</div>
       ${closeAt?`<div class="rs-sub" style="color:var(--warn)">⏰ 마감: ${fmtDate(closeAt)} &nbsp;—&nbsp; <span id="cdEl" style="font-family:'Space Mono',monospace;font-weight:700">...</span></div>`:'<div class="rs-sub">성명·학번·1지망을 입력하고 신청하세요.</div>'}
-      ${round.prioritize_returning?'<div class="rs-notice">ℹ️ 이번 횟차는 이전 횟차 수강자를 마감 후에 배정합니다.</div>':''}
+      ${round.prioritize_returning?'<div class="rs-notice">ℹ️ 이번 회차는 이전 회차 수강자를 마감 후에 배정합니다.</div>':''}
     </div>
   </div>`;
 
@@ -282,7 +282,7 @@ function renderOpen(){
       </div>
       <div><div class="fl">1지망 *</div><select class="fi" id="applyPref1">
         <option value="">— 선택하세요 —</option>
-        ${classes.map(c=>`<option value="${c.id}">${c.name}${c.teacher_name?` (담임: ${c.teacher_name})`:''  }${countAssigned(c.id)>=(c.capacity||0)?' — 만석':''}</option>`).join('')}
+        ${classes.map(c=>`<option value="${c.id}">${c.name}${c.teacher_name?` (담임: ${c.teacher_name})`:''}${countAssigned(c.id)>=(c.capacity||0)?' — 만석':''}</option>`).join('')}
       </select></div>
       <div><div class="fl">2지망 (선택)</div><select class="fi" id="applyPref2">
         <option value="">— 없음 —</option>
@@ -334,7 +334,7 @@ function renderClosed(){
     <div class="rs-icon">🔒</div>
     <div class="rs-texts">
       <div class="rs-title">${name} — 마감</div>
-      <div class="rs-sub">스쿨 신청이 마감뤌습니다. 배정 결과를 확인하세요.</div>
+      <div class="rs-sub">스쿨 신청이 마감됐습니다. 배정 결과를 확인하세요.</div>
     </div>
   </div>`;
   html+=renderClassCards(false);
@@ -385,7 +385,7 @@ function renderClassCards(isOpen){
     html+=`<div class="pending-card">
       <div class="pending-hdr">
         <div class="pending-title">마감 후 배정 예정 — ${pending.length}명</div>
-        <div style="font-size:11px;color:var(--accent2);margin-top:2px">이전 횟차 수강자입니다. 마감 후 남은 자리에 배정됩니다.</div>
+        <div style="font-size:11px;color:var(--accent2);margin-top:2px">이전 회차 수강자입니다. 마감 후 남은 자리에 배정됩니다.</div>
       </div>
       <div style="padding:10px 16px"><div class="applicant-list">
         ${pending.map(a=>{const p1=classes.find(c=>c.id===a.pref1_school_id);const p2=classes.find(c=>c.id===a.pref2_school_id);return`<div class="applicant-row">
@@ -460,10 +460,10 @@ window.submitApply=async function(){
     if(error) throw error;
 
     if(returning){
-      toast('신청 등록 완료. 이전 횟차 수강자로 마감 후 남은 자리에 배정될 예정입니다.','ok');
+      toast('신청 등록 완료. 이전 회차 수강자로 마감 후 남은 자리에 배정될 예정입니다.','ok');
     } else if(assignedId){
       const c=classes.find(x=>x.id===assignedId);
-      toast(`${c?.name||'반'}에 배정떐습니다!`,'ok');
+      toast(`${c?.name||'반'}에 배정됐습니다!`,'ok');
     } else {
       toast('신청 등록 완료. 현재 모든 반이 만석입니다.','');
     }
