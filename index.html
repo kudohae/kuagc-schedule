@@ -1057,7 +1057,7 @@ function showStatus(){
     const isClosed=activeRound.status==='closed';
     if(isOpen||isSched||isClosed){
       const label=isSched?'시간 신청 예약됨':isClosed?'시간 신청 마감됨 (배정 대기)':'시간 신청 진행 중';
-      notifs.push(`<div class="notif-item"><span class="notif-txt">⏱ ${label}</span><a href="timeassign.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none">이동</a></div>`);
+      notifs.push(`<div class="notif-item"><span class="notif-txt">⏱ ${label}</span><a href="timeassign.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none">Go</a></div>`);
     }
   }
   if(activeEnsemble){
@@ -1066,7 +1066,7 @@ function showStatus(){
     const isSessSched=phase==='song'&&activeEnsemble.session_scheduled_at&&new Date(activeEnsemble.session_scheduled_at)>now;
     if(phase==='song'||phase==='session'||isSongSched||isSessSched){
       const label=isSongSched?'합주 곡 신청 예약됨':isSessSched?'합주 세션 신청 예약됨':phase==='song'?'합주 곡 신청 진행 중':'합주 세션 신청 진행 중';
-      notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${label}</span><a href="ensemble.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none">이동</a></div>`);
+      notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${label}</span><a href="ensemble.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none">Go</a></div>`);
     }
   }
   const notifBar=notifs.length?`<div class="notif-bar">${notifs.join('')}</div>`:'';
