@@ -532,18 +532,113 @@ function render(){
     </div>`;
   }
 
-  // ─ 5단계: 팀 배정 중 (session_end) ─
+  // ─ 5단계: 1차 팀 배정 (session_end) ─
   else if(phase==='session_end'){
-    html+=`<div class="status-card closed">
-      <div class="status-icon">⏸️</div>
+    const allSessApps=Object.values(sessionMap).flat().filter(a=>a.round_id===r.id);
+    const dndDone=allSessApps.length===0||allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
+    if(dndDone){
+      const target=r?.has_session2&&r?.session2_scheduled_at;
+      if(target&&new Date(target)<=new Date()){
+        if(rounds[type]?.id===r.id){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
+        supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id).then(({error})=>{if(error)console.error('session_end→session2:',error.message);});
+        render(); return;
+      }
+      html+=`<div class="status-card closed">
+        <div class="status-icon">✅</div>
+        <div class="status-texts">
+          <div class="status-title">${r?.name||typeName} — 1차 팀 구성이 완료됐습니다</div>
+          <div class="status-sub">${r?.has_session2?'2차 세션 신청을 기다려주세요.':'합주 팀을 확인하세요.'}</div>
+        </div>
+      </div>`;
+      if(target){
+        const diff=new Date(target)-Date.now();
+        html+=`<div class="status-sub" style="margin:4px 0 8px;font-size:13px">2차 세션 신청까지: <span id="cd-${type}" style="font-family:'Space Mono',monospace;font-weight:700;color:var(--accent2)">${diffToHMS(diff)}</span></div>`;
+        startCountdown(type,target,async()=>{
+          if(rounds[type]?.id===r.id){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
+          const {error}=await supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id);
+          if(error) console.error('session_end→session2(timer):',error.message);
+          render();
+        });
+      }
+    } else {
+      html+=`<div class="status-card closed">
+        <div class="status-icon">⏸️</div>
+        <div class="status-texts">
+          <div class="status-title">${r?.name||typeName} — 세션 신청이 끝났습니다</div>
+          <div class="status-sub">합주 팀 배정을 기다려주세요.</div>
+        </div>
+      </div>`;
+    }
+  }
+
+  // ─ 6단계: 2차 세션 신청 (session2) ─
+  else if(phase==='session2'){
+    const closeAt=r?.session2_close_at;
+    if(closeAt&&new Date(closeAt)<=new Date()){
+      if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';}
+      supabase.from('ensemble_rounds').update({phase:'session2_end'}).eq('id',r.id).then(({error})=>{if(error)console.error('session2→session2_end:',error.message);});
+      render(); return;
+    }
+    const diff=closeAt?new Date(closeAt)-Date.now():0;
+    html+=`<div class="status-card session">
+      <div class="status-icon">👥</div>
       <div class="status-texts">
-        <div class="status-title">${r?.name||typeName} — 세션 신청이 끝났습니다</div>
-        <div class="status-sub">합주 팀 배정을 기다려주세요.</div>
+        <div class="status-title">${r?.name||typeName} — 2차 세션 신청 진행 중</div>
+        <div class="status-sub">인당 최대 ${r.max_sessions_per_person}곡 참여 가능</div>
+        ${closeAt?`<div class="status-sub" style="color:var(--warn)">⏰ 마감: ${fmtScheduled(closeAt)}</div>`:''}
+        ${closeAt?`<div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--warn);margin-top:4px" id="cd-${type}">${diffToHMS(diff)}</div>`:''}
+      </div>
+    </div>`;
+    if(closeAt){
+      startCountdown(type,closeAt,async()=>{
+        if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';}
+        const {error}=await supabase.from('ensemble_rounds').update({phase:'session2_end'}).eq('id',r.id);
+        if(error) console.error('session2→session2_end(timer):',error.message);
+        render();
+      });
+    }
+    const confirmedSongs=songs[type].filter(s=>s.status==='confirmed');
+    const isMissingOnly=r?.session2_mode==='missing_only';
+    html+=`<div class="form-card">
+      <div class="form-title">2차 세션 신청</div>
+      <div class="form-row">
+        <div><div class="fl">성명 *</div><input class="fi" id="ssName" placeholder="홍길동" maxlength="20"/></div>
+        <div><div class="fl">학번 *</div><input class="fi" id="ssStudentId" placeholder="2021130905" maxlength="20"/></div>
+      </div>
+      <div class="form-row single">
+        <div>
+          <div class="fl">참여할 곡 *</div>
+          <select class="fs" id="ssSong" onchange="onSess2SongSelect()">
+            <option value="">— 곡 선택 —</option>
+            ${confirmedSongs.map(s=>{
+              const confirmed1st=(sessionMap[s.id]||[]).filter(a=>a.status==='confirmed').flatMap(a=>a.sessions);
+              const available=isMissingOnly?s.sessions.filter(x=>!confirmed1st.includes(x)):s.sessions;
+              return `<option value="${s.id}" data-sessions='${JSON.stringify(available)}' data-missing='${isMissingOnly}'>${s.title} — ${s.artist}${isMissingOnly&&!available.length?' (빈 세션 없음)':''}</option>`;
+            }).join('')}
+          </select>
+        </div>
+      </div>
+      <div id="sessionSelectArea">
+        <div class="no-song-selected">곡을 선택하면 신청 가능한 세션이 표시됩니다.</div>
+      </div>
+      <div class="form-footer"><button class="btn btn-p" onclick="submitSession2()">세션 신청</button></div>
+    </div>`;
+  }
+
+  // ─ 7단계: 2차 팀 배정 (session2_end) ─
+  else if(phase==='session2_end'){
+    const allSessApps2=Object.values(sessionMap).flat().filter(a=>a.round_id===r.id&&(a.session_round||1)===2);
+    const dndDone2=allSessApps2.length===0||allSessApps2.some(a=>a.status==='confirmed'||a.status==='rejected');
+    html+=`<div class="status-card closed">
+      <div class="status-icon">${dndDone2?'✅':'⏸️'}</div>
+      <div class="status-texts">
+        <div class="status-title">${r?.name||typeName} — ${dndDone2?'팀 구성이 완료됐습니다':'2차 세션 신청이 끝났습니다'}</div>
+        <div class="status-sub">${dndDone2?'합주 팀을 확인하세요.':'합주 팀 배정을 기다려주세요.'}</div>
       </div>
     </div>`;
   }
 
-  // ─ 6단계: 확정 (closed) ─
+  // ─ 8단계: 확정 (closed) ─
   else if(phase==='closed'){
     html+=`<div class="status-card closed">
       <div class="status-icon">✅</div>
@@ -605,12 +700,14 @@ function renderSongItem(s,num,phase){
   const filledSessions=new Set(sessApps.flatMap(a=>a.sessions));
   const needBadges=s.sessions.map(sess=>
     `<span class="sneed ${filledSessions.has(sess)?'filled':''}">${sess}</span>`).join('');
+  const closedLike=['closed','session_end','session2_end'].includes(phase);
   const sessionRows=sessApps.length?`
     <div class="session-list">
       ${sessApps.map(a=>{
-        const rejected=phase==='closed'&&a.status==='rejected';
+        const rejected=closedLike&&a.status==='rejected';
+        const rBadge=(a.session_round||1)===2&&['session2','session2_end','closed'].includes(phase)?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 3px;margin-left:3px">2차</span>`:'';
         return `<div class="session-row" style="${rejected?'opacity:.55':''}">
-          <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}">${a.applicant_name}(${a.student_id.slice(-3)})</span>
+          <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}">${a.applicant_name}(${a.student_id.slice(-3)})${rBadge}</span>
           <div class="session-row-right">
             <div class="session-row-sessions">
               ${a.sessions.map(sess=>`<span class="sess-tag ${a.status==='confirmed'?'confirmed':''}">${sess}</span>`).join('')}
@@ -731,7 +828,31 @@ window.submitSession=async function(){
   if(!name||!sid||!songId){toast('모든 필드를 입력해주세요','err');return;}
   const sessions=[...document.querySelectorAll('[id^="sss_"]:checked')].map(c=>c.value);
   if(!sessions.length){toast('참여할 세션을 하나 이상 선택해주세요','err');return;}
-  await doSubmitSession(parseInt(songId),r,name,sid,sessions);
+  await doSubmitSession(parseInt(songId),r,name,sid,sessions,1);
+};
+
+window.submitSession2=async function(){
+  const r=rounds[currentType];
+  if(!r||r.phase!=='session2'){toast('현재 2차 세션 신청 기간이 아닙니다','err');return;}
+  if(r.session2_close_at&&new Date(r.session2_close_at)<=new Date()){toast('2차 세션 신청이 마감됐습니다','err');return;}
+  const name=document.getElementById('ssName').value.trim();
+  const sid=document.getElementById('ssStudentId').value.trim();
+  const songId=document.getElementById('ssSong').value;
+  if(!name||!sid||!songId){toast('모든 필드를 입력해주세요','err');return;}
+  const sessions=[...document.querySelectorAll('[id^="sss_"]:checked')].map(c=>c.value);
+  if(!sessions.length){toast('참여할 세션을 하나 이상 선택해주세요','err');return;}
+  await doSubmitSession(parseInt(songId),r,name,sid,sessions,2);
+};
+
+window.onSess2SongSelect=function(){
+  const sel=document.getElementById('ssSong');
+  const area=document.getElementById('sessionSelectArea');
+  if(!sel||!area) return;
+  const opt=sel.options[sel.selectedIndex];
+  if(!opt||!opt.value){area.innerHTML='<div class="no-song-selected">곡을 선택하면 신청 가능한 세션이 표시됩니다.</div>';return;}
+  const available=JSON.parse(opt.dataset.sessions||'[]');
+  if(!available.length){area.innerHTML='<div class="no-song-selected">이 곡에 신청 가능한 빈 세션이 없습니다.</div>';return;}
+  area.innerHTML=`<div class="session-area"><div class="fl">참여할 세션 *</div><div class="session-grid">${available.map(s=>`<input type="checkbox" class="session-chk" id="sss_${s.replace(/\s/g,'_')}" value="${s}"/><label class="session-label" for="sss_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}</div></div>`;
 };
 
 window.openSessionModal=function(songId){
@@ -763,21 +884,21 @@ window.submitSessionModal=async function(songId){
   if(!name||!sid){toast('성명과 학번을 입력해주세요','err');return;}
   if(!sessions.length){toast('세션을 하나 이상 선택해주세요','err');return;}
   const btn=document.getElementById('mssBtn'); btn.disabled=true;
-  const ok=await doSubmitSession(songId,r,name,sid,sessions);
+  const ok=await doSubmitSession(songId,r,name,sid,sessions,r?.phase==='session2'?2:1);
   if(!ok) btn.disabled=false;
 };
 
-async function doSubmitSession(songId,r,name,sid,sessions){
-  const allSess=Object.values(sessionMap).flat();
+async function doSubmitSession(songId,r,name,sid,sessions,sessionRound=1){
+  const allSess=Object.values(sessionMap).flat().filter(a=>(a.session_round||1)===sessionRound);
   const mySongs=new Set(allSess.filter(a=>a.student_id===sid&&a.round_id===r.id&&a.status!=='rejected').map(a=>a.song_id));
   if(!mySongs.has(songId)&&mySongs.size>=r.max_sessions_per_person){
     toast(`인당 최대 ${r.max_sessions_per_person}곡까지 참여 가능합니다`,'err');return false;
   }
-  const existing=(sessionMap[songId]||[]).find(a=>a.student_id===sid&&a.status!=='rejected');
+  const existing=(sessionMap[songId]||[]).find(a=>a.student_id===sid&&a.status!=='rejected'&&(a.session_round||1)===sessionRound);
   if(existing){toast('이미 이 곡에 세션을 신청했습니다','err');return false;}
   try{
     await supabase.from('session_applications').insert({
-      song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending'
+      song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending',session_round:sessionRound
     });
     toast('세션 신청이 완료됐습니다','ok');
     closeModal(); await loadAll(); return true;
