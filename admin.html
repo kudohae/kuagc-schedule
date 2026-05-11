@@ -2347,17 +2347,6 @@ window.confirmEnsembleTeams=async function(){
     const rejectedIds=allAppIds.filter(id=>!placedAppIds.has(id));
     if(confirmedIds.length){const{error}=await supabase.from('session_applications').update({status:'confirmed'}).in('id',confirmedIds);if(error)throw error;}
     if(rejectedIds.length){const{error}=await supabase.from('session_applications').update({status:'rejected'}).in('id',rejectedIds);if(error)throw error;}
-    const r=eRounds[eDndSt.type];
-    for(const[i,{song,slots}]of eDndSt.songs.entries()){
-      if(!slots.length) continue;
-      const memberMap={};
-      for(const sl of slots){
-        if(!memberMap[sl.appId]) memberMap[sl.appId]={name:sl.applicantName,studentId:sl.studentId,sessions:[]};
-        memberMap[sl.appId].sessions.push(sl.session);
-      }
-      await createTeam({name:`${i+1}팀`,type:eDndSt.type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,
-        members:Object.values(memberMap).map(m=>({name:m.name,student_id_last3:m.studentId?.slice(-3)||'',sessions:m.sessions}))});
-    }
     const{error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',eDndSt.roundId);
     if(error) throw error;
     localStorage.removeItem(eDndSt.savedKey);
@@ -2603,11 +2592,6 @@ window.confirmAllTeams=async function(type,roundId){
     if(allPending.length){
       const {error:e1}=await supabase.from('session_applications').update({status:'rejected'}).in('id',allPending.map(a=>a.id));
       if(e1) throw e1;
-    }
-    for(let i=0;i<confirmedSongs.length;i++){
-      const song=confirmedSongs[i];
-      const members=(eSessionMap[song.id]||[]).filter(a=>a.status==='confirmed').map(a=>({name:a.applicant_name,student_id_last3:a.student_id.slice(-3),sessions:a.sessions}));
-      await createTeam({name:`${i+1}팀`,type:type==='regular'?'합주':'버스킹',color:'#888888',info:song.title,members});
     }
     const {error:e2}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
     if(e2) throw e2;
