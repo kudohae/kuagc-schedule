@@ -2347,6 +2347,20 @@ window.confirmEnsembleTeams=async function(){
     const rejectedIds=allAppIds.filter(id=>!placedAppIds.has(id));
     if(confirmedIds.length){const{error}=await supabase.from('session_applications').update({status:'confirmed'}).in('id',confirmedIds);if(error)throw error;}
     if(rejectedIds.length){const{error}=await supabase.from('session_applications').update({status:'rejected'}).in('id',rejectedIds);if(error)throw error;}
+    const appAssign={};
+    for(const {song,slots} of eDndSt.songs){
+      for(const sl of slots){
+        if(!appAssign[sl.appId]) appAssign[sl.appId]=[];
+        let a=appAssign[sl.appId].find(x=>x.songId===song.id);
+        if(!a){a={songId:song.id,sessions:[]};appAssign[sl.appId].push(a);}
+        a.sessions.push(sl.session);
+      }
+    }
+    for(const [appId,assignments] of Object.entries(appAssign)){
+      const best=assignments.reduce((b,a)=>a.sessions.length>b.sessions.length?a:b,assignments[0]);
+      const{error:eUp}=await supabase.from('session_applications').update({song_id:best.songId,sessions:best.sessions}).eq('id',appId);
+      if(eUp) throw eUp;
+    }
     const{error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',eDndSt.roundId);
     if(error) throw error;
     localStorage.removeItem(eDndSt.savedKey);
