@@ -307,6 +307,7 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
   .btn{min-height:44px;padding:10px 16px;font-size:14px;}
   .btn-xs{min-height:36px;padding:7px 12px;font-size:13px;}
   .nav-btn{min-height:44px;}
+  .notif-item .btn{min-height:0;padding:4px 10px;font-size:11px;}
 
   /* 요일 탭 (1일 뷰) */
   .day-tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
@@ -497,7 +498,7 @@ function weekLabel(off){
 let weekOff=0, season='1학기';
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let merged=[];
-let activeRound=null, activeEnsemble=null;
+let activeRound=null, activeEnsemble=null, activeSchoolRound=null;
 let collapsed=new Set();
 let mobileDayIdx=(new Date().getDay()+6)%7; // 모바일 선택 요일 (기본=오늘)
 const isMobile=()=>window.innerWidth<=700;
@@ -530,15 +531,17 @@ async function loadAll(){
   const ldEl = document.getElementById('ld');
   ldEl.style.display='flex';
   try{
-    const [t,bs,ex,rq,nt,ct,roundRes,ensRes] = await Promise.all([
+    const [t,bs,ex,rq,nt,ct,roundRes,ensRes,schoolRes] = await Promise.all([
       fetchTeams(), fetchBaseSlots(season), fetchExceptions(weekOff),
       fetchRequests(weekOff), fetchNotices(), fetchContacts(),
       import('./js/supabase.js').then(({supabase})=>supabase.from('application_rounds').select('*').in('status',['open','closed']).order('created_at',{ascending:false}).limit(1).maybeSingle()),
-      import('./js/supabase.js').then(({supabase})=>supabase.from('ensemble_rounds').select('*').not('phase','eq','closed').order('created_at',{ascending:false}).limit(1).maybeSingle())
+      import('./js/supabase.js').then(({supabase})=>supabase.from('ensemble_rounds').select('*').not('phase','eq','closed').order('created_at',{ascending:false}).limit(1).maybeSingle()),
+      import('./js/supabase.js').then(({supabase})=>supabase.from('school_rounds').select('*').in('status',['draft','open']).order('created_at',{ascending:false}).limit(1).maybeSingle())
     ]);
     [teams,baseSlots,exceptions,requests,notices,contacts]=[t,bs,ex,rq,nt,ct];
     activeRound=roundRes.data||null;
     activeEnsemble=ensRes.data||null;
+    activeSchoolRound=schoolRes.data||null;
     teams=korSort(teams,'name');
     merged=mergeSchedule(baseSlots,exceptions);
     ldEl.style.display='none';
@@ -1059,6 +1062,10 @@ function showStatus(){
       const label=isSched?'시간 신청 예약됨':isClosed?'시간 신청 마감됨 (배정 대기)':'시간 신청 진행 중';
       notifs.push(`<div class="notif-item"><span class="notif-txt">⏱ ${label}</span><a href="timeassign.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none;white-space:nowrap;display:inline-block;min-width:fit-content">이동</a></div>`);
     }
+  }
+  if(activeSchoolRound){
+    const label=activeSchoolRound.status==='draft'?'스쿨 신청 준비 중':'스쿨 신청 진행 중';
+    notifs.push(`<div class="notif-item"><span class="notif-txt">🏫 ${label}</span><a href="school.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none">이동</a></div>`);
   }
   if(activeEnsemble){
     const phase=activeEnsemble.phase;
