@@ -2076,7 +2076,19 @@ function renderEnsemble(){
       ctrl=`<button class="btn btn-p btn-xs" onclick="startSessionEndNow(${r.id})">세션 신청 종료</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session_end'){
-      ctrl=`<button class="btn btn-p btn-xs" onclick="confirmAllTeams('${type}',${r.id})">팀 구성 확정</button>
+      const allSessApps=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
+      const sess1DndDone=allSessApps.length===0||allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
+      const advLabel=r.has_session2?'2차 세션 신청으로':'완료';
+      ctrl=`${sess1DndDone?`<button class="btn btn-p btn-xs" onclick="advanceFromSessionEnd('${type}',${r.id})">${advLabel}</button>`:''}
+            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+    } else if(phase==='session2'){
+      ctrl=`<button class="btn btn-p btn-xs" onclick="startSession2EndNow(${r.id})">2차 세션 신청 종료</button>
+            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+    } else if(phase==='session2_end'){
+      const allSessApps2=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
+      const sess2Apps=allSessApps2.filter(a=>(a.session_round||1)===2);
+      const sess2DndDone=sess2Apps.length===0||sess2Apps.some(a=>a.status==='confirmed'||a.status==='rejected');
+      ctrl=`${sess2DndDone?`<button class="btn btn-p btn-xs" onclick="completeRound(${r.id})">완료</button>`:''}
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='closed'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>`;
@@ -2087,13 +2099,42 @@ function renderEnsemble(){
     if((phase==='draft'||phase==='song')&&r?.song_scheduled_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 곡 신청 오픈: ${fS(r.song_scheduled_at)}</div>`);
     if((phase==='draft'||phase==='song')&&r?.song_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 곡 신청 마감: ${fS(r.song_close_at)}</div>`);
     if((phase==='song_end'||phase==='session')&&r?.session_scheduled_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 세션 신청 오픈: ${fS(r.session_scheduled_at)}</div>`);
-    if((phase==='session'||phase==='session_end')&&r?.session_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 세션 신청 마감: ${fS(r.session_close_at)}</div>`);
+    if((phase==='session'||phase==='session_end')&&r?.session_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 1차 세션 신청 마감: ${fS(r.session_close_at)}</div>`);
+    if((phase==='session_end'||phase==='session2')&&r?.has_session2&&r?.session2_scheduled_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 2차 세션 신청 오픈: ${fS(r.session2_scheduled_at)}</div>`);
+    if((phase==='session2'||phase==='session2_end')&&r?.session2_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 2차 세션 신청 마감: ${fS(r.session2_close_at)}</div>`);
     const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡 · 세션 ${r.max_sessions_per_person}곡</div>${schedLines.join('')}`:'';
     const ctrlHtml=`<div class="ensemble-col-ctrl">${ctrl}</div>`;
 
+    const mkConfirmedSongHtml=(songList2,showDndBtn,dndBtnLabel='팀 구성 시작')=>{
+      const confSongs=songList2.filter(s=>s.status!=='rejected');
+      let h=confSongs.map((s,i)=>{
+        const conf=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed');
+        let sh='';
+        if(conf.length) sh=`<div class="e-sess-list">${conf.map(a=>`<div class="e-sess-row"><span class="e-sess-dot confirmed"></span><span class="e-sess-name">${a.applicant_name}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag confirmed">${x}</span>`).join('')}</div></div>`).join('')}</div>`;
+        return `<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1;min-width:0"><div class="e-song-title">${s.title}</div><div class="e-song-artist">${s.artist}</div></div></div>${sh}</div>`;
+      }).join('');
+      if(showDndBtn) h+=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">${dndBtnLabel}</button></div>`;
+      return h;
+    };
+
     let songsHtml='';
     if(phase==='session_end'){
-      songsHtml=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
+      const allSessApps=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
+      const dndDone=allSessApps.length===0||allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
+      if(dndDone){
+        songsHtml=mkConfirmedSongHtml(songList,true,'팀 구성 다시 하기');
+      } else {
+        songsHtml=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
+      }
+    } else if(phase==='session2_end'){
+      const allSessApps2=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
+      const sess2Apps=allSessApps2.filter(a=>(a.session_round||1)===2);
+      const dndDone2=sess2Apps.length===0||sess2Apps.some(a=>a.status==='confirmed'||a.status==='rejected');
+      if(dndDone2){
+        songsHtml=mkConfirmedSongHtml(songList,true,'팀 구성 다시 하기');
+      } else {
+        songsHtml=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
+      }
     } else {
       const active=songList.filter(s=>s.status!=='rejected');
       if(!active.length){
@@ -2102,14 +2143,16 @@ function renderEnsemble(){
         songsHtml=active.map((s,i)=>{
           const sessApps=eSessionMap[s.id]||[];
           let sessHtml='';
-          if(phase==='session'&&sessApps.length){
+          if((phase==='session'||phase==='session2')&&sessApps.length){
             sessHtml=`<div class="e-sess-list">
-              ${sessApps.map(a=>`<div class="e-sess-row">
+              ${sessApps.map(a=>{
+                const rBadge=(a.session_round||1)===2?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px">2차</span>`:'';
+                return `<div class="e-sess-row">
                 <span class="e-sess-dot ${a.status}"></span>
-                <span class="e-sess-name">${a.applicant_name} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
+                <span class="e-sess-name">${a.applicant_name}${rBadge} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
                 <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${x}</span>`).join('')}</div>
                 <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
-              </div>`).join('')}
+              </div>`;}).join('')}
             </div>`;
           } else if(phase==='closed'&&sessApps.length){
             const conf=sessApps.filter(a=>a.status==='confirmed');
@@ -2151,7 +2194,7 @@ const ENS_SESS_ORDER=SESSIONS;
 function sessOrder(s){const i=ENS_SESS_ORDER.indexOf(s);return i===-1?99:i;}
 function sortSongSlots(slots){slots.sort((a,b)=>sessOrder(a.session)-sessOrder(b.session)||new Date(a.createdAt)-new Date(b.createdAt));}
 function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
-function makeSlots(app,songTitle=''){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle}));}
+function makeSlots(app,songTitle=''){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle,sessionRound:app.session_round||1}));}
 
 function computeEnsDndInitial(type){
   const r=eRounds[type]; if(!r) return null;
@@ -2232,7 +2275,7 @@ function ensSlotCardHtml(sl,conflicted){
   return `<div class="ens-member-card${conflicted?' conflict':''}" draggable="true" data-id="${sl.id}"
     ondragstart="ensDndDragStart(event,'${sid}')" ondragend="ensDndDragEnd(event)">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
-      <div><span class="ens-member-name">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''}</div>
+      <div><span class="ens-member-name">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''} ${sl.sessionRound===2?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>`:''}</div>
       <span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDndTime(sl.createdAt)}</span>
     </div>
     <div class="ens-member-tags"><span class="ens-member-tag${conflicted?' conflict':''}">${sl.session}</span></div>
@@ -2361,8 +2404,6 @@ window.confirmEnsembleTeams=async function(){
       const{error:eUp}=await supabase.from('session_applications').update({song_id:best.songId,sessions:best.sessions}).eq('id',appId);
       if(eUp) throw eUp;
     }
-    const{error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',eDndSt.roundId);
-    if(error) throw error;
     localStorage.removeItem(eDndSt.savedKey);
     toast(`${eDndSt.songs.filter(s=>s.slots.length).length}개 팀이 확정됐습니다`,'ok');
     closeEnsDndModal();
@@ -2378,7 +2419,7 @@ async function loadEnsemble(){
     if(!r){ eSongs[type]=[]; continue; }
     const {data:s}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
     eSongs[type]=s||[];
-    if(['song_end','session','session_end','closed'].includes(r.phase)){
+    if(['song_end','session','session_end','session2','session2_end','closed'].includes(r.phase)){
       const toReject=(eSongs[type]||[]).filter(s=>s.status==='pending');
       if(toReject.length){
         await supabase.from('song_applications').update({status:'rejected'}).in('id',toReject.map(s=>s.id));
@@ -2408,8 +2449,24 @@ window.openCreateRoundModal=function(type){
      </div>
      <div><div class="fl">🎵 곡 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSongOpen" value="${nowPlus(1)}"/></div>
      <div><div class="fl">🎵 곡 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSongClose" value="${nowPlus(25)}"/></div>
-     <div><div class="fl">👥 세션 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSessOpen" value="${nowPlus(49)}"/></div>
-     <div><div class="fl">👥 세션 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSessClose" value="${nowPlus(73)}"/></div>`,
+     <div><div class="fl">👥 1차 세션 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSessOpen" value="${nowPlus(49)}"/></div>
+     <div><div class="fl">👥 1차 세션 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSessClose" value="${nowPlus(73)}"/></div>
+     <div style="margin-top:10px;border-top:1px solid var(--surface2);padding-top:10px">
+       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+         <input type="checkbox" id="eHasSess2" onchange="toggleSess2Fields()">
+         <span>2차 세션 신청 사용</span>
+       </label>
+     </div>
+     <div id="eSess2Fields" style="display:none">
+       <div style="margin-top:8px"><div class="fl">2차 세션 신청 대상</div>
+         <select class="fs" id="eSess2Mode">
+           <option value="any_song">모든 확정 곡 신청 가능 (1차와 동일)</option>
+           <option value="missing_only">빈 세션만 신청 가능</option>
+         </select>
+       </div>
+       <div><div class="fl">👥 2차 세션 신청 오픈 일시</div><input class="fi" type="datetime-local" id="eSess2Open" value="${nowPlus(97)}"/></div>
+       <div><div class="fl">👥 2차 세션 신청 마감 일시</div><input class="fi" type="datetime-local" id="eSess2Close" value="${nowPlus(121)}"/></div>
+     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="ecBtn" onclick="createRound('${type}')">회차 생성</button>`
   );
@@ -2424,6 +2481,10 @@ window.createRound=async function(type){
   const songCloseVal=document.getElementById('eSongClose').value;
   const sessOpenVal=document.getElementById('eSessOpen').value;
   const sessCloseVal=document.getElementById('eSessClose').value;
+  const hasSess2=document.getElementById('eHasSess2')?.checked||false;
+  const sess2OpenVal=hasSess2?document.getElementById('eSess2Open')?.value:'';
+  const sess2CloseVal=hasSess2?document.getElementById('eSess2Close')?.value:'';
+  const sess2Mode=hasSess2?document.getElementById('eSess2Mode')?.value:'any_song';
   if(!name){toast('이름을 입력해주세요','err');return;}
   const now=Date.now();
   const chk=(val,label)=>{
@@ -2431,10 +2492,15 @@ window.createRound=async function(type){
     if(new Date(val).getTime()<=now){toast('예약 일시를 과거로 설정할 수 없습니다.','err');return false;}
     return true;
   };
-  if(!chk(songOpenVal,'곡 신청 오픈 일시')||!chk(songCloseVal,'곡 신청 마감 일시')||!chk(sessOpenVal,'세션 신청 오픈 일시')||!chk(sessCloseVal,'세션 신청 마감 일시')) return;
+  if(!chk(songOpenVal,'곡 신청 오픈 일시')||!chk(songCloseVal,'곡 신청 마감 일시')||!chk(sessOpenVal,'1차 세션 신청 오픈 일시')||!chk(sessCloseVal,'1차 세션 신청 마감 일시')) return;
   if(new Date(songCloseVal)<=new Date(songOpenVal)){toast('곡 신청 마감이 오픈보다 늦어야 합니다','err');return;}
   if(new Date(sessOpenVal)<=new Date(songCloseVal)){toast('세션 신청 오픈이 곡 신청 마감보다 늦어야 합니다','err');return;}
   if(new Date(sessCloseVal)<=new Date(sessOpenVal)){toast('세션 신청 마감이 오픈보다 늦어야 합니다','err');return;}
+  if(hasSess2){
+    if(!chk(sess2OpenVal,'2차 세션 신청 오픈 일시')||!chk(sess2CloseVal,'2차 세션 신청 마감 일시')) return;
+    if(new Date(sess2OpenVal)<=new Date(sessCloseVal)){toast('2차 세션 신청 오픈이 1차 마감보다 늦어야 합니다','err');return;}
+    if(new Date(sess2CloseVal)<=new Date(sess2OpenVal)){toast('2차 세션 신청 마감이 오픈보다 늦어야 합니다','err');return;}
+  }
   const btn=document.getElementById('ecBtn'); btn.disabled=true;
   try{
     const {error}=await supabase.from('ensemble_rounds').insert({
@@ -2442,7 +2508,9 @@ window.createRound=async function(type){
       song_scheduled_at:new Date(songOpenVal).toISOString(),
       song_close_at:new Date(songCloseVal).toISOString(),
       session_scheduled_at:new Date(sessOpenVal).toISOString(),
-      session_close_at:new Date(sessCloseVal).toISOString()
+      session_close_at:new Date(sessCloseVal).toISOString(),
+      has_session2:hasSess2,
+      ...(hasSess2?{session2_mode:sess2Mode,session2_scheduled_at:new Date(sess2OpenVal).toISOString(),session2_close_at:new Date(sess2CloseVal).toISOString()}:{})
     });
     if(error) throw error;
     toast('회차가 생성됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
@@ -2510,6 +2578,48 @@ window.startSessionEndNow=async function(id){
     const {error}=await supabase.from('ensemble_rounds').update({phase:'session_end'}).eq('id',id);
     if(error) throw error;
     toast('세션 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.toggleSess2Fields=function(){
+  document.getElementById('eSess2Fields').style.display=document.getElementById('eHasSess2').checked?'':'none';
+};
+
+window.advanceFromSessionEnd=async function(type,roundId){
+  const r=eRounds[type]; if(!r) return;
+  const next=r.has_session2?'session2':'closed';
+  const label=next==='session2'?'2차 세션 신청 단계':'완료';
+  if(!confirm(`${label}로 이동하시겠습니까?`)) return;
+  try{
+    const {error}=await supabase.from('ensemble_rounds').update({phase:next}).eq('id',roundId);
+    if(error) throw error;
+    toast(`${label}로 이동했습니다`,'ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.startSession2PhaseNow=async function(id){
+  try{
+    const {error}=await supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',id);
+    if(error) throw error;
+    toast('2차 세션 신청이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.startSession2EndNow=async function(id){
+  if(!confirm('2차 세션 신청을 종료하시겠습니까?')) return;
+  try{
+    const {error}=await supabase.from('ensemble_rounds').update({phase:'session2_end'}).eq('id',id);
+    if(error) throw error;
+    toast('2차 세션 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.completeRound=async function(id){
+  if(!confirm('합주 신청을 완료 처리하시겠습니까?')) return;
+  try{
+    const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',id);
+    if(error) throw error;
+    toast('합주 신청이 완료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2607,8 +2717,6 @@ window.confirmAllTeams=async function(type,roundId){
       const {error:e1}=await supabase.from('session_applications').update({status:'rejected'}).in('id',allPending.map(a=>a.id));
       if(e1) throw e1;
     }
-    const {error:e2}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
-    if(e2) throw e2;
     toast(`${confirmedSongs.length}개 팀이 확정됐습니다`,'ok');
     await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
