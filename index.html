@@ -649,11 +649,10 @@ function renderStats(){
   const extra=exceptions.filter(e=>e.exception_type==='extra').length;
   const pend=requests.filter(r=>r.status==='pending').length;
   document.getElementById('statsEl').innerHTML=`
-    <button class="stat stat-btn" onclick="openTeamAbsentModal()"><div style="font-size:18px">🙏</div><div style="font-size:12px;font-weight:700;color:var(--danger)">미사용 보고하기</div></button>
-    <button class="stat stat-btn" onclick="openVacancyReportModal()"><div style="font-size:18px">🚨</div><div style="font-size:12px;font-weight:700;color:var(--accent2)">시간표 불일치 신고</div></button>
+    <button class="stat stat-btn" onclick="openTeamAbsentModal()"><div style="font-size:18px">🙏</div><div style="font-size:12px;font-weight:700;color:var(--accent2)">미사용 보고하기</div></button>
+    <button class="stat stat-btn" onclick="openVacancyReportModal()"><div style="font-size:18px">🚨</div><div style="font-size:12px;font-weight:700;color:var(--danger)">시간표 불일치 신고</div></button>
     <div class="stat"><div class="stat-ico">🔕</div><div class="stat-txt"><div class="stat-lbl">이번 주 미사용</div><div class="stat-val" style="color:var(--danger)">${absent}</div></div></div>
-    <div class="stat"><div class="stat-ico">➕</div><div class="stat-txt"><div class="stat-lbl">이번 주 추가</div><div class="stat-val" style="color:var(--accent2)">${extra}</div></div></div>
-    <div class="stat"><div class="stat-ico">🕐</div><div class="stat-txt"><div class="stat-lbl">대기 신청</div><div class="stat-val" style="color:var(--warn)">${pend}</div></div></div>`;
+    <div class="stat"><div class="stat-ico">➕</div><div class="stat-txt"><div class="stat-lbl">이번 주 추가</div><div class="stat-val" style="color:var(--accent2)">${extra}</div></div></div>;
 }
 
 function renderSchedule(){
