@@ -70,6 +70,11 @@ select.fi{cursor:pointer;}
 .school-card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
 .school-name{font-size:15px;font-weight:700;}
 .school-teacher{font-size:12px;color:var(--text2);margin-top:2px;}
+.school-schedule{font-size:12px;color:var(--text3);margin-top:1px;}
+.school-desc-bar{border-top:1px solid var(--border);padding:8px 16px;display:flex;flex-direction:column;gap:6px;}
+.school-desc-toggle{background:none;border:none;padding:0;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--accent2);cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px;}
+.school-desc-toggle:hover{opacity:.75;}
+.school-desc-body{display:none;font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap;}
 .school-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:3px;flex-shrink:0;white-space:nowrap;}
 .school-badge.open{background:rgba(92,158,0,.12);color:var(--accent);}
 body.dark .school-badge.open{background:rgba(232,255,71,.15);}
@@ -378,10 +383,15 @@ function renderClassCards(isOpen){
       <div class="school-card-hdr">
         <div>
           <div class="school-name">${c.name}</div>
-          ${c.teacher_name?`<div class="school-teacher">담임: ${c.teacher_name}</div>`:''}
+          ${c.teacher_name?`<div class="school-teacher">담당: ${c.teacher_name}</div>`:''}
+          ${c.schedule_day?`<div class="school-schedule">${c.schedule_day}요일 ${c.schedule_hour}시</div>`:''}
         </div>
         <span class="school-badge ${badgeCls}">${badgeTxt}</span>
       </div>
+      ${c.description?`<div class="school-desc-bar">
+        <button class="school-desc-toggle" onclick="toggleSchoolDesc(${c.id})">스쿨 설명 보기</button>
+        <div class="school-desc-body" id="desc-${c.id}">${c.description.replace(/\n/g,'<br>')}</div>
+      </div>`:''}
       <div class="school-body">
         <div class="cap-row">
           <div class="cap-bar"><div class="cap-fill${isFull?' full':''}" style="width:${fillPct}%"></div></div>
@@ -509,6 +519,19 @@ supabase.channel('school-public-rt')
   .subscribe();
 
 load();
+
+window.toggleSchoolDesc=function(id){
+  const body=document.getElementById('desc-'+id);
+  const btn=body?.previousElementSibling;
+  if(!body) return;
+  if(body.style.display==='none'||!body.style.display){
+    body.style.display='block';
+    if(btn) btn.textContent='스쿨 설명 닫기';
+  } else {
+    body.style.display='none';
+    if(btn) btn.textContent='스쿨 설명 보기';
+  }
+};
 </script>
 </body>
 </html>
