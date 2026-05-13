@@ -1224,14 +1224,14 @@ window.deleteSchoolRound=async function(id){
 window.openAddClassModal=function(roundId){
   showModal('반 추가',
     `<div style="display:flex;flex-direction:column;gap:10px">
-      <div><div class="fl">반 이름 *</div><input class="fi" id="addClsName" placeholder="보컬반"/></div>
+      <div><div class="fl">반 이름</div><input class="fi" id="addClsName" placeholder="기타입문반"/></div>
       <div><div class="fl">담당 이름</div><input class="fi" id="addClsTeacher" placeholder="홍길동"/></div>
-      <div><div class="fl">정원 *</div><input class="fi" id="addClsCap" type="number" min="1" value="10"/></div>
+      <div><div class="fl">정원</div><input class="fi" id="addClsCap" type="number" min="1" value="10"/></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div><div class="fl">요일</div><select class="fi" id="addClsDay"><option value="">선택 안함</option><option>월</option><option>화</option><option>수</option><option>목</option><option>금</option><option>토</option><option>일</option></select></div>
-        <div><div class="fl">시작 시간 (시)</div><input class="fi" id="addClsHour" type="number" min="0" max="23" placeholder="예: 14"/></div>
+        <div><div class="fl">시작 시간(시)</div><input class="fi" id="addClsHour" type="number" min="0" max="23" placeholder="예: 14"/></div>
       </div>
-      <div><div class="fl">스쿨 설명</div><textarea class="fi" id="addClsDesc" rows="3" placeholder="수업 내용, 준비물 등..." style="resize:vertical"></textarea></div>
+      <div><div class="fl">스쿨 설명</div><textarea class="fi" id="addClsDesc" rows="3" placeholder="수업 내용" style="resize:vertical"></textarea></div>
     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="addClsBtn" onclick="submitAddClass(${roundId})">추가</button>`
