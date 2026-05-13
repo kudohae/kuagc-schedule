@@ -926,7 +926,7 @@ window.submitVacancyReport=async function(){
   const btn=document.getElementById('vrBtn'); btn.disabled=true; btn.textContent='제출 중...';
   try{
     await createVacancyReport({incident_month:mo,incident_day:d,incident_hour:hh,incident_minute:mm});
-    closeModal(); toast('신고가 접수됐습니다');
+    closeModal(); toast('신고 접수 완료');
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 제출';}
 };
 
@@ -936,9 +936,9 @@ function openClaimModal(day,hour){
     `<div style="background:rgba(255,170,71,.1);border:1px solid rgba(255,170,71,.3);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--warn);line-height:1.5;">
        ⚠️ 합주는 <strong>1주 1회</strong>가 원칙입니다.<br>추가 합주 신청 전, 기존 배정 시간에 <strong>미사용 보고</strong>를 먼저 해주세요.
      </div>
-     <div><div class="fl">팀 선택 *</div><select class="fs" id="clTeam">${opts}</select></div>
-     <div><div class="fl">신청자 이름</div><input class="fi" id="clName" placeholder="이름 (선택)" maxlength="20"/></div>
-     <div><div class="fl">사유 *</div><input class="fi" id="clReason" placeholder="예: 공연 준비 합주" maxlength="100"/></div>`,
+     <div><div class="fl">팀 선택</div><select class="fs" id="clTeam">${opts}</select></div>
+     <div><div class="fl">신청자 성명</div><input class="fi" id="clName" placeholder="성명" maxlength="20"/></div>
+     <div><div class="fl">사유</div><input class="fi" id="clReason" placeholder="예: 이번주 합주 시간 변경" maxlength="100"/></div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="clBtn" onclick="submitClaim(${day},${hour})">신청 제출</button>`
   );
@@ -985,7 +985,7 @@ window.openContactsModal=async function(){
     showModal('회장단 연락처','<div style="color:var(--text2);font-size:13px;padding:8px 0">등록된 연락처가 없습니다.</div>','<button class="btn btn-s" onclick="closeModal()">닫기</button>');
     return;
   }
-  showModal('📞 그루터기 회장단 연락처',
+  showModal('📞 연락처',
     ct.map(c=>`
       <div class="irow">
         <span class="ik">${c.role}</span>
