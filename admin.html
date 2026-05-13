@@ -937,9 +937,9 @@ function renderSchool(){
       <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:5px">
         <div style="flex:1">
           <span style="font-size:13px;font-weight:700">${s.name}</span>
-          <span style="font-size:11px;color:var(--text2);margin-left:8px">담임: ${s.teacher_name||'미정'} · 정원 ${s.capacity}명</span>
+          <span style="font-size:11px;color:var(--text2);margin-left:8px">담당: ${s.teacher_name||'미정'} · 정원 ${s.capacity}명${s.schedule_day?` · ${s.schedule_day}요일 ${s.schedule_hour??'?'}시`:''}</span>
         </div>
-        <button class="btn btn-s btn-xs" onclick="openEditClassModal(${s.id})">편집</button>
+        <button class="btn btn-s btn-xs" onclick="openEditClassModal(${s.id})">수정</button>
         <button class="btn btn-d btn-xs" onclick="deleteClass(${s.id})">삭제</button>
       </div>`).join('');
 
@@ -1017,7 +1017,8 @@ function renderSchool(){
       return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px 12px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:${sa.length?'6px':'0'}">
           <div style="font-size:13px;font-weight:700;flex:1">${s.name}</div>
-          <span style="font-size:11px;color:var(--text2)">담임: ${s.teacher_name||'미정'} · ${sa.length}/${s.capacity}명</span>
+          <span style="font-size:11px;color:var(--text2)">담당: ${s.teacher_name||'미정'} · ${sa.length}/${s.capacity}명${s.schedule_day?` · ${s.schedule_day}요일 ${s.schedule_hour??'?'}시`:''}</span>
+          <button class="btn btn-s btn-xs" onclick="openEditClassModal(${s.id})">수정</button>
         </div>
         ${sa.map((a,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--surface);border-radius:3px;margin-top:2px">
           <span style="font-size:11px;color:var(--text3);min-width:18px">${i+1}</span>
@@ -1079,7 +1080,8 @@ function renderSchool(){
     return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px 12px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:${sa.length?'6px':'0'}">
         <div style="font-size:13px;font-weight:700;flex:1">${s.name}</div>
-        <span style="font-size:11px;color:var(--text2)">${sa.length}/${s.capacity}명</span>
+        <span style="font-size:11px;color:var(--text2)">담당: ${s.teacher_name||'미정'} · ${sa.length}/${s.capacity}명${s.schedule_day?` · ${s.schedule_day}요일 ${s.schedule_hour??'?'}시`:''}</span>
+        <button class="btn btn-s btn-xs" onclick="openEditClassModal(${s.id})">수정</button>
       </div>
       ${sa.map((a,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--surface);border-radius:3px;margin-top:2px">
         <span style="font-size:11px;color:var(--text3);min-width:18px">${i+1}</span>
@@ -1223,8 +1225,13 @@ window.openAddClassModal=function(roundId){
   showModal('반 추가',
     `<div style="display:flex;flex-direction:column;gap:10px">
       <div><div class="fl">반 이름 *</div><input class="fi" id="addClsName" placeholder="보컬반"/></div>
-      <div><div class="fl">담임 이름</div><input class="fi" id="addClsTeacher" placeholder="홍길동"/></div>
+      <div><div class="fl">담당 이름</div><input class="fi" id="addClsTeacher" placeholder="홍길동"/></div>
       <div><div class="fl">정원 *</div><input class="fi" id="addClsCap" type="number" min="1" value="10"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><div class="fl">요일</div><select class="fi" id="addClsDay"><option value="">선택 안함</option><option>월</option><option>화</option><option>수</option><option>목</option><option>금</option><option>토</option><option>일</option></select></div>
+        <div><div class="fl">시작 시간 (시)</div><input class="fi" id="addClsHour" type="number" min="0" max="23" placeholder="예: 14"/></div>
+      </div>
+      <div><div class="fl">스쿨 설명</div><textarea class="fi" id="addClsDesc" rows="3" placeholder="수업 내용, 준비물 등..." style="resize:vertical"></textarea></div>
     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="addClsBtn" onclick="submitAddClass(${roundId})">추가</button>`
@@ -1235,12 +1242,16 @@ window.submitAddClass=async function(roundId){
   const name=(document.getElementById('addClsName')?.value||'').trim();
   const teacher=(document.getElementById('addClsTeacher')?.value||'').trim();
   const cap=parseInt(document.getElementById('addClsCap')?.value)||0;
+  const schedDay=(document.getElementById('addClsDay')?.value||'').trim()||null;
+  const schedHourRaw=document.getElementById('addClsHour')?.value;
+  const schedHour=schedHourRaw!==''&&schedHourRaw!=null?parseInt(schedHourRaw):null;
+  const desc=(document.getElementById('addClsDesc')?.value||'').trim()||null;
   if(!name){toast('반 이름을 입력해주세요','err');return;}
   if(cap<1){toast('정원을 1명 이상으로 입력해주세요','err');return;}
   const btn=document.getElementById('addClsBtn');
   if(btn){btn.disabled=true;btn.textContent='추가 중...';}
   try{
-    const {error}=await supabase.from('schools').insert({name,teacher_name:teacher,capacity:cap,round_id:roundId});
+    const {error}=await supabase.from('schools').insert({name,teacher_name:teacher,capacity:cap,round_id:roundId,schedule_day:schedDay,schedule_hour:schedHour,description:desc});
     if(error) throw error;
     closeModal(); toast('반이 추가됐습니다','ok');
     await loadSchoolData(); renderSchool();
@@ -1249,11 +1260,16 @@ window.submitAddClass=async function(roundId){
 window.openEditClassModal=function(id){
   const s=adminSchools.find(x=>x.id===id);
   if(!s) return;
-  showModal('반 편집',
+  showModal('반 수정',
     `<div style="display:flex;flex-direction:column;gap:10px">
       <div><div class="fl">반 이름</div><input class="fi" id="edClsName" value="${s.name}"/></div>
-      <div><div class="fl">담임 이름</div><input class="fi" id="edClsTeacher" value="${s.teacher_name||''}"/></div>
+      <div><div class="fl">담당 이름</div><input class="fi" id="edClsTeacher" value="${s.teacher_name||''}"/></div>
       <div><div class="fl">정원</div><input class="fi" id="edClsCap" type="number" min="1" value="${s.capacity}"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><div class="fl">요일</div><select class="fi" id="edClsDay"><option value="">선택 안함</option><option${s.schedule_day==='월'?' selected':''}>월</option><option${s.schedule_day==='화'?' selected':''}>화</option><option${s.schedule_day==='수'?' selected':''}>수</option><option${s.schedule_day==='목'?' selected':''}>목</option><option${s.schedule_day==='금'?' selected':''}>금</option><option${s.schedule_day==='토'?' selected':''}>토</option><option${s.schedule_day==='일'?' selected':''}>일</option></select></div>
+        <div><div class="fl">시작 시간 (시)</div><input class="fi" id="edClsHour" type="number" min="0" max="23" value="${s.schedule_hour??''}" placeholder="예: 14"/></div>
+      </div>
+      <div><div class="fl">스쿨 설명</div><textarea class="fi" id="edClsDesc" rows="3" style="resize:vertical">${s.description||''}</textarea></div>
     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="edClsBtn" onclick="submitEditClass(${id})">저장</button>`
@@ -1263,12 +1279,16 @@ window.submitEditClass=async function(id){
   const name=(document.getElementById('edClsName')?.value||'').trim();
   const teacher=(document.getElementById('edClsTeacher')?.value||'').trim();
   const cap=parseInt(document.getElementById('edClsCap')?.value)||0;
+  const schedDay=(document.getElementById('edClsDay')?.value||'').trim()||null;
+  const schedHourRaw=document.getElementById('edClsHour')?.value;
+  const schedHour=schedHourRaw!==''&&schedHourRaw!=null?parseInt(schedHourRaw):null;
+  const desc=(document.getElementById('edClsDesc')?.value||'').trim()||null;
   if(!name){toast('반 이름을 입력해주세요','err');return;}
   if(cap<1){toast('정원을 1명 이상으로 입력해주세요','err');return;}
   const btn=document.getElementById('edClsBtn');
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
   try{
-    const {error}=await supabase.from('schools').update({name,teacher_name:teacher,capacity:cap}).eq('id',id);
+    const {error}=await supabase.from('schools').update({name,teacher_name:teacher,capacity:cap,schedule_day:schedDay,schedule_hour:schedHour,description:desc}).eq('id',id);
     if(error) throw error;
     closeModal(); toast('저장됐습니다','ok');
     await loadSchoolData(); renderSchool();
