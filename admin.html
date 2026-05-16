@@ -1693,7 +1693,9 @@ window.deleteSelectedTeams=async function(){
     toast(`${deleted.length}개 팀이 삭제되었습니다`,'ok'); render();
   }catch(e){toast(errMsg(e),'err');}
 };
+let _nMIdx=0;
 window.openAddTeamModal=function(){
+  _nMIdx=0;
   const swatches=COLORS.map(c=>`<div class="swatch" id="sw-${c.replace('#','')}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
   showModal('팀 추가',
     `<div><div class="fl">팀 이름</div><input class="fi" id="nName" placeholder="팀 이름"/></div>
@@ -1706,11 +1708,30 @@ window.openAddTeamModal=function(){
        <div class="swatch-row">${swatches}</div>
        <input type="hidden" id="nColor" value="${COLORS[0]}"/>
      </div>
-     <div id="grayNote" style="font-size:11px;color:var(--text3)">합주 팀은 자동으로 회색 표시됩니다</div>`,
+     <div id="grayNote" style="font-size:11px;color:var(--text3)">합주 팀은 자동으로 회색 표시됩니다</div>
+     <div>
+       <div class="fl">구성원</div>
+       <div style="display:grid;grid-template-columns:1fr 48px 1fr 22px;gap:4px;font-size:10px;color:var(--text3);padding:0 2px;margin-bottom:3px">
+         <span>이름</span><span style="text-align:center">학번</span><span>세션 (쉼표 구분)</span><span></span>
+       </div>
+       <div id="nMemberRows" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px"></div>
+       <button class="btn btn-s btn-xs" onclick="addMemberRow()">+ 구성원 추가</button>
+     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="nBtn" onclick="addTeam()">추가</button>`
   );
   pickColor(COLORS[0]);
+};
+window.addMemberRow=function(){
+  const i=_nMIdx++;
+  const row=document.createElement('div');
+  row.id=`nmrow-${i}`;
+  row.style.cssText='display:grid;grid-template-columns:1fr 48px 1fr 22px;gap:4px;align-items:center';
+  row.innerHTML=`<input class="fi" style="padding:3px 6px;font-size:11px" id="nm-${i}" placeholder="이름"/>
+    <input class="fi" style="padding:3px 6px;font-size:11px;text-align:center" id="ns-${i}" maxlength="3" placeholder="학번"/>
+    <input class="fi" style="padding:3px 6px;font-size:11px" id="nse-${i}" placeholder="보컬1,기타1"/>
+    <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px" onclick="document.getElementById('nmrow-${i}').remove()">×</button>`;
+  document.getElementById('nMemberRows').appendChild(row);
 };
 window.onTypeChange=function(){
   const t=document.getElementById('nType').value,c=t!=='합주';
@@ -1726,9 +1747,18 @@ window.addTeam=async function(){
   const type=document.getElementById('nType').value;
   const color=type==='합주'?GRAY:(document.getElementById('nColor')?.value||COLORS[0]);
   if(!name){toast('팀 이름을 입력해주세요','err');return;}
+  const members=[];
+  document.querySelectorAll('#nMemberRows [id^="nm-"]').forEach(el=>{
+    const i=el.id.replace('nm-','');
+    const mname=el.value.trim();
+    const msid=document.getElementById('ns-'+i)?.value.trim()||'';
+    const msessRaw=document.getElementById('nse-'+i)?.value.trim()||'';
+    const msess=msessRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    if(mname) members.push({name:mname,student_id_last3:msid,sessions:msess});
+  });
   const btn=document.getElementById('nBtn'); btn.disabled=true;
   try{
-    const t=await createTeam({name,type,color}); teams.push(t); teams=korSort(teams,'name');
+    const t=await createTeam({name,type,color,members}); teams.push(t); teams=korSort(teams,'name');
     toast(`${name} 팀이 추가되었습니다`,'ok'); closeModal(); renderTeams();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
