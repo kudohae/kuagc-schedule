@@ -122,6 +122,9 @@ body.dark .rt-badge{background:rgba(232,255,71,.07);border-color:rgba(232,255,71
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.cd-num{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;margin-top:6px;}
+.cd-open{color:var(--accent2);}
+.cd-close{color:var(--warn);}
 </style>
 </head>
 <body>
@@ -264,7 +267,7 @@ function render(){
       <div class="apply-status-texts">
         <div class="apply-status-title">신청 기간이 아닙니다</div>
         <div class="apply-status-sub">${fmtScheduled(targetDate)}에 신청이 열립니다</div>
-        <div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--accent2);margin-top:4px" id="ta-cd">${diffToHMS(diff)}</div>
+        <div class="cd-num cd-open" id="ta-cd">${diffToHMS(diff)}</div>
       </div>
     </div>`;
     document.getElementById('applyContent').innerHTML=html;
@@ -290,7 +293,7 @@ function render(){
         ${closeTs?`<div class="apply-status-sub" style="color:var(--warn)">⏰ 마감: ${fmtScheduled(closeTs)}</div>`
           :isOpen&&round.close_at?''
           :!isOpen&&!isFin?`<div class="apply-status-sub">관리자가 신청을 열면 여기서 신청할 수 있습니다.</div>`:''}
-        ${closeTs?`<div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--warn);margin-top:6px" id="ta-close-cd">${diffToHMS(closeDiff)}</div>`:''}
+        ${closeTs?`<div class="cd-num cd-close" id="ta-close-cd">${diffToHMS(closeDiff)}</div>`:''}
       </div>
     </div>`;
   if(closeTs){
