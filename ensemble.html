@@ -467,9 +467,15 @@ function render(){
         <div><div class="fl">아티스트 *</div><input class="fi" id="sArtist" placeholder="아티스트명" maxlength="100"/></div>
       </div>
       <div>
-        <div class="fl">필요 세션 * (복수 선택)</div>
+        <div class="fl">필요 세션 * (이 곡에 필요한 세션 전체)</div>
         <div class="session-grid">
           ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ns_${s.replace(/\s/g,'_')}" value="${s}" onchange="onSessionChkChange(this)"/><label class="session-label" for="ns_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="fl">내가 담당할 세션 * (신청자 본인)</div>
+        <div class="session-grid">
+          ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ms_${s.replace(/\s/g,'_')}" value="${s}"/><label class="session-label" for="ms_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
         </div>
       </div>
       <div class="form-footer"><button class="btn btn-p" onclick="submitSong()">곡 신청</button></div>
@@ -815,8 +821,10 @@ window.submitSong=async function(){
   const title=document.getElementById('sTitle').value.trim();
   const artist=document.getElementById('sArtist').value.trim();
   const sessions=[...document.querySelectorAll('[id^="ns_"]:checked')].map(c=>c.value);
+  const mySessions=[...document.querySelectorAll('[id^="ms_"]:checked')].map(c=>c.value);
   if(!name||!sid||!title||!artist){toast('모든 필드를 입력해주세요','err');return;}
   if(!sessions.length){toast('필요 세션을 하나 이상 선택해주세요','err');return;}
+  if(!mySessions.length){toast('본인이 담당할 세션을 하나 이상 선택해주세요','err');return;}
   const titleNorm=title.trim().toLowerCase();
   const artistNorm=artist.trim().toLowerCase();
   const dup=songs[currentType].find(s=>
@@ -830,9 +838,14 @@ window.submitSong=async function(){
   const totalCount=songs[currentType].filter(s=>s.status!=='rejected').length;
   if(totalCount>=r.max_songs){toast('신청 가능한 곡 수가 초과됐습니다','err');return;}
   try{
-    await supabase.from('song_applications').insert({
+    const {data:songData,error:sErr}=await supabase.from('song_applications').insert({
       round_id:r.id,applicant_name:name,student_id:sid,title,artist,sessions,status:'pending'
+    }).select().single();
+    if(sErr) throw sErr;
+    const {error:sessErr}=await supabase.from('session_applications').insert({
+      song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1
     });
+    if(sessErr) console.error('신청자 세션 등록 실패:',sessErr.message);
     toast('곡 신청이 완료됐습니다','ok');
     await loadAll();
   }catch(e){toast(errMsg(e),'err');}

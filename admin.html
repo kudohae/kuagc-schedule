@@ -287,6 +287,8 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 .ens-member-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.1);}
 .ens-member-card.dragging{opacity:.3;cursor:grabbing;}
 .ens-member-card.conflict{border-color:rgba(200,118,10,.45);background:rgba(200,118,10,.04);}
+.ens-member-card.applicant{background:rgba(92,158,0,.07);border-color:rgba(92,158,0,.35);cursor:default;}
+body.dark .ens-member-card.applicant{background:rgba(232,255,71,.06);border-color:rgba(232,255,71,.2);}
 .ens-member-name{font-size:12px;font-weight:700;}
 .ens-member-sid{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:5px;}
 .ens-member-tags{display:flex;flex-wrap:wrap;gap:3px;}
@@ -2214,7 +2216,7 @@ const ENS_SESS_ORDER=SESSIONS;
 function sessOrder(s){const i=ENS_SESS_ORDER.indexOf(s);return i===-1?99:i;}
 function sortSongSlots(slots){slots.sort((a,b)=>sessOrder(a.session)-sessOrder(b.session)||new Date(a.createdAt)-new Date(b.createdAt));}
 function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
-function makeSlots(app,songTitle=''){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle,sessionRound:app.session_round||1}));}
+function makeSlots(app,songTitle='',songApplicantSid=null){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle,sessionRound:app.session_round||1,isApplicant:!!(songApplicantSid&&app.student_id===songApplicantSid)}));}
 
 function computeEnsDndInitial(type){
   const r=eRounds[type]; if(!r) return null;
@@ -2222,15 +2224,21 @@ function computeEnsDndInitial(type){
   const allApps=confirmedSongs.flatMap(s=>(eSessionMap[s.id]||[]));
   const savedKey=`ensDnd_${type}_${r.id}`;
   const songs=[]; const unassigned=[];
+  const songTitleById=Object.fromEntries(confirmedSongs.map(s=>[s.id,s.title]));
+  const songApplicantSidById=Object.fromEntries(confirmedSongs.map(s=>[s.id,s.student_id]));
   const savedRaw=localStorage.getItem(savedKey);
   if(savedRaw){
     try{
       const locMap=Object.fromEntries(JSON.parse(savedRaw).map(({id,loc})=>[id,loc]));
       for(const song of confirmedSongs) songs.push({song,slots:[]});
-      const songTitleById=Object.fromEntries(confirmedSongs.map(s=>[s.id,s.title]));
-      for(const app of allApps) for(const sl of makeSlots(app,songTitleById[app.song_id]||'')){
-        const songEntry=songs.find(s=>s.song.id===locMap[sl.id]);
-        if(songEntry) songEntry.slots.push(sl); else unassigned.push(sl);
+      for(const app of allApps) for(const sl of makeSlots(app,songTitleById[app.song_id]||'',songApplicantSidById[app.song_id]||null)){
+        if(sl.isApplicant){
+          const own=songs.find(s=>s.song.id===app.song_id);
+          if(own) own.slots.push(sl);
+        } else {
+          const songEntry=songs.find(s=>s.song.id===locMap[sl.id]);
+          if(songEntry) songEntry.slots.push(sl); else unassigned.push(sl);
+        }
       }
       for(const s of songs) sortSongSlots(s.slots);
       return {type,roundId:r.id,savedKey,songs,unassigned};
@@ -2240,19 +2248,22 @@ function computeEnsDndInitial(type){
   if(hasConfirmed){
     for(const song of confirmedSongs){
       const sApps=eSessionMap[song.id]||[];
-      const slots=sApps.filter(a=>a.status==='confirmed').flatMap(a=>makeSlots(a,song.title));
+      const confirmedSlots=sApps.filter(a=>a.status==='confirmed').flatMap(a=>makeSlots(a,song.title,song.student_id));
+      const pendingSlots=sApps.filter(a=>a.status==='pending').flatMap(a=>makeSlots(a,song.title,song.student_id));
+      const slots=[...confirmedSlots];
+      pendingSlots.forEach(sl=>{if(sl.isApplicant)slots.push(sl);else unassigned.push(sl);});
       sortSongSlots(slots);
       songs.push({song,slots});
-      sApps.filter(a=>a.status==='pending').flatMap(a=>makeSlots(a,song.title)).forEach(sl=>unassigned.push(sl));
     }
     return {type,roundId:r.id,savedKey,songs,unassigned};
   }
   for(const song of confirmedSongs){
     const apps=(eSessionMap[song.id]||[]).slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
     const claimed=new Set(); const slots=[];
-    for(const app of apps) for(const session of app.sessions){
-      const sl={id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle:song.title};
-      if(!claimed.has(session)){claimed.add(session);slots.push(sl);}else unassigned.push(sl);
+    for(const app of apps) for(const sl of makeSlots(app,song.title,song.student_id)){
+      if(sl.isApplicant){slots.push(sl);claimed.add(sl.session);}
+      else if(!claimed.has(sl.session)){claimed.add(sl.session);slots.push(sl);}
+      else unassigned.push(sl);
     }
     sortSongSlots(slots);
     songs.push({song,slots});
@@ -2292,10 +2303,13 @@ function getConflictedSlotIds(slots){
 
 function ensSlotCardHtml(sl,conflicted){
   const sid=sl.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  return `<div class="ens-member-card${conflicted?' conflict':''}" draggable="true" data-id="${sl.id}"
-    ondragstart="ensDndDragStart(event,'${sid}')" ondragend="ensDndDragEnd(event)">
+  const pinned=sl.isApplicant;
+  const dragAttrs=pinned?'draggable="false"':`draggable="true" ondragstart="ensDndDragStart(event,'${sid}')" ondragend="ensDndDragEnd(event)"`;
+  const applicantBadge=pinned?'<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>':'';
+  const r2Badge=sl.sessionRound===2?'<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>':'';
+  return `<div class="ens-member-card${conflicted?' conflict':''}${pinned?' applicant':''}" ${dragAttrs} data-id="${sl.id}">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
-      <div><span class="ens-member-name">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''} ${sl.sessionRound===2?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>`:''}</div>
+      <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''}${applicantBadge}${r2Badge}</div>
       <span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDndTime(sl.createdAt)}</span>
     </div>
     <div class="ens-member-tags"><span class="ens-member-tag${conflicted?' conflict':''}">${sl.session}</span></div>
