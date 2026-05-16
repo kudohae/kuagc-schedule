@@ -2068,9 +2068,16 @@ function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
     const r=eRounds[type];
     const songList=eSongs[type]||[];
-    const phaseLabels={draft:{label:'1 준비 중',cls:'closed'},song:{label:'2 곡 신청',cls:'song'},song_end:{label:'3 세션 준비',cls:'song'},session:{label:'4 세션 신청',cls:'session'},session_end:{label:'5 팀 구성',cls:'session'},closed:{label:'6 확정',cls:'closed'}};
     const phase=r?.phase||'closed';
-    const pm=phaseLabels[phase]||phaseLabels.closed;
+    const hasSess2=!!r?.has_session2;
+    const pm=(()=>{
+      const names={draft:'준비',song:'곡 신청',song_end:'대기',session:'1차 세션 신청',session_end:hasSess2?'대기':'최종 팀 구성',session2:'2차 세션 신청',session2_end:'최종 팀 구성',closed:'완료'};
+      const nums=hasSess2
+        ?{draft:1,song:2,song_end:3,session:4,session_end:5,session2:6,session2_end:7,closed:8}
+        :{draft:1,song:2,song_end:3,session:4,session_end:5,closed:6};
+      const cls={draft:'closed',song:'song',song_end:'song',session:'session',session_end:'session',session2:'session',session2_end:'session',closed:'closed'};
+      return {label:`${nums[phase]??'?'} ${names[phase]||phase}`,cls:cls[phase]||'closed'};
+    })();
 
     // phase badge
     const badge=document.getElementById(`ephase${type==='regular'?'Regular':'Busking'}`);
@@ -2090,27 +2097,33 @@ function renderEnsemble(){
     } else if(phase==='song'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
             <button class="btn btn-p btn-xs" onclick="startSongEndNow(${r.id})">곡 신청 종료</button>
+            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='song_end'){
       ctrl=`<button class="btn btn-p btn-xs" onclick="startSessionPhaseNow(${r.id})">세션 신청 즉시 열기</button>
+            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session'){
       ctrl=`<button class="btn btn-p btn-xs" onclick="startSessionEndNow(${r.id})">세션 신청 종료</button>
+            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session_end'){
       const allSessApps=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
       const sess1DndDone=allSessApps.length===0||allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
       const advLabel=r.has_session2?'2차 세션 신청으로':'완료';
       ctrl=`${sess1DndDone?`<button class="btn btn-p btn-xs" onclick="advanceFromSessionEnd('${type}',${r.id})">${advLabel}</button>`:''}
+            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session2'){
       ctrl=`<button class="btn btn-p btn-xs" onclick="startSession2EndNow(${r.id})">2차 세션 신청 종료</button>
+            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session2_end'){
       const allSessApps2=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
       const sess2Apps=allSessApps2.filter(a=>(a.session_round||1)===2);
       const sess2DndDone=sess2Apps.length===0||sess2Apps.some(a=>a.status==='confirmed'||a.status==='rejected');
       ctrl=`${sess2DndDone?`<button class="btn btn-p btn-xs" onclick="completeRound(${r.id})">완료</button>`:''}
+            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='closed'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>`;
@@ -2130,9 +2143,9 @@ function renderEnsemble(){
     const mkConfirmedSongHtml=(songList2,showDndBtn,dndBtnLabel='팀 구성 시작')=>{
       const confSongs=songList2.filter(s=>s.status!=='rejected');
       let h=confSongs.map((s,i)=>{
-        const conf=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed');
+        const allSessDisp=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed'||a.status==='rejected');
         let sh='';
-        if(conf.length) sh=`<div class="e-sess-list">${conf.map(a=>`<div class="e-sess-row"><span class="e-sess-dot confirmed"></span><span class="e-sess-name">${a.applicant_name}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag confirmed">${x}</span>`).join('')}</div></div>`).join('')}</div>`;
+        if(allSessDisp.length) sh=`<div class="e-sess-list">${allSessDisp.map(a=>{const rej=a.status==='rejected';const isApp=a.student_id===s.student_id;const appBadge=isApp?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';return `<div class="e-sess-row" style="${rej?'opacity:.45':''}"><span class="e-sess-dot ${rej?'rejected':'confirmed'}"></span><span class="e-sess-name" style="${rej?'text-decoration:line-through;color:var(--text3)':''}${isApp?';font-weight:900':''}">${a.applicant_name}${appBadge}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${rej?'':'confirmed'}">${x}</span>`).join('')}</div></div>`;}).join('')}</div>`;
         return `<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1;min-width:0"><div class="e-song-title">${s.title}</div><div class="e-song-artist">${s.artist}</div></div></div>${sh}</div>`;
       }).join('');
       if(showDndBtn) h+=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">${dndBtnLabel}</button></div>`;
@@ -2169,9 +2182,11 @@ function renderEnsemble(){
             sessHtml=`<div class="e-sess-list">
               ${sessApps.map(a=>{
                 const rBadge=(a.session_round||1)===2?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px">2차</span>`:'';
+                const isAppRow=a.student_id===s.student_id;
+                const appBadgeRow=isAppRow?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';
                 return `<div class="e-sess-row">
                 <span class="e-sess-dot ${a.status}"></span>
-                <span class="e-sess-name">${a.applicant_name}${rBadge} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
+                <span class="e-sess-name" style="${isAppRow?'font-weight:900':'normal'}">${a.applicant_name}${appBadgeRow}${rBadge} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
                 <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${x}</span>`).join('')}</div>
                 <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
               </div>`;}).join('')}
@@ -2617,6 +2632,19 @@ window.startSessionEndNow=async function(id){
 
 window.toggleSess2Fields=function(){
   document.getElementById('eSess2Fields').style.display=document.getElementById('eHasSess2').checked?'':'none';
+};
+
+window.revertPhase=async function(type,roundId){
+  const r=eRounds[type]; if(!r) return;
+  const prevMap={song:'draft',song_end:'song',session:'song_end',session_end:'session',session2:'session_end',session2_end:'session2',closed:r.has_session2?'session2_end':'session_end'};
+  const prev=prevMap[r.phase]; if(!prev) return;
+  const phaseNames={draft:'준비',song:'곡 신청',song_end:'대기',session:'1차 세션 신청',session_end:'대기',session2:'2차 세션 신청',session2_end:'최종 팀 구성',closed:'완료'};
+  if(!confirm(`이전 단계 "${phaseNames[prev]}"(으)로 되돌리시겠습니까?`)) return;
+  try{
+    const {error}=await supabase.from('ensemble_rounds').update({phase:prev}).eq('id',roundId);
+    if(error) throw error;
+    toast('이전 단계로 이동했습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
 };
 
 window.advanceFromSessionEnd=async function(type,roundId){

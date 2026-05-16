@@ -81,6 +81,7 @@ body.dark .status-card.session{background:rgba(71,197,255,.06);border-color:rgba
 .session-chk{display:none;}
 .session-label{display:inline-flex;align-items:center;padding:5px 11px;border-radius:4px;border:1px solid var(--border);font-size:13px;cursor:pointer;transition:all .12s;user-select:none;background:var(--surface2);}
 .session-chk:checked+.session-label{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+.session-chk:disabled+.session-label{opacity:.35;cursor:not-allowed;pointer-events:none;}
 .session-label:hover{border-color:var(--text2);}
 .form-footer{display:flex;justify-content:flex-end;margin-top:14px;}
 .session-area{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
@@ -474,8 +475,9 @@ function render(){
       </div>
       <div>
         <div class="fl">내가 담당할 세션 * (신청자 본인)</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px">필요 세션에 포함된 세션만 선택할 수 있습니다</div>
         <div class="session-grid">
-          ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ms_${s.replace(/\s/g,'_')}" value="${s}"/><label class="session-label" for="ms_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
+          ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ms_${s.replace(/\s/g,'_')}" value="${s}" disabled/><label class="session-label" for="ms_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
         </div>
       </div>
       <div class="form-footer"><button class="btn btn-p" onclick="submitSong()">곡 신청</button></div>
@@ -726,14 +728,16 @@ function renderSongItem(s,num,phase){
   const filledSessions=new Set(sessApps.flatMap(a=>a.sessions));
   const needBadges=s.sessions.map(sess=>
     `<span class="sneed ${filledSessions.has(sess)?'filled':''}">${sess}</span>`).join('');
-  const closedLike=['closed','session_end','session2_end'].includes(phase);
+  const closedLike=['closed','session_end','session2','session2_end'].includes(phase);
   const sessionRows=sessApps.length?`
     <div class="session-list">
       ${sessApps.map(a=>{
+        const isApplicant=a.student_id===s.student_id;
         const rejected=closedLike&&a.status==='rejected';
         const rBadge=(a.session_round||1)===2&&['session2','session2_end','closed'].includes(phase)?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 3px;margin-left:3px">2차</span>`:'';
+        const appBadge=isApplicant?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';
         return `<div class="session-row" style="${rejected?'opacity:.55':''}">
-          <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}">${a.applicant_name}(${a.student_id.slice(-3)})${rBadge}</span>
+          <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}${isApplicant?';font-weight:700':''}">${a.applicant_name}(${a.student_id.slice(-3)})${rBadge}${appBadge}</span>
           <div class="session-row-right">
             <div class="session-row-sessions">
               ${a.sessions.map(sess=>`<span class="sess-tag ${a.status==='confirmed'?'confirmed':''}">${sess}</span>`).join('')}
@@ -778,14 +782,20 @@ window.onSongSelect=function(){
     area.innerHTML='<div class="no-song-selected">이 곡의 필요 세션 정보가 없습니다.</div>';
     return;
   }
+  const songId2=parseInt(opt.value);
+  const songObj2=songs[currentType].find(s=>s.id===songId2);
+  const appApp2=songObj2?(sessionMap[songId2]||[]).find(a=>a.student_id===songObj2.student_id&&a.status!=='rejected'):null;
+  const appSess2=new Set(appApp2?.sessions||[]);
+  const avail2=neededSessions.filter(s=>!appSess2.has(s));
   area.innerHTML=`
     <div class="session-area">
       <div class="fl">참여할 세션 *</div>
-      <div class="session-grid">
-        ${neededSessions.map(s=>`
+      ${appSess2.size?`<div style="font-size:11px;color:var(--text3);margin-bottom:5px">신청자 담당 세션(${[...appSess2].join(', ')})은 선택 불가</div>`:''}
+      ${avail2.length?`<div class="session-grid">
+        ${avail2.map(s=>`
           <input type="checkbox" class="session-chk" id="sss_${s.replace(/\s/g,'_')}" value="${s}"/>
           <label class="session-label" for="sss_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
-      </div>
+      </div>`:'<div class="no-song-selected">신청 가능한 세션이 없습니다.</div>'}
     </div>`;
 };
 
@@ -810,7 +820,18 @@ window.onSessionChkChange=function(el){
       if(depEl&&depEl.checked) depEl.checked=false;
     }
   }
+  syncMySessionCheckboxes();
 };
+
+function syncMySessionCheckboxes(){
+  SESSIONS.forEach(s=>{
+    const nsEl=document.getElementById('ns_'+s.replace(/\s/g,'_'));
+    const msEl=document.getElementById('ms_'+s.replace(/\s/g,'_'));
+    if(!nsEl||!msEl) return;
+    msEl.disabled=!nsEl.checked;
+    if(!nsEl.checked) msEl.checked=false;
+  });
+}
 
 window.submitSong=async function(){
   const r=rounds[currentType];
@@ -883,14 +904,21 @@ window.onSess2SongSelect=function(){
   if(!sel||!area) return;
   const opt=sel.options[sel.selectedIndex];
   if(!opt||!opt.value){area.innerHTML='<div class="no-song-selected">곡을 선택하면 신청 가능한 세션이 표시됩니다.</div>';return;}
-  const available=JSON.parse(opt.dataset.sessions||'[]');
+  const songId3=parseInt(opt.value);
+  const songObj3=songs[currentType].find(s=>s.id===songId3);
+  const appApp3=songObj3?(sessionMap[songId3]||[]).find(a=>a.student_id===songObj3.student_id&&a.status!=='rejected'):null;
+  const appSess3=new Set(appApp3?.sessions||[]);
+  const available=JSON.parse(opt.dataset.sessions||'[]').filter(s=>!appSess3.has(s));
   if(!available.length){area.innerHTML='<div class="no-song-selected">이 곡에 신청 가능한 빈 세션이 없습니다.</div>';return;}
-  area.innerHTML=`<div class="session-area"><div class="fl">참여할 세션 *</div><div class="session-grid">${available.map(s=>`<input type="checkbox" class="session-chk" id="sss_${s.replace(/\s/g,'_')}" value="${s}"/><label class="session-label" for="sss_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}</div></div>`;
+  area.innerHTML=`<div class="session-area"><div class="fl">참여할 세션 *</div>${appSess3.size?`<div style="font-size:11px;color:var(--text3);margin-bottom:5px">신청자 담당 세션(${[...appSess3].join(', ')})은 선택 불가</div>`:''}<div class="session-grid">${available.map(s=>`<input type="checkbox" class="session-chk" id="sss_${s.replace(/\s/g,'_')}" value="${s}"/><label class="session-label" for="sss_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}</div></div>`;
 };
 
 window.openSessionModal=function(songId){
   const song=songs[currentType].find(s=>s.id===songId);
   const neededSessions=song.sessions||[];
+  const applicantApp=(sessionMap[songId]||[]).find(a=>a.student_id===song.student_id&&a.status!=='rejected');
+  const applicantSessions=new Set(applicantApp?.sessions||[]);
+  const availableSessions=neededSessions.filter(s=>!applicantSessions.has(s));
   showModal(`세션 신청 — ${song.title}`,
     `<div class="irow"><span class="ik">곡</span><span style="font-weight:700">${song.title}</span></div>
      <div class="irow"><span class="ik">아티스트</span><span>${song.artist}</span></div>
@@ -898,11 +926,12 @@ window.openSessionModal=function(songId){
      <div><div class="fl">학번 *</div><input class="fi" id="mssId" placeholder="2021130905" maxlength="20"/></div>
      <div>
        <div class="fl">참여할 세션 * (이 곡에 필요한 세션만 표시)</div>
-       <div class="session-grid">
-         ${neededSessions.map(s=>`
+       ${applicantSessions.size?`<div style="font-size:11px;color:var(--text3);margin-bottom:5px">신청자 담당 세션(${[...applicantSessions].join(', ')})은 선택 불가</div>`:''}
+       ${availableSessions.length?`<div class="session-grid">
+         ${availableSessions.map(s=>`
            <input type="checkbox" class="session-chk" id="mss_${s.replace(/\s/g,'_')}" value="${s}"/>
            <label class="session-label" for="mss_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
-       </div>
+       </div>`:'<div style="font-size:12px;color:var(--text3)">신청 가능한 세션이 없습니다.</div>'}
      </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="mssBtn" onclick="submitSessionModal(${songId})">신청</button>`
@@ -929,6 +958,14 @@ async function doSubmitSession(songId,r,name,sid,sessions,sessionRound=1){
   }
   const existing=(sessionMap[songId]||[]).find(a=>a.student_id===sid&&a.status!=='rejected'&&(a.session_round||1)===sessionRound);
   if(existing){toast('이미 이 곡에 세션을 신청했습니다','err');return false;}
+  const songObj=[...songs.regular,...songs.busking].find(s=>s.id===songId);
+  if(songObj&&songObj.student_id!==sid){
+    const applicantApp=(sessionMap[songId]||[]).find(a=>a.student_id===songObj.student_id&&a.status!=='rejected');
+    if(applicantApp){
+      const conflict=sessions.filter(s=>applicantApp.sessions.includes(s));
+      if(conflict.length){toast(`신청자가 담당한 세션(${conflict.join(', ')})에는 신청할 수 없습니다`,'err');return false;}
+    }
+  }
   try{
     await supabase.from('session_applications').insert({
       song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending',session_round:sessionRound
