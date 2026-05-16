@@ -2653,6 +2653,17 @@ window.advanceFromSessionEnd=async function(type,roundId){
   const label=next==='session2'?'2차 세션 신청 단계':'완료';
   if(!confirm(`${label}로 이동하시겠습니까?`)) return;
   try{
+    if(next==='session2'){
+      // 1차 세션 신청 중 미확정(pending) 데이터 삭제
+      const confirmedSongIds=(eSongs[type]||[]).filter(s=>s.status==='confirmed').map(s=>s.id);
+      if(confirmedSongIds.length){
+        const pendingIds=(confirmedSongIds.flatMap(sid=>(eSessionMap[sid]||[]))).filter(a=>a.status==='pending'&&(a.session_round||1)===1).map(a=>a.id);
+        if(pendingIds.length){
+          const {error:delErr}=await supabase.from('session_applications').delete().in('id',pendingIds);
+          if(delErr) throw delErr;
+        }
+      }
+    }
     const {error}=await supabase.from('ensemble_rounds').update({phase:next}).eq('id',roundId);
     if(error) throw error;
     toast(`${label}로 이동했습니다`,'ok'); await loadEnsemble(); renderEnsemble();
