@@ -835,10 +835,6 @@ async function loadAll(){
       await checkVacancyReports();
     })
     .subscribe();
-  setInterval(async()=>{
-    await loadSchoolData();
-    renderSchool();
-  },8000);
   render();
   await checkVacancyReports();
 }
@@ -2130,14 +2126,27 @@ function renderEnsemble(){
     }
 
     const fS=ts=>ts?fmtScheduled(ts):'—';
-    const schedLines=[];
-    if((phase==='draft'||phase==='song')&&r?.song_scheduled_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 곡 신청 오픈: ${fS(r.song_scheduled_at)}</div>`);
-    if((phase==='draft'||phase==='song')&&r?.song_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 곡 신청 마감: ${fS(r.song_close_at)}</div>`);
-    if((phase==='song_end'||phase==='session')&&r?.session_scheduled_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 세션 신청 오픈: ${fS(r.session_scheduled_at)}</div>`);
-    if((phase==='session'||phase==='session_end')&&r?.session_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 1차 세션 신청 마감: ${fS(r.session_close_at)}</div>`);
-    if((phase==='session_end'||phase==='session2')&&r?.has_session2&&r?.session2_scheduled_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">🕐 2차 세션 신청 오픈: ${fS(r.session2_scheduled_at)}</div>`);
-    if((phase==='session2'||phase==='session2_end')&&r?.session2_close_at) schedLines.push(`<div class="ensemble-col-meta" style="color:var(--accent2)">⏰ 2차 세션 신청 마감: ${fS(r.session2_close_at)}</div>`);
-    const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡 · 세션 ${r.max_sessions_per_person}곡</div>${schedLines.join('')}`:'';
+    const now2=Date.now();
+    const schedFieldMap={
+      draft:       [{field:'song_scheduled_at',     label:'곡 신청 오픈',     icon:'🕐'}],
+      song:        [{field:'song_close_at',          label:'곡 신청 마감',     icon:'⏰'}],
+      song_end:    [{field:'session_scheduled_at',  label:'1차 세션 신청 오픈',icon:'🕐'}],
+      session:     [{field:'session_close_at',       label:'1차 세션 신청 마감',icon:'⏰'}],
+      session_end: hasSess2?[{field:'session2_scheduled_at',label:'2차 세션 신청 오픈',icon:'🕐'}]:[],
+      session2:    [{field:'session2_close_at',      label:'2차 세션 신청 마감',icon:'⏰'}],
+    };
+    const schedRows=(r&&schedFieldMap[phase]||[]).map(({field,label,icon})=>{
+      const ts=r[field];
+      const isFuture=ts&&new Date(ts)>now2;
+      if(ts&&!isFuture) return '';
+      const tsArg=ts?`'${ts}'`:'null';
+      return `<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+        <span>${icon} ${label}:</span>
+        ${isFuture?`<span style="color:var(--accent2)">${fS(ts)}</span>`:`<span style="color:var(--text3)">미설정</span>`}
+        <button class="btn btn-s" style="padding:1px 7px;font-size:10px;line-height:1.6" onclick="openSetScheduleModal(${r.id},'${field}','${label}',${tsArg})">변경</button>
+      </div>`;
+    }).join('');
+    const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡 · 세션 ${r.max_sessions_per_person}곡</div>${schedRows}`:'';
     const ctrlHtml=`<div class="ensemble-col-ctrl">${ctrl}</div>`;
 
     const mkConfirmedSongHtml=(songList2,showDndBtn,dndBtnLabel='팀 구성 시작')=>{
@@ -2702,6 +2711,29 @@ window.deleteRound=async function(id){
     await supabase.from('ensemble_rounds').delete().eq('id',id);
     toast('삭제되었습니다'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
+};
+
+window.openSetScheduleModal=function(roundId,field,label,tsStr){
+  const toLocal=ts=>ts&&ts!=='null'?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+  showModal(`${label} 예약 변경`,
+    `<div>
+       <div class="fl">${label}</div>
+       <input class="fi" type="datetime-local" id="ssMoDt" value="${toLocal(tsStr!=='null'?tsStr:null)}"/>
+       <div style="font-size:11px;color:var(--text3);margin-top:5px">비워두면 예약이 해제됩니다</div>
+     </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="ssMoBtn" onclick="saveEnsSchedule(${roundId},'${field}')">저장</button>`
+  );
+};
+window.saveEnsSchedule=async function(roundId,field){
+  const val=document.getElementById('ssMoDt').value;
+  const isoVal=val?new Date(val).toISOString():null;
+  const btn=document.getElementById('ssMoBtn'); btn.disabled=true;
+  try{
+    const {error}=await supabase.from('ensemble_rounds').update({[field]:isoVal}).eq('id',roundId);
+    if(error) throw error;
+    toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err'); btn.disabled=false;}
 };
 
 function fmtScheduled(ts){

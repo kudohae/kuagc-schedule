@@ -206,6 +206,9 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.cd-num{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;margin-top:6px;}
+.cd-open{color:var(--accent2);}
+.cd-close{color:var(--warn);}
 </style>
 </head>
 <body>
@@ -404,7 +407,7 @@ function render(){
           <div class="status-texts">
             <div class="status-title">${r.name||typeName} — 합주 곡 신청 준비 중</div>
             <div class="status-sub">${fmtScheduled(target)}에 곡 신청이 열립니다</div>
-            <div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--accent2);margin-top:6px" id="cd-${type}">${diffToHMS(diff)}</div>
+            <div class="cd-num cd-open" id="cd-${type}">${diffToHMS(diff)}</div>
           </div>
         </div>`;
         document.getElementById('mainContainer').innerHTML=html;
@@ -444,7 +447,7 @@ function render(){
         <div class="status-title">${r.name||typeName} — 합주 곡 신청 진행 중</div>
         <div class="status-sub">최대 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡</div>
         ${closeAt?`<div class="status-sub" style="color:var(--warn)">⏰ 마감: ${fmtScheduled(closeAt)}</div>`:''}
-        ${closeAt?`<div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--warn);margin-top:4px" id="cd-${type}">${diffToHMS(diff)}</div>`:''}
+        ${closeAt?`<div class="cd-num cd-close" id="cd-${type}">${diffToHMS(diff)}</div>`:''}
       </div>
     </div>`;
     if(closeAt){
@@ -498,7 +501,7 @@ function render(){
       <div class="status-texts">
         <div class="status-title">${r.name||typeName} — 곡 신청이 끝났습니다</div>
         <div class="status-sub">세션 신청을 기다려주세요.</div>
-        ${target?`<div class="status-sub" style="margin-top:4px">세션 신청까지: <span id="cd-${type}" style="font-family:'Space Mono',monospace;font-weight:700;color:var(--accent2)">${diffToHMS(diff)}</span></div>`:''}
+        ${target?`<div class="cd-num cd-open" id="cd-${type}">${diffToHMS(diff)}</div>`:''}
       </div>
     </div>`;
     if(target){
@@ -526,7 +529,7 @@ function render(){
         <div class="status-title">${r.name||typeName} — 합주 세션 신청 진행 중</div>
         <div class="status-sub">인당 최대 ${r.max_sessions_per_person}곡 참여 가능</div>
         ${closeAt?`<div class="status-sub" style="color:var(--warn)">⏰ 마감: ${fmtScheduled(closeAt)}</div>`:''}
-        ${closeAt?`<div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--warn);margin-top:4px" id="cd-${type}">${diffToHMS(diff)}</div>`:''}
+        ${closeAt?`<div class="cd-num cd-close" id="cd-${type}">${diffToHMS(diff)}</div>`:''}
       </div>
     </div>`;
     if(closeAt){
@@ -580,7 +583,7 @@ function render(){
       </div>`;
       if(target){
         const diff=new Date(target)-Date.now();
-        html+=`<div class="status-sub" style="margin:4px 0 8px;font-size:13px">2차 세션 신청까지: <span id="cd-${type}" style="font-family:'Space Mono',monospace;font-weight:700;color:var(--accent2)">${diffToHMS(diff)}</span></div>`;
+        html+=`<div class="cd-num cd-open" id="cd-${type}">${diffToHMS(diff)}</div>`;
         startCountdown(type,target,async()=>{
           if(rounds[type]?.id===r.id){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
           const {error}=await supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id);
@@ -614,7 +617,7 @@ function render(){
         <div class="status-title">${r?.name||typeName} — 2차 세션 신청 진행 중</div>
         <div class="status-sub">인당 최대 ${r.max_sessions_per_person}곡 참여 가능</div>
         ${closeAt?`<div class="status-sub" style="color:var(--warn)">⏰ 마감: ${fmtScheduled(closeAt)}</div>`:''}
-        ${closeAt?`<div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--warn);margin-top:4px" id="cd-${type}">${diffToHMS(diff)}</div>`:''}
+        ${closeAt?`<div class="cd-num cd-close" id="cd-${type}">${diffToHMS(diff)}</div>`:''}
       </div>
     </div>`;
     if(closeAt){
