@@ -120,6 +120,9 @@ body.dark .pending-hdr{border-color:rgba(71,197,255,.1);}
 .toast.show{opacity:1;}
 .toast.ok{background:var(--accent);color:#000;}
 .toast.err{background:var(--danger);color:#fff;}
+.cd-num{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;margin-top:6px;}
+.cd-open{color:var(--accent2);}
+.cd-close{color:var(--warn);}
 @media(max-width:700px){
   .hdr-apply-btn,.hdr-school-btn,.hdr-ensemble-btn,.nav{display:none;}
 }
@@ -272,7 +275,7 @@ function renderDraft(){
     <div class="rs-texts">
       <div class="rs-title">${name}</div>
       <div class="rs-sub">스쿨 신청 준비 중입니다.</div>
-      ${openAt?`<div class="rs-sub" style="margin-top:2px">오픈 예정: ${fmtDate(openAt)} &nbsp;—&nbsp; <span id="cdEl" style="font-family:'Space Mono',monospace;font-weight:700;color:var(--accent2)">...</span></div>`:''}
+      ${openAt?`<div class="rs-sub" style="margin-top:2px">오픈 예정: ${fmtDate(openAt)}</div><div class="cd-num cd-open" id="cdEl">...</div>`:''}
     </div>
   </div>`;
   document.getElementById('container').innerHTML=html;
@@ -296,7 +299,7 @@ function renderOpen(){
     <div class="rs-icon">📋</div>
     <div class="rs-texts">
       <div class="rs-title">${name} — 신청 진행 중</div>
-      ${closeAt?`<div class="rs-sub" style="color:var(--warn)">⏰ 마감: ${fmtDate(closeAt)} &nbsp;—&nbsp; <span id="cdEl" style="font-family:'Space Mono',monospace;font-weight:700">...</span></div>`:'<div class="rs-sub">성명·학번·1지망을 입력하고 신청하세요.</div>'}
+      ${closeAt?`<div class="rs-sub" style="color:var(--warn)">⏰ 마감: ${fmtDate(closeAt)}</div><div class="cd-num cd-close" id="cdEl">...</div>`:'<div class="rs-sub">성명·학번·1지망을 입력하고 신청하세요.</div>'}
       ${round.prioritize_returning?'<div class="rs-notice">ℹ️ 이전 회차 스쿨을 들었던 수강자는 신규 수강자의 배정이 모두 끝난 뒤에 배정합니다.</div>':''}
     </div>
   </div>`;
