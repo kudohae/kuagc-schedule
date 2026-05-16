@@ -281,13 +281,26 @@ function render(){
     return;
   }
 
+  const closeTs=isOpen&&round.close_at&&new Date(round.close_at)>new Date()?round.close_at:null;
+  const closeDiff=closeTs?new Date(closeTs)-Date.now():0;
   html+=`<div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
       <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':'⭕'}</div>
       <div class="apply-status-texts">
         <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'신청 마감 — 배정 완료':'신청 기간이 아닙니다'}</div>
-        <div class="apply-status-sub">${isOpen&&round.close_at?'마감: '+new Date(round.close_at).toLocaleString('ko-KR'):!isOpen&&!isFin?'관리자가 신청을 열면 여기서 신청할 수 있습니다.':''}</div>
+        ${closeTs?`<div class="apply-status-sub" style="color:var(--warn)">⏰ 마감: ${fmtScheduled(closeTs)}</div>`
+          :isOpen&&round.close_at?''
+          :!isOpen&&!isFin?`<div class="apply-status-sub">관리자가 신청을 열면 여기서 신청할 수 있습니다.</div>`:''}
+        ${closeTs?`<div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--warn);margin-top:6px" id="ta-close-cd">${diffToHMS(closeDiff)}</div>`:''}
       </div>
     </div>`;
+  if(closeTs){
+    taCountdownTimer=setInterval(()=>{
+      const d2=new Date(closeTs)-Date.now();
+      const el=document.getElementById('ta-close-cd');
+      if(el) el.textContent=diffToHMS(d2);
+      if(d2<=0){ clearInterval(taCountdownTimer); taCountdownTimer=null; render(); }
+    },1000);
+  }
 
   if(isOpen){
     const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
