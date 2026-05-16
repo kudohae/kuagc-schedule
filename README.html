@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 사용설명서 | 그루터기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+:root{
+  --bg:#f4f4f5;--surface:#ffffff;--surface2:#f0f0f2;--border:#dddde0;
+  --accent:#5c9e00;--accent2:#0077cc;--danger:#d93025;--warn:#c8760a;
+  --text:#111111;--text2:#555555;--text3:#999999;--radius:8px;--hh:48px;
+  --header-bg:rgba(244,244,245,.97);
+}
+body.dark{
+  --bg:#121212;--surface:#1e1e1e;--surface2:#2a2a2e;--border:#333338;
+  --accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;
+  --text:#f0f0f0;--text2:#888888;--text3:#505055;
+  --header-bg:rgba(18,18,18,.97);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.7;}
+
+header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;background:var(--header-bg);backdrop-filter:blur(8px);z-index:100;}
+.logo{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;color:var(--accent);text-decoration:none;}
+.hdr-title{font-size:13px;color:var(--text2);font-weight:500;}
+.hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.theme-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 9px;font-size:13px;cursor:pointer;line-height:1;transition:all .12s;}
+.theme-btn:hover{border-color:var(--text2);}
+
+.layout{display:flex;max-width:1100px;margin:0 auto;padding:32px 20px;gap:28px;align-items:flex-start;}
+
+/* sidebar nav */
+.sidebar{width:210px;flex-shrink:0;position:sticky;top:calc(var(--hh) + 16px);}
+.sidebar-title{font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--text3);text-transform:uppercase;padding:0 8px;margin-bottom:8px;}
+.sidebar-nav{display:flex;flex-direction:column;gap:1px;}
+.sn-item{display:block;padding:7px 10px;border-radius:6px;text-decoration:none;font-size:13px;color:var(--text2);transition:all .1s;}
+.sn-item:hover{background:var(--surface);color:var(--text);}
+.sn-item.active{background:rgba(92,158,0,.1);color:var(--accent);font-weight:700;}
+body.dark .sn-item.active{background:rgba(232,255,71,.08);}
+.sn-sub{padding-left:18px;font-size:12px;}
+
+/* main content */
+.content{flex:1;min-width:0;display:flex;flex-direction:column;gap:36px;}
+
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.section-hdr{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.section-icon{font-size:20px;line-height:1;}
+.section-num{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;}
+.section-ttl{font-size:16px;font-weight:700;}
+.section-sub{font-size:12px;color:var(--text2);margin-top:1px;}
+.section-body{padding:20px 24px;display:flex;flex-direction:column;gap:20px;}
+
+h3{font-size:13px;font-weight:700;color:var(--text2);letter-spacing:.4px;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:2px;}
+
+p{font-size:14px;color:var(--text);line-height:1.75;}
+
+/* step list */
+.steps{display:flex;flex-direction:column;gap:8px;}
+.step{display:flex;gap:12px;align-items:flex-start;}
+.step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+body.dark .step-num{color:#000;}
+.step-body{flex:1;font-size:13px;line-height:1.65;}
+.step-body strong{font-weight:700;}
+
+/* bullet list */
+ul.blist{list-style:none;display:flex;flex-direction:column;gap:5px;padding-left:4px;}
+ul.blist li{font-size:13px;color:var(--text);padding-left:14px;position:relative;line-height:1.65;}
+ul.blist li::before{content:'·';position:absolute;left:0;color:var(--text3);}
+
+/* code / monospace snippet */
+.code{font-family:'Space Mono',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:10px 14px;color:var(--text);white-space:pre;overflow-x:auto;line-height:1.6;}
+
+/* info box */
+.info-box{background:rgba(0,119,204,.05);border:1px solid rgba(0,119,204,.2);border-radius:6px;padding:11px 14px;font-size:13px;color:var(--text);}
+body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255,.15);}
+.info-box.warn{background:rgba(200,118,10,.05);border-color:rgba(200,118,10,.2);}
+.info-box.danger{background:rgba(217,48,37,.05);border-color:rgba(217,48,37,.2);}
+.info-box strong{font-weight:700;}
+
+/* phase flow */
+.phase-flow{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+.ph{font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;white-space:nowrap;}
+.ph.prep{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.ph.song{background:rgba(92,158,0,.12);color:var(--accent);}
+.ph.wait{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.ph.sess{background:rgba(0,119,204,.1);color:var(--accent2);}
+.ph.done{background:rgba(92,158,0,.18);color:var(--accent);}
+.ph-arrow{color:var(--text3);font-size:12px;}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{text-align:left;padding:7px 12px;background:var(--surface2);font-weight:700;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 12px;border-bottom:1px solid var(--border);line-height:1.5;}
+.tbl tr:last-child td{border-bottom:none;}
+
+/* badge */
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;vertical-align:middle;}
+.badge.green{background:rgba(92,158,0,.12);color:var(--accent);}
+.badge.blue{background:rgba(0,119,204,.1);color:var(--accent2);}
+.badge.gray{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.badge.orange{background:rgba(200,118,10,.1);color:var(--warn);}
+
+@media(max-width:760px){
+  .sidebar{display:none;}
+  .layout{padding:20px 14px;}
+  .section-body{padding:16px;}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="/">KUAGC</a>
+  <span style="color:var(--border)">|</span>
+  <span class="hdr-title">관리자 사용설명서</span>
+  <div class="hdr-right">
+    <button class="theme-btn" onclick="document.body.classList.toggle('dark')">🌓</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-title">목차</div>
+    <div class="sidebar-nav">
+      <a class="sn-item" href="#access">접근 방법</a>
+      <a class="sn-item" href="#timeassign">시간 배정</a>
+      <a class="sn-item sn-sub" href="#ta-team">팀 관리</a>
+      <a class="sn-item sn-sub" href="#ta-round">회차 운영</a>
+      <a class="sn-item sn-sub" href="#ta-request">요청 처리</a>
+      <a class="sn-item" href="#school">스쿨 신청</a>
+      <a class="sn-item sn-sub" href="#sc-round">회차 만들기</a>
+      <a class="sn-item sn-sub" href="#sc-assign">배정 방식</a>
+      <a class="sn-item" href="#ensemble">합주 신청</a>
+      <a class="sn-item sn-sub" href="#en-phases">단계 구조</a>
+      <a class="sn-item sn-sub" href="#en-dnd">팀 구성 DnD</a>
+      <a class="sn-item" href="#notice">공지 / 연락처</a>
+      <a class="sn-item" href="#caution">주의사항</a>
+    </div>
+  </nav>
+
+  <!-- content -->
+  <main class="content">
+
+    <!-- 접근 방법 -->
+    <section class="section" id="access">
+      <div class="section-hdr">
+        <span class="section-icon">🔗</span>
+        <div>
+          <div class="section-ttl">접근 방법</div>
+          <div class="section-sub">공개 페이지와 관리자 페이지</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <table class="tbl">
+          <tr><th>페이지</th><th>URL</th><th>접근</th></tr>
+          <tr><td>시간표 조회</td><td><span style="font-family:'Space Mono',monospace;font-size:12px">kudohae.github.io/kuagc-schedule/</span></td><td><span class="badge green">공개</span></td></tr>
+          <tr><td>시간 배정 신청</td><td><span style="font-family:'Space Mono',monospace;font-size:12px">…/timeassign.html</span></td><td><span class="badge green">공개</span></td></tr>
+          <tr><td>스쿨 신청</td><td><span style="font-family:'Space Mono',monospace;font-size:12px">…/school.html</span></td><td><span class="badge green">공개</span></td></tr>
+          <tr><td>합주 신청</td><td><span style="font-family:'Space Mono',monospace;font-size:12px">…/ensemble.html</span></td><td><span class="badge green">공개</span></td></tr>
+          <tr><td>통합 관리</td><td><span style="font-family:'Space Mono',monospace;font-size:12px">…/admin.html</span></td><td><span class="badge orange">비밀번호 필요</span></td></tr>
+        </table>
+        <div>
+          <h3>관리자 비밀번호 변경</h3>
+          <p style="margin-bottom:8px">Supabase SQL Editor에서 실행:</p>
+          <div class="code">UPDATE app_config SET value = '새비밀번호' WHERE key = 'admin_password';</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 시간 배정 -->
+    <section class="section" id="timeassign">
+      <div class="section-hdr">
+        <span class="section-icon">📅</span>
+        <span class="section-num">1</span>
+        <div>
+          <div class="section-ttl">시간 배정</div>
+          <div class="section-sub">팀별 동아리방 사용 시간 신청 및 배정</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div id="ta-team">
+          <h3>팀 관리 — admin.html "팀" 탭</h3>
+          <ul class="blist">
+            <li>[+ 팀 추가]로 팀 생성: 이름·유형(합주/스쿨/이외)·색상·소개·구성원 입력</li>
+            <li>구성원 형식: 한 줄에 한 명 — <code style="font-family:'Space Mono',monospace;background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:12px">홍길동 1234 보컬</code></li>
+            <li>팀 삭제 시 해당 팀의 모든 슬롯·신청 데이터 함께 삭제됨 <span class="badge orange">주의</span></li>
+          </ul>
+        </div>
+
+        <div id="ta-round">
+          <h3>회차 운영 — admin.html "시간 배정" 탭</h3>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div class="step-body">[회차 생성] → 오픈/마감 시각 예약 또는 즉시 열기 선택</div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-body">[열기] → "신청 중" 상태로 전환. 팀원들이 1·2·3지망 선택 후 제출</div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-body">마감 후 [배정 실행] → 1지망 → 2지망 → 3지망 순으로 자동 배정 (선착순)</div></div>
+            <div class="step"><div class="step-num">4</div><div class="step-body">결과 확인 후 [초안 승인] → 기존 슬롯이 배정 결과로 교체되어 시간표에 즉시 반영</div></div>
+          </div>
+          <div class="info-box" style="margin-top:10px">한 팀이 여러 번 제출하면 <strong>가장 최근 제출만 유효</strong>합니다.</div>
+        </div>
+
+        <div id="ta-request">
+          <h3>팀원 요청 처리 — 우측 사이드바</h3>
+          <table class="tbl">
+            <tr><th>요청 종류</th><th>승인 시 동작</th></tr>
+            <tr><td>추가 사용 신청</td><td>해당 주에 extra 예외 슬롯 자동 생성</td></tr>
+            <tr><td>미사용 신고</td><td>해당 주에 absent 예외 처리 (시간표에 빗금)</td></tr>
+            <tr><td>종료 처리</td><td>해당 팀의 base_slot 영구 삭제 <span class="badge orange">복구 불가</span></td></tr>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 스쿨 -->
+    <section class="section" id="school">
+      <div class="section-hdr">
+        <span class="section-icon">🏫</span>
+        <span class="section-num">2</span>
+        <div>
+          <div class="section-ttl">스쿨 신청</div>
+          <div class="section-sub">수강생 모집 및 반 배정</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div id="sc-round">
+          <h3>회차 만들기 — admin.html "스쿨" 탭</h3>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div class="step-body">[+ 새 스쿨 회차 만들기] → 학기·회차 번호 입력 → "초안(draft)" 상태로 생성</div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-body">[+ 반 추가]: 반 이름·담당·정원·요일·시간·설명 입력. 여러 반 추가 가능</div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-body">[열기] 또는 오픈 예약 시각 → "모집중" 상태로 전환</div></div>
+            <div class="step"><div class="step-num">4</div><div class="step-body">[마감하기] 또는 마감 시각 → 자동 마감 + 대기 수강생 일괄 배정</div></div>
+          </div>
+        </div>
+
+        <div id="sc-assign">
+          <h3>배정 방식</h3>
+          <table class="tbl">
+            <tr><th>수강생 유형</th><th>처리 시점</th><th>방식</th></tr>
+            <tr><td>신규 수강생</td><td>신청 즉시</td><td>1지망 정원 여유 시 배정 → 없으면 2지망 → 없으면 미배정</td></tr>
+            <tr><td>이전 회차 수강생<br><span style="font-size:11px;color:var(--text3)">(prioritize_returning = true)</span></td><td>마감 후 일괄</td><td>대기(pending) 상태로 저장 → 마감 시 제출 순서대로 배정</td></tr>
+          </table>
+          <div class="info-box warn" style="margin-top:8px">"이전 회차 수강생 대기 처리"는 회차 초안 단계에서 설정해야 합니다.</div>
+        </div>
+
+        <div>
+          <h3>school.html에서 학생에게 표시되는 정보</h3>
+          <ul class="blist">
+            <li>반 이름·담당·요일/시간</li>
+            <li>[스쿨 설명 보기] 버튼 → 긴 설명 펼치기/접기</li>
+            <li>배정 결과: 이름 + 학번 뒷 3자리</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 합주 -->
+    <section class="section" id="ensemble">
+      <div class="section-hdr">
+        <span class="section-icon">🎸</span>
+        <span class="section-num">3</span>
+        <div>
+          <div class="section-ttl">합주 신청</div>
+          <div class="section-sub">곡 신청 → 세션 신청 → DnD 팀 구성. 일반·버스킹 독립 운영</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div id="en-phases">
+          <h3>단계 구조</h3>
+          <div style="margin-bottom:8px">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:6px">2차 세션 없는 경우 (6단계)</div>
+            <div class="phase-flow">
+              <span class="ph prep">1 준비</span><span class="ph-arrow">→</span>
+              <span class="ph song">2 곡 신청</span><span class="ph-arrow">→</span>
+              <span class="ph wait">3 대기</span><span class="ph-arrow">→</span>
+              <span class="ph sess">4 세션 신청</span><span class="ph-arrow">→</span>
+              <span class="ph done">5 최종 팀 구성</span><span class="ph-arrow">→</span>
+              <span class="ph prep">6 완료</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:6px">2차 세션 있는 경우 (8단계)</div>
+            <div class="phase-flow">
+              <span class="ph prep">1 준비</span><span class="ph-arrow">→</span>
+              <span class="ph song">2 곡 신청</span><span class="ph-arrow">→</span>
+              <span class="ph wait">3 대기</span><span class="ph-arrow">→</span>
+              <span class="ph sess">4 1차 세션</span><span class="ph-arrow">→</span>
+              <span class="ph wait">5 대기</span><span class="ph-arrow">→</span>
+              <span class="ph sess">6 2차 세션</span><span class="ph-arrow">→</span>
+              <span class="ph done">7 최종 팀</span><span class="ph-arrow">→</span>
+              <span class="ph prep">8 완료</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3>회차 생성 시 설정 항목</h3>
+          <ul class="blist">
+            <li>회차 이름 / 최대 곡 수 / 1인 최대 신청 곡 수 / 1인 최대 세션 참여 곡 수</li>
+            <li>곡 신청 오픈·마감 예약, 세션 신청 오픈·마감 예약</li>
+            <li>2차 세션 신청 여부 및 오픈·마감 시각</li>
+            <li>2차 신청 대상: <strong>any_song</strong>(모든 곡) / <strong>missing_only</strong>(빈 세션 있는 곡만)</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3>곡 신청 단계 (2단계)</h3>
+          <p style="margin-bottom:8px">학생이 ensemble.html에서 입력하는 항목:</p>
+          <ul class="blist">
+            <li>신청자 성명·학번</li>
+            <li>곡 제목·아티스트</li>
+            <li>이 곡에 필요한 세션 전체 (복수 선택)</li>
+            <li>내가 담당할 세션 — 필요 세션 중에서만 선택 가능</li>
+          </ul>
+          <div class="info-box" style="margin-top:8px">신청자의 세션 담당은 <strong>곡 신청 시 자동 등록</strong>됩니다. 별도 세션 신청 불필요.</div>
+        </div>
+
+        <div>
+          <h3>세션 신청 단계 (4/6단계)</h3>
+          <ul class="blist">
+            <li>확정된 곡 중 원하는 곡 선택 → 신청 가능한 세션만 표시</li>
+            <li>신청자가 이미 담당한 세션은 선택 불가</li>
+            <li>1인 최대 참여 곡 수 초과 불가 / 동일 곡 중복 신청 불가</li>
+          </ul>
+        </div>
+
+        <div id="en-dnd">
+          <h3>DnD 팀 구성 (5/7단계)</h3>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div class="step-body">[팀 구성 시작] → 모달 열림. 왼쪽: 미배정 풀 / 오른쪽: 곡별 팀</div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-body">카드를 드래그해 곡으로 이동 또는 풀로 되돌리기</div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-body"><span class="badge green">신청자</span> 배지 카드는 고정(이동 불가). 동일 세션 중복 시 주황 충돌 표시</div></div>
+            <div class="step"><div class="step-num">4</div><div class="step-body">[임시저장] → 새로고침해도 복원됨</div></div>
+            <div class="step"><div class="step-num">5</div><div class="step-body">[확정]: 곡 배치된 인원 → confirmed / 풀에 남은 인원 → rejected(취소선)</div></div>
+            <div class="step"><div class="step-num">6</div><div class="step-body">확정 후 [다음 단계] 버튼으로 진행 (DnD 확정 ≠ 단계 전환)</div></div>
+          </div>
+          <div class="info-box warn" style="margin-top:10px">5단계 → 6단계 전환 시, 1차에서 <strong>미확정(pending) 상태로 남은 신청 데이터가 자동 삭제</strong>됩니다.</div>
+        </div>
+
+        <div>
+          <h3>이전 단계 되돌리기</h3>
+          <p>모든 단계에서 [이전 단계] 버튼으로 한 단계씩 되돌릴 수 있습니다.</p>
+          <div class="info-box danger" style="margin-top:8px">되돌려도 DB에 저장된 신청 데이터는 삭제되지 않습니다. 필요 시 Supabase에서 직접 정리해야 합니다.</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 공지 -->
+    <section class="section" id="notice">
+      <div class="section-hdr">
+        <span class="section-icon">📢</span>
+        <span class="section-num">4</span>
+        <div>
+          <div class="section-ttl">공지사항 / 연락처</div>
+          <div class="section-sub">시간표 페이지 하단에 표시</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <ul class="blist">
+          <li><strong>공지사항</strong>: 추가·삭제만 가능 (수정 불가). 시간표 하단에 표시.</li>
+          <li><strong>연락처</strong>: 직책·이름·전화번호. 시간표 하단에 표시.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 주의사항 -->
+    <section class="section" id="caution">
+      <div class="section-hdr">
+        <span class="section-icon">⚠️</span>
+        <span class="section-num">5</span>
+        <div>
+          <div class="section-ttl">데이터 관리 주의사항</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <table class="tbl">
+          <tr><th>기능</th><th>설명</th><th>복구</th></tr>
+          <tr><td>[시즌 초기화]</td><td>해당 시즌의 모든 base_slots·회차·신청 데이터 삭제</td><td><span class="badge orange">불가</span></td></tr>
+          <tr><td>[전체 팀 삭제]</td><td>모든 팀과 연결 데이터 삭제</td><td><span class="badge orange">불가</span></td></tr>
+          <tr><td>종료 처리(요청)</td><td>해당 팀의 base_slot 영구 삭제</td><td><span class="badge orange">불가</span></td></tr>
+          <tr><td>관리자 로그아웃</td><td>탭/브라우저를 닫으면 자동 로그아웃</td><td>—</td></tr>
+        </table>
+        <div class="info-box warn">
+          <strong>Supabase 프리 티어:</strong> 7일 이상 미사용 시 DB가 자동 일시정지됩니다.
+          첫 접속 시 깨어나는 데 최대 30초 소요. 주 1회 이상 접속하면 방지 가능.
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// sidebar active on scroll
+const sections=document.querySelectorAll('section[id]');
+const items=document.querySelectorAll('.sn-item');
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      items.forEach(i=>{i.classList.remove('active');if(i.getAttribute('href')==='#'+e.target.id)i.classList.add('active');});
+    }
+  });
+},{rootMargin:'-20% 0px -70% 0px'});
+sections.forEach(s=>obs.observe(s));
+// dark mode persist
+if(localStorage.getItem('theme')==='dark') document.body.classList.add('dark');
+document.querySelector('.theme-btn').addEventListener('click',()=>{
+  const d=document.body.classList.toggle('dark');
+  localStorage.setItem('theme',d?'dark':'light');
+});
+</script>
+</body>
+</html>
