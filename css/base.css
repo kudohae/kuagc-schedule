@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+:root{
+  --bg:#f4f4f5;--surface:#ffffff;--surface2:#f0f0f2;--border:#dddde0;
+  --accent:#5c9e00;--accent2:#0077cc;--danger:#d93025;--warn:#c8760a;
+  --text:#111111;--text2:#555555;--text3:#999999;--radius:6px;--hh:48px;
+  --header-bg:rgba(244,244,245,.97);
+}
+body.dark{
+  --bg:#121212;--surface:#1e1e1e;--surface2:#2a2a2e;--border:#333338;
+  --accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;
+  --text:#f0f0f0;--text2:#888888;--text3:#505055;
+  --header-bg:rgba(18,18,18,.97);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
