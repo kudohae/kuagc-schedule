@@ -2375,7 +2375,7 @@ function ensSlotCardHtml(sl,conflicted){
   const effSess=sl.overrideSession??sl.session;
   const sessTag=pinned
     ?`<span class="ens-member-tag">${effSess}</span>`
-    :`<select class="ens-sess-sel${conflicted?' conflict':''}" onchange="setSlotSession('${sid}',this.value)" onclick="event.stopPropagation()" ondragstart="event.stopPropagation()">${SESSIONS.map(s=>`<option value="${s}"${s===effSess?' selected':''}>${s}</option>`).join('')}</select>`;
+    :`<select class="ens-sess-sel${conflicted?' conflict':''}" onchange="setSlotSession('${sid}',this.value)" onclick="event.stopPropagation()" ondragstart="event.stopPropagation()">${SESSIONS.map(s=>`<option value="${s}"${s===effSess?' selected':''}>${s}${s===sl.session?' *':''}</option>`).join('')}</select>`;
   return `<div class="ens-member-card${conflicted?' conflict':''}${pinned?' applicant':''}" ${dragAttrs} data-id="${sl.id}">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
       <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''}${applicantBadge}${r2Badge}</div>
@@ -2417,9 +2417,8 @@ function renderEnsDndPool(){
     :'<div class="ens-empty-hint">없음</div>';
 }
 
-function renderEnsDndModal(){
+function renderEnsDndSongs(){
   if(!eDndSt) return;
-  renderEnsDndPool();
   document.getElementById('ensDndSongs').innerHTML=eDndSt.songs.map(({song,slots})=>{
     const conflicts=getConflictedSlotIds(slots);
     return `<div class="ens-song-card" data-song-id="${song.id}"
@@ -2435,6 +2434,11 @@ function renderEnsDndModal(){
       </div>
     </div>`;
   }).join('');
+}
+function renderEnsDndModal(){
+  if(!eDndSt) return;
+  renderEnsDndPool();
+  renderEnsDndSongs();
 }
 
 window.ensDndDragStart=function(event,id){
