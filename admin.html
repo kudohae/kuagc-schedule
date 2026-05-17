@@ -2548,11 +2548,12 @@ async function loadEnsemble(){
     }
   }
   const allIds=[...eSongs.regular,...eSongs.busking].map(s=>s.id);
-  eSessionMap={};
+  const newMap={};
   if(allIds.length){
     const {data:sess}=await supabase.from('session_applications').select('*').in('song_id',allIds).order('created_at');
-    (sess||[]).forEach(s=>{ if(!eSessionMap[s.song_id]) eSessionMap[s.song_id]=[]; eSessionMap[s.song_id].push(s); });
+    (sess||[]).forEach(s=>{ if(!newMap[s.song_id]) newMap[s.song_id]=[]; newMap[s.song_id].push(s); });
   }
+  eSessionMap=newMap;
 }
 
 // 회차 생성
