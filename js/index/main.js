@@ -94,6 +94,8 @@ async function loadAll(){
   }
 }
 
+window.loadAll=loadAll;
+
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
 window.showPage=function(pg){
   document.getElementById('pgSchedule')?.classList.toggle('active',pg==='schedule');
