@@ -377,3 +377,22 @@ body.dark .ens-sess-sel.conflict{border-color:rgba(255,170,71,.35);background:rg
 .data-section-title{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2);}
 .btn-danger{background:rgba(255,80,80,.12);color:var(--danger);border:1px solid rgba(255,80,80,.3);}
 .btn-danger:hover{background:rgba(255,80,80,.2);}
+
+/* ── ENSEMBLE MOBILE TAP UI ── */
+@media(max-width:700px){
+  .ens-modal-wrap{width:100vw;height:100vh;height:100dvh;border-radius:0;}
+  .ens-modal-hdr{flex-wrap:wrap;row-gap:6px;padding:10px 12px;}
+  .ens-modal-hdr>div:first-child{flex:1 1 100%;}
+  .ens-modal-body{flex-direction:column;}
+  .ens-pool-col{width:100%;max-height:35vh;border-right:none;border-bottom:1px solid var(--border);padding:8px 10px;overflow-y:auto;}
+  .ens-songs-grid{grid-template-columns:1fr;padding:10px;gap:8px;}
+  .ens-member-card:not(.applicant){cursor:pointer;}
+  .ens-member-card.mob-sel{border-color:var(--accent2) !important;background:rgba(71,197,255,.12) !important;box-shadow:0 0 0 2px rgba(71,197,255,.4);}
+  .ens-song-card.mob-target{border-color:var(--accent2);cursor:pointer;}
+  .ens-song-card.mob-target .ens-song-card-hdr::after{content:'탭하여 배정';font-size:10px;font-weight:700;color:var(--accent2);margin-left:auto;white-space:nowrap;}
+  .ens-song-card-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;}
+  .ens-mob-remove{min-width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text3);font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;}
+  .ens-mob-remove:active{border-color:var(--danger);color:var(--danger);}
+  #ensMobHint{display:none;margin-bottom:6px;padding:7px 10px;background:rgba(71,197,255,.1);border:1px solid rgba(71,197,255,.3);border-radius:5px;font-size:12px;font-weight:600;color:var(--accent2);text-align:center;}
+  #ensMobHint.show{display:block;}
+}
