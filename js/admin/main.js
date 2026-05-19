@@ -279,7 +279,7 @@ function renderSchool(){
         <div style="font-size:12px;color:var(--text3)">
           회차명 미리보기: <strong id="scNamePreview">${getRoundName(cur)}</strong>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
           <div>
             <div class="fl">오픈 예약 (선택)</div>
             <input class="fi" id="scOpenAt" type="datetime-local" value="${toLocal(cur.open_at)}"/>
