@@ -1580,6 +1580,7 @@ function renderEnsemble(){
 let eDndSt=null;
 let eDndDrag=null;
 let eDndFilter=null;
+let eMobileSelected=null;
 
 const ENS_SESS_ORDER=SESSIONS;
 function sessOrder(s){const i=ENS_SESS_ORDER.indexOf(s);return i===-1?99:i;}
@@ -1657,16 +1658,19 @@ window.openEnsDndModal=function(type){
   const savedKey=`ensDnd_${type}_${r.id}`;
   if(localStorage.getItem(savedKey)&&!confirm('이전에 임시저장한 내용이 있습니다.\n이어서 진행하시겠습니까?\n(취소하면 처음부터 자동 배정합니다)')) localStorage.removeItem(savedKey);
   eDndSt=computeEnsDndInitial(type); if(!eDndSt) return;
-  eDndFilter=null;
+  eDndFilter=null; eMobileSelected=null;
   document.getElementById('ensDndRoundName').textContent=r.name||'팀 구성';
   document.getElementById('ensDndTypeName').textContent=type==='regular'?'일반 합주':'버스킹 합주';
   renderEnsDndModal();
   document.getElementById('ensDndModal').style.display='flex';
   document.body.style.overflow='hidden';
+  window._ensDndResize=()=>{if(eDndSt)renderEnsDndModal();};
+  window.addEventListener('resize',window._ensDndResize);
 };
 window.closeEnsDndModal=function(){
   document.getElementById('ensDndModal').style.display='none';
   document.body.style.overflow='';
+  if(window._ensDndResize){window.removeEventListener('resize',window._ensDndResize);window._ensDndResize=null;}
 };
 window.ensDndSave=function(){ensDndSaveState();toast('임시저장됐습니다','ok');};
 window.ensDndSetFilter=function(session){eDndFilter=session;renderEnsDndPool();};
@@ -1748,9 +1752,115 @@ function renderEnsDndSongs(){
 }
 function renderEnsDndModal(){
   if(!eDndSt) return;
+  if(window.innerWidth<=700){renderEnsDndMobile();return;}
   renderEnsDndPool();
   renderEnsDndSongs();
 }
+
+// ── MOBILE TAP UI ─────────────────────────────────────────────────────
+function ensMobPoolCardHtml(sl){
+  const sid=sl.id.replace(/'/g,"\\'");
+  const isSel=eMobileSelected===sl.id;
+  const effSess=sl.overrideSession??sl.session;
+  return `<div class="ens-member-card${isSel?' mob-sel':''}" onclick="ensMobSelectPool('${sid}')">
+    <div style="display:flex;align-items:center;gap:6px">
+      <div style="flex:1;min-width:0">
+        <span class="ens-member-name">${sl.applicantName}</span>
+        <span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>
+        ${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''}
+        ${sl.sessionRound===2?'<span style="font-size:9px;background:var(--accent2);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>':''}
+      </div>
+      <span class="ens-member-tag">${effSess}</span>
+    </div>
+  </div>`;
+}
+
+function ensMobSongMemberHtml(sl,conflicted){
+  const sid=sl.id.replace(/'/g,"\\'");
+  const pinned=sl.isApplicant;
+  const effSess=sl.overrideSession??sl.session;
+  const sessOpts=SESSIONS.map(s=>`<option value="${s}"${s===effSess?' selected':''}>${s}${s===sl.session?' *':''}</option>`).join('');
+  return `<div class="ens-member-card${conflicted?' conflict':''}${pinned?' applicant':''}">
+    <div style="display:flex;align-items:center;gap:6px">
+      <div style="flex:1;min-width:0">
+        <span class="ens-member-name" style="${pinned?'font-weight:900':''}">${sl.applicantName}</span>
+        <span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>
+        ${pinned?'<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>':''}
+        ${sl.sessionRound===2?'<span style="font-size:9px;background:var(--accent2);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>':''}
+      </div>
+      ${pinned?'':`<button class="ens-mob-remove" onclick="event.stopPropagation();ensMobRemove('${sid}')">×</button>`}
+    </div>
+    <div class="ens-member-tags">
+      ${pinned?`<span class="ens-member-tag">${effSess}</span>`:`<select class="ens-sess-sel${conflicted?' conflict':''}" onchange="setSlotSession('${sid}',this.value)" onclick="event.stopPropagation()">${sessOpts}</select>`}
+    </div>
+  </div>`;
+}
+
+function renderEnsDndMobile(){
+  if(!eDndSt) return;
+  // Pool section
+  document.getElementById('ensDndPoolCount').textContent=eDndSt.unassigned.length;
+  const usedSess=[...new Set(eDndSt.unassigned.map(sl=>sl.overrideSession??sl.session))].sort((a,b)=>sessOrder(a)-sessOrder(b));
+  document.getElementById('ensDndFilterRow').innerHTML=usedSess.length
+    ?`<button class="btn btn-xs ${!eDndFilter?'btn-p':'btn-s'}" style="font-size:10px;padding:2px 7px" onclick="ensDndSetFilter(null)">전체</button>`
+      +usedSess.map(s=>`<button class="btn btn-xs ${eDndFilter===s?'btn-p':'btn-s'}" style="font-size:10px;padding:2px 7px" onclick="ensDndSetFilter('${s}')">${s}</button>`).join('')
+    :'';
+  const hint=document.getElementById('ensMobHint');
+  if(hint){
+    hint.classList.toggle('show',eMobileSelected!==null);
+    hint.textContent=eMobileSelected?'배정할 곡을 탭하세요 · 다시 탭하면 선택 취소':'';
+  }
+  const filtered=eDndFilter?eDndSt.unassigned.filter(sl=>(sl.overrideSession??sl.session)===eDndFilter):eDndSt.unassigned;
+  const groups={};
+  for(const sl of filtered){if(!groups[sl.appId])groups[sl.appId]={createdAt:sl.createdAt,slots:[]};groups[sl.appId].slots.push(sl);}
+  const sorted=Object.values(groups).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  document.getElementById('ensDndPoolCards').innerHTML=sorted.length
+    ?sorted.map(g=>g.slots.length===1?ensMobPoolCardHtml(g.slots[0]):`<div class="ens-pool-group">${g.slots.map(sl=>ensMobPoolCardHtml(sl)).join('')}</div>`).join('')
+    :'<div class="ens-empty-hint">없음</div>';
+  // Songs section
+  const hasSel=eMobileSelected!==null;
+  document.getElementById('ensDndSongs').innerHTML=eDndSt.songs.map(({song,slots})=>{
+    const conflicts=getConflictedSlotIds(slots);
+    return `<div class="ens-song-card${hasSel?' mob-target':''}" data-song-id="${song.id}"${hasSel?` onclick="ensMobAssign(${song.id})"`:''}>
+      <div class="ens-song-card-hdr">
+        <div>
+          <div class="ens-song-card-title">${song.title}</div>
+          <div class="ens-song-card-meta">${song.artist} · ${(song.sessions||[]).join(' · ')} · ${slots.length}명</div>
+        </div>
+      </div>
+      <div class="ens-song-members" onclick="event.stopPropagation()">
+        ${slots.length?slots.map(sl=>ensMobSongMemberHtml(sl,conflicts.has(sl.id))).join(''):'<div class="ens-empty-hint">멤버 없음</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.ensMobSelectPool=function(slotId){
+  eMobileSelected=eMobileSelected===slotId?null:slotId;
+  renderEnsDndMobile();
+};
+window.ensMobAssign=function(songId){
+  if(!eMobileSelected||!eDndSt) return;
+  const id=eMobileSelected;
+  const idx=eDndSt.unassigned.findIndex(x=>x.id===id);
+  if(idx===-1) return;
+  const sl=eDndSt.unassigned.splice(idx,1)[0];
+  const target=eDndSt.songs.find(s=>s.song.id===songId);
+  if(target){target.slots.push(sl);sortSongSlots(target.slots);}
+  eMobileSelected=null;
+  ensDndSaveState();
+  renderEnsDndMobile();
+};
+window.ensMobRemove=function(slotId){
+  if(!eDndSt) return;
+  for(const s of eDndSt.songs){
+    const idx=s.slots.findIndex(x=>x.id===slotId);
+    if(idx!==-1){eDndSt.unassigned.push(s.slots.splice(idx,1)[0]);break;}
+  }
+  eMobileSelected=null;
+  ensDndSaveState();
+  renderEnsDndMobile();
+};
 
 window.ensDndDragStart=function(event,id){
   eDndDrag={id};
