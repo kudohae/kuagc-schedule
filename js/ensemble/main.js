@@ -172,7 +172,6 @@ function render(){
     const closeAt=r?.song_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
       if(rounds[type]?.id===r.id){rounds[type].phase='song_end';}
-      supabase.from('ensemble_rounds').update({phase:'song_end'}).eq('id',r.id).then(({error})=>{if(error)console.error('song→song_end:',error.message);});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
@@ -254,7 +253,6 @@ function render(){
     const closeAt=r?.session_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
       if(rounds[type]?.id===r.id){rounds[type].phase='session_end';}
-      supabase.from('ensemble_rounds').update({phase:'session_end'}).eq('id',r.id).then(({error})=>{if(error)console.error('session→session_end:',error.message);});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
@@ -342,7 +340,6 @@ function render(){
     const closeAt=r?.session2_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
       if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';}
-      supabase.from('ensemble_rounds').update({phase:'session2_end'}).eq('id',r.id).then(({error})=>{if(error)console.error('session2→session2_end:',error.message);});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
