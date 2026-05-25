@@ -43,10 +43,8 @@ async function init(){
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},loadAll)
       .subscribe();
-    let _poll=setInterval(refreshList,8000);
     document.addEventListener('visibilitychange',()=>{
-      if(document.hidden){clearInterval(_poll);}
-      else{refreshList();_poll=setInterval(refreshList,8000);}
+      if(!document.hidden) refreshList();
     });
   }catch(e){
     document.getElementById('ld').innerHTML=`

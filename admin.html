@@ -54,12 +54,12 @@
       <option>1학기</option><option>여름방학</option><option>2학기</option><option>겨울방학</option>
     </select>
     <div class="week-nav" id="weekNavEl">
-      <button onclick="changeWeek(-1)">‹</button>
+      <button onclick="changeWeek(-1)" aria-label="이전 주">‹</button>
       <div class="week-lbl" id="weekLbl">—</div>
-      <button onclick="changeWeek(1)">›</button>
+      <button onclick="changeWeek(1)" aria-label="다음 주">›</button>
     </div>
     <button class="logout-btn" onclick="doLogout()">Logout</button>
-    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="다크/라이트 모드 전환">🌙</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="다크/라이트 모드 전환">🌙</button>
   </div>
 </header>
 
@@ -275,7 +275,7 @@
   <div class="modal">
     <div class="modal-hdr">
       <div class="modal-ttl" id="modalTtl"></div>
-      <button class="modal-x" onclick="closeModal()">×</button>
+      <button class="modal-x" onclick="closeModal()" aria-label="닫기">×</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-foot" id="modalFoot"></div>
