@@ -128,7 +128,7 @@ function renderOpen(){
     <div class="apply-form-title">스쿨 신청</div>
     <div style="display:flex;flex-direction:column;gap:10px">
       <div class="form-grid">
-        <div><div class="fl">성명 *</div><input class="fi" id="applyName" placeholder="홍길동" autocomplete="off"/></div>
+        <div><div class="fl">성명 *</div><input class="fi" id="applyName" placeholder="허우진" autocomplete="off"/></div>
         <div><div class="fl">학번 *</div><input class="fi" id="applySid" placeholder="2021130905" inputmode="numeric" autocomplete="off"/></div>
       </div>
       <div><div class="fl">1지망 *</div><select class="fi" id="applyPref1">
