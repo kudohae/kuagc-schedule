@@ -6,6 +6,7 @@ import {
   fetchContacts, createVacancyReport
 } from '../schedule.js';
 import { initTheme, toggleTheme } from '../utils/theme.js';
+import { escapeHtml as esc } from '../utils/html.js';
 
 window.toggleTheme = toggleTheme;
 
@@ -36,6 +37,7 @@ function weekLabel(off){
 
 // ── STATE ─────────────────────────────────────────────────────────────
 let weekOff=0, season='1학기';
+let _rtChannel=null, _rtSupa=null, weekChangeSeq=0;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let merged=[];
 let activeRound=null, activeEnsemble=null, activeSchoolRound=null;
@@ -70,9 +72,11 @@ async function loadAll(){
     merged=mergeSchedule(baseSlots,exceptions);
     ldEl.style.display='none';
     render();
-    // realtime
+    // realtime — remove stale subscription before (re)creating
     import('../supabase.js').then(({supabase})=>{
-      supabase.channel('rt')
+      if(_rtChannel) _rtSupa?.removeChannel(_rtChannel);
+      _rtSupa=supabase;
+      _rtChannel=supabase.channel('rt')
         .on('postgres_changes',{event:'*',schema:'public',table:'base_slots'},async()=>{
           baseSlots=await fetchBaseSlots(season); merged=mergeSchedule(baseSlots,exceptions); renderSchedule();
         })
@@ -137,9 +141,9 @@ function teamListHTML(){
         ${list.map(t=>`<div class="t-item">
           <div class="t-dot" style="background:${teamClr(t)}"></div>
           <div style="flex:1;min-width:0">
-            <div class="t-name">${t.name}</div>
-            ${t.info?`<div class="t-info">${t.info}</div>`:''}
-            ${t.members&&t.members.length?`<div class="t-members">${t.members.map(m=>`<div class="t-member">${m.name}(${m.student_id_last3}) ${m.sessions.join('·')}</div>`).join('')}</div>`:''}
+            <div class="t-name">${esc(t.name)}</div>
+            ${t.info?`<div class="t-info">${esc(t.info)}</div>`:''}
+            ${t.members&&t.members.length?`<div class="t-members">${t.members.map(m=>`<div class="t-member">${esc(m.name)}(${esc(m.student_id_last3)}) ${esc(m.sessions.join('·'))}</div>`).join('')}</div>`:''}
           </div>
         </div>`).join('')}
       </div>
@@ -166,7 +170,7 @@ function renderNotice(){
   if(!notices.length){ el.innerHTML=''; return; }
   el.innerHTML=`<div class="notice-bar">
     <span class="notice-bar-icon">📢</span>
-    <div class="notice-bar-text">${notices.map(n=>n.content).join(' &nbsp;·&nbsp; ')}</div>
+    <div class="notice-bar-text">${notices.map(n=>esc(n.content)).join(' &nbsp;·&nbsp; ')}</div>
   </div>`;
 }
 
@@ -230,12 +234,12 @@ function renderSchedule(){
         blk.className=`blk${absent?' absent':''}${isExtra?' extra':''}`;
         if(absent){
           blk.style.cssText=`background:repeating-linear-gradient(45deg,${c}18,${c}18 3px,transparent 3px,transparent 9px);border:1.5px dashed ${c}55;`;
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}88">${t.name}</span><span class="blk-tag" style="color:${c}88">미사용</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}66">${t.info||''}</span></div>`;
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}88">${esc(t.name)}</span><span class="blk-tag" style="color:${c}88">미사용</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}66">${esc(t.info||'')}</span></div>`;
         } else {
           blk.style.background=c;
           if(isExtra) blk.style.borderLeft='4px solid var(--accent2)';
           const tagStyle=isExtra?'background:var(--accent2);color:#000':'color:#000';
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${esc(t.name)}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':esc(t.type)}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${esc(t.info||'')}</span></div>`;
         }
         blk.onclick=()=>openSlotModal(s);
         cell.appendChild(blk);
@@ -244,7 +248,7 @@ function renderSchedule(){
         const blk=document.createElement('div');
         blk.className='blk pending';
         blk.style.cssText=`background:${c}20;border:1.5px dashed ${c}77;`;
-        blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}">${t.name}</span><span class="blk-tag" style="color:${c}">대기</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}99">${t.info||''}</span></div>`;
+        blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}">${esc(t.name)}</span><span class="blk-tag" style="color:${c}">대기</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}99">${esc(t.info||'')}</span></div>`;
         blk.onclick=()=>openReqDetail(pe);
         cell.appendChild(blk);
       } else {
@@ -278,12 +282,18 @@ function updateNowLine(){
 // ── WEEK NAV ─────────────────────────────────────────────────────────
 window.changeWeek=async function(delta){
   weekOff+=delta;
-  [exceptions,requests]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+  const seq=++weekChangeSeq;
+  const [ex,rq]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff)]);
+  if(seq!==weekChangeSeq) return;
+  [exceptions,requests]=[ex,rq];
   merged=mergeSchedule(baseSlots,exceptions); render();
 };
 window.goToThisWeek=async function(){
   weekOff=0;
-  [exceptions,requests]=await Promise.all([fetchExceptions(0),fetchRequests(0)]);
+  const seq=++weekChangeSeq;
+  const [ex,rq]=await Promise.all([fetchExceptions(0),fetchRequests(0)]);
+  if(seq!==weekChangeSeq) return;
+  [exceptions,requests]=[ex,rq];
   merged=mergeSchedule(baseSlots,exceptions); render();
 };
 
@@ -303,12 +313,12 @@ function openSlotModal(s){
   } else {
     foot=`<button class="btn btn-s" onclick="closeModal()">닫기</button>`;
   }
-  showModal(`${t.name} · ${DAYS[s.day]} ${s.hour}:00`,
-    `<div class="irow"><span class="ik">팀</span><span style="color:${c};font-weight:700">${t.name}</span></div>
+  showModal(`${esc(t.name)} · ${DAYS[s.day]} ${s.hour}:00`,
+    `<div class="irow"><span class="ik">팀</span><span style="color:${c};font-weight:700">${esc(t.name)}</span></div>
      <div class="irow"><span class="ik">시간</span><span>${DAYS[s.day]} ${s.hour}:00</span></div>
      <div class="irow"><span class="ik">종류</span><span>${isExtra?'추가 사용 (이번 주)':'기본 시간표'}</span></div>
      <div class="irow"><span class="ik">상태</span><span>${absent?'⛔ 이번 주 미사용':'✅ 정상'}</span></div>
-     ${t.info?`<div class="irow"><span class="ik">${t.type==='스쿨'?'선생님':'정보'}</span><span>${t.info}</span></div>`:''}`,
+     ${t.info?`<div class="irow"><span class="ik">${t.type==='스쿨'?'선생님':'정보'}</span><span>${esc(t.info)}</span></div>`:''}`,
     foot
   );
 }
@@ -322,9 +332,9 @@ window.openAbsenceModal=function(slotId,day,hour,teamId,label){
     const existing=requests.find(r=>r.status==='pending'&&r.type==='absent'&&r.team_id===teamId&&r.day===day&&r.hour===hour&&r.week_offset===weekOff);
     if(existing){
       showModal(modalLabel,
-        `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${t.name}</span></div>
+        `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${esc(t.name)}</span></div>
          <div class="irow"><span class="ik">상태</span><span style="color:var(--warn)">승인 대기 중</span></div>
-         <div class="irow"><span class="ik">사유</span><span>${existing.reason}</span></div>`,
+         <div class="irow"><span class="ik">사유</span><span>${esc(existing.reason)}</span></div>`,
         `<button class="btn btn-s" onclick="closeModal()">닫기</button>
          <button class="btn btn-d" id="cancelBtn" onclick="cancelRequest(${existing.id})">신고 취소</button>`
       );
@@ -332,7 +342,7 @@ window.openAbsenceModal=function(slotId,day,hour,teamId,label){
     }
   }
   showModal(modalLabel,
-    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${t.name}</span></div>
+    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${esc(t.name)}</span></div>
      <div class="irow"><span class="ik">시간</span><span>${DAYS[day]} ${hour}:00</span></div>
      <div><div class="fl">신청자 성명</div><input class="fi" id="absName" placeholder="성명" maxlength="20"/></div>
      <div><div class="fl">사유</div><input class="fi" id="absReason" placeholder="${isSchool?'예: 학기가 끝났습니다':'예: 팀원 시험 기간'}" maxlength="100"/></div>`,
@@ -365,7 +375,7 @@ window.submitAbsence=async function(teamId,day,hour){
 window.openSchoolHolidayModal=function(slotId,day,hour,teamId){
   const t=teams.find(t=>t.id===teamId);
   showModal('이번주 휴강',
-    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${t.name}</span></div>
+    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${esc(t.name)}</span></div>
      <div class="irow"><span class="ik">시간</span><span>${DAYS[day]} ${hour}:00</span></div>
      <div><div class="fl">신청자 성명</div><input class="fi" id="shName" placeholder="성명" maxlength="20"/></div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
@@ -388,7 +398,7 @@ window.openTeamAbsentModal=function(){
     merged.some(s=>s.team_id===t.id&&s.status!=='absent'&&s.source==='base')
   ),'name');
   if(!teamsWithSlots.length){toast('이번 주에 신고 가능한 팀이 없습니다','err');return;}
-  const teamOpts=teamsWithSlots.map(t=>`<option value="${t.id}">${t.name} (${t.type})</option>`).join('');
+  const teamOpts=teamsWithSlots.map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.type)})</option>`).join('');
   showModal('동방 미사용 보고',
     `<div><div class="fl">팀 선택 *</div><select class="fs" id="taTeam" onchange="onTeamAbsentTeamChange()">${teamOpts}</select></div>
      <div id="taSlotWrap" style="margin-top:4px"></div>
@@ -457,7 +467,7 @@ window.submitVacancyReport=async function(){
 };
 
 function openClaimModal(day,hour){
-  const opts=korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name} (${t.type})</option>`).join('');
+  const opts=korSort(teams,'name').map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.type)})</option>`).join('');
   showModal(`추가 사용 신청 · ${DAYS[day]} ${hour}:00`,
     `<div style="background:rgba(255,170,71,.1);border:1px solid rgba(255,170,71,.3);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--warn);line-height:1.5;">
        ⚠️ 합주는 <strong>1주 1회</strong>가 원칙입니다.<br>추가 합주 신청 전, 기존 배정 시간에 <strong>미사용 보고</strong>를 먼저 해주세요.
@@ -493,10 +503,10 @@ window.submitClaim=async function(day,hour){
 function openReqDetail(req){
   const t=req.teams;
   showModal('추가 사용 신청 대기 중',
-    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${t.name}</span></div>
+    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${esc(t.name)}</span></div>
      <div class="irow"><span class="ik">시간</span><span>${DAYS[req.day]} ${req.hour}:00</span></div>
-     <div class="irow"><span class="ik">사유</span><span>${req.reason}</span></div>
-     <div class="irow"><span class="ik">신청자</span><span>${req.requester_name||'미기입'}</span></div>
+     <div class="irow"><span class="ik">사유</span><span>${esc(req.reason)}</span></div>
+     <div class="irow"><span class="ik">신청자</span><span>${esc(req.requester_name||'미기입')}</span></div>
      <div class="irow"><span class="ik">제출 시각</span><span style="color:var(--text2)">${fmtTime(req.created_at)}</span></div>
      <div class="irow"><span class="ik">상태</span><span style="color:var(--warn)">관리자 승인 대기 중</span></div>`,
     `<button class="btn btn-s" onclick="closeModal()">닫기</button>
@@ -514,10 +524,10 @@ window.openContactsModal=async function(){
   showModal('📞 연락처',
     ct.map(c=>`
       <div class="irow">
-        <span class="ik">${c.role}</span>
+        <span class="ik">${esc(c.role)}</span>
         <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
-          <span style="font-weight:600">${c.name}</span>
-          ${c.phone?`<span style="font-size:11px;color:var(--text2)">${c.phone}</span>`:''}
+          <span style="font-weight:600">${esc(c.name)}</span>
+          ${c.phone?`<span style="font-size:11px;color:var(--text2)">${esc(c.phone)}</span>`:''}
         </span>
       </div>`).join(''),
     `<button class="btn btn-s" onclick="closeModal()">닫기</button>`
@@ -610,8 +620,8 @@ function showStatus(){
       <div style="width:52px;height:52px;border-radius:50%;background:${c}22;border:2px solid ${c};display:flex;align-items:center;justify-content:center;font-size:22px">🎸</div>
       <div>
         <div class="status-label busy">현재 동아리방 사용 중</div>
-        <div class="status-team" style="color:${c}">${t.name}</div>
-        ${t.info?`<div class="status-sub">${t.info}</div>`:''}
+        <div class="status-team" style="color:${c}">${esc(t.name)}</div>
+        ${t.info?`<div class="status-sub">${esc(t.info)}</div>`:''}
         <div class="status-sub" style="margin-top:4px">${['월','화','수','목','금','토','일'][dow]} ${h}:00 — ${h+1}:00</div>
       </div>`;
   } else {

@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.js';
 import { initTheme, toggleTheme } from '../utils/theme.js';
+import { escapeHtml as esc } from '../utils/html.js';
 import { diffToHMS } from '../utils/time.js';
 
 initTheme();
@@ -285,7 +286,7 @@ function render(){
           <div class="fl">참여할 곡 *</div>
           <select class="fs" id="ssSong" onchange="onSongSelect()">
             <option value="">— 곡 선택 —</option>
-            ${confirmedSongs.map(s=>`<option value="${s.id}" data-sessions='${JSON.stringify(s.sessions)}'>${s.title} — ${s.artist}</option>`).join('')}
+            ${confirmedSongs.map(s=>`<option value="${s.id}" data-sessions='${JSON.stringify(s.sessions)}'>${esc(s.title)} — ${esc(s.artist)}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -376,7 +377,7 @@ function render(){
             ${confirmedSongs.map(s=>{
               const confirmed1st=(sessionMap[s.id]||[]).filter(a=>a.status==='confirmed').flatMap(a=>a.sessions);
               const available=isMissingOnly?s.sessions.filter(x=>!confirmed1st.includes(x)):s.sessions;
-              return `<option value="${s.id}" data-sessions='${JSON.stringify(available)}' data-missing='${isMissingOnly}'>${s.title} — ${s.artist}${isMissingOnly&&!available.length?' (빈 세션 없음)':''}</option>`;
+              return `<option value="${s.id}" data-sessions='${JSON.stringify(available)}' data-missing='${isMissingOnly}'>${esc(s.title)} — ${esc(s.artist)}${isMissingOnly&&!available.length?' (빈 세션 없음)':''}</option>`;
             }).join('')}
           </select>
         </div>
@@ -472,7 +473,7 @@ function renderSongItem(s,num,phase){
         const rBadge=(a.session_round||1)===2&&['session2','session2_end','closed'].includes(phase)?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 3px;margin-left:3px">2차</span>`:'';
         const appBadge=isApplicant?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';
         return `<div class="session-row" style="${rejected?'opacity:.55':''}">
-          <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}${isApplicant?';font-weight:700':''}">${a.applicant_name}(${a.student_id.slice(-3)})${rBadge}${appBadge}</span>
+          <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}${isApplicant?';font-weight:700':''}">${esc(a.applicant_name)}(${esc(a.student_id.slice(-3))})${rBadge}${appBadge}</span>
           <div class="session-row-right">
             <div class="session-row-sessions">
               ${a.sessions.map(sess=>`<span class="sess-tag ${a.status==='confirmed'?'confirmed':''}">${sess}</span>`).join('')}
@@ -485,13 +486,13 @@ function renderSongItem(s,num,phase){
     <div class="song-item-hdr">
       <span class="song-num">${String(num).padStart(2,'0')}</span>
       <div class="song-info">
-        <div class="song-title">${s.title}</div>
-        <div class="song-artist">${s.artist}</div>
+        <div class="song-title">${esc(s.title)}</div>
+        <div class="song-artist">${esc(s.artist)}</div>
       </div>
       <span class="song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
     </div>
     <div class="song-meta">
-      <span class="song-applicant">신청: ${s.applicant_name}(${s.student_id.slice(-3)})</span>
+      <span class="song-applicant">신청: ${esc(s.applicant_name)}(${esc(s.student_id.slice(-3))})</span>
       <span class="song-ts">${fmtTime(s.created_at)}</span>
       <div class="sessions-needed">${needBadges}</div>
     </div>
@@ -654,9 +655,9 @@ window.openSessionModal=function(songId){
   const applicantApp=(sessionMap[songId]||[]).find(a=>a.student_id===song.student_id&&a.status!=='rejected');
   const applicantSessions=new Set(applicantApp?.sessions||[]);
   const availableSessions=neededSessions.filter(s=>!applicantSessions.has(s));
-  showModal(`세션 신청 — ${song.title}`,
-    `<div class="irow"><span class="ik">곡</span><span style="font-weight:700">${song.title}</span></div>
-     <div class="irow"><span class="ik">아티스트</span><span>${song.artist}</span></div>
+  showModal(`세션 신청 — ${esc(song.title)}`,
+    `<div class="irow"><span class="ik">곡</span><span style="font-weight:700">${esc(song.title)}</span></div>
+     <div class="irow"><span class="ik">아티스트</span><span>${esc(song.artist)}</span></div>
      <div><div class="fl" style="margin-top:8px">성명 *</div><input class="fi" id="mssName" placeholder="홍길동" maxlength="20"/></div>
      <div><div class="fl">학번 *</div><input class="fi" id="mssId" placeholder="2021130905" maxlength="20"/></div>
      <div>

@@ -13,6 +13,7 @@ import {
 } from '../schedule.js';
 
 import { initTheme, toggleTheme } from '../utils/theme.js';
+import { escapeHtml as esc } from '../utils/html.js';
 initTheme();
 window.toggleTheme = toggleTheme;
 
@@ -39,6 +40,7 @@ function weekLabelWithThis(off){
 }
 
 let weekOff=0, season='1학기';
+let _adminInited=false, _adminChannels=[];
 let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let pendingAll=[];
@@ -52,6 +54,8 @@ function showAdminUI(){
   document.getElementById('loginWrap').style.display='none';
   document.getElementById('adminUI').style.display='block';
   document.getElementById('mobTabBar').style.display='';
+  if(_adminInited) return;
+  _adminInited=true;
   loadAll();
 }
 
@@ -80,6 +84,9 @@ supabase.auth.onAuthStateChange((_event,session)=>{
   if(session){
     showAdminUI();
   } else {
+    _adminInited=false;
+    _adminChannels.forEach(ch=>supabase.removeChannel(ch));
+    _adminChannels=[];
     document.getElementById('loginWrap').style.display='';
     document.getElementById('adminUI').style.display='none';
     document.getElementById('mobTabBar').style.display='none';
@@ -106,50 +113,53 @@ async function loadAll(){
   pendingAll=await fetchAllPendingRequests();
   await loadEnsemble();
   await loadSchoolData();
-  supabase.channel('admin-school-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},async(payload)=>{
-      console.log('[school-rt] school_rounds change',payload);
-      await loadSchoolData(); renderSchool();
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'schools'},async(payload)=>{
-      console.log('[school-rt] schools change',payload);
-      await loadSchoolData(); renderSchool();
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async(payload)=>{
-      console.log('[school-rt] school_applications change',payload);
-      await loadSchoolData(); renderSchool();
-    })
-    .subscribe((status,err)=>{
-      console.log('[school-rt] subscribe status:',status, err||'');
-    });
-  supabase.channel('admin-pending-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'requests'},async()=>{
-      pendingAll=await fetchAllPendingRequests();
-      renderPending();
-    })
-    .subscribe();
-  supabase.channel('admin-ens-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},async()=>{
-      await loadEnsemble();
-      renderEnsemble();
-    })
-    .subscribe();
-  supabase.channel('admin-apply-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},async()=>{
-      if(round) applications=await fetchApplications(round.id);
-      renderApply();
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'application_rounds'},async()=>{
-      round=await fetchActiveRound(season);
-      if(round) applications=await fetchApplications(round.id);
-      renderApply();
-    })
-    .subscribe();
-  supabase.channel('admin-vacancy-rt')
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'vacancy_reports'},async()=>{
-      await checkVacancyReports();
-    })
-    .subscribe();
+  _adminChannels.forEach(ch=>supabase.removeChannel(ch));
+  _adminChannels=[
+    supabase.channel('admin-school-rt')
+      .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},async(payload)=>{
+        console.log('[school-rt] school_rounds change',payload);
+        await loadSchoolData(); renderSchool();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'schools'},async(payload)=>{
+        console.log('[school-rt] schools change',payload);
+        await loadSchoolData(); renderSchool();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async(payload)=>{
+        console.log('[school-rt] school_applications change',payload);
+        await loadSchoolData(); renderSchool();
+      })
+      .subscribe((status,err)=>{
+        console.log('[school-rt] subscribe status:',status, err||'');
+      }),
+    supabase.channel('admin-pending-rt')
+      .on('postgres_changes',{event:'*',schema:'public',table:'requests'},async()=>{
+        pendingAll=await fetchAllPendingRequests();
+        renderPending();
+      })
+      .subscribe(),
+    supabase.channel('admin-ens-rt')
+      .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},async()=>{
+        await loadEnsemble();
+        renderEnsemble();
+      })
+      .subscribe(),
+    supabase.channel('admin-apply-rt')
+      .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},async()=>{
+        if(round) applications=await fetchApplications(round.id);
+        renderApply();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'application_rounds'},async()=>{
+        round=await fetchActiveRound(season);
+        if(round) applications=await fetchApplications(round.id);
+        renderApply();
+      })
+      .subscribe(),
+    supabase.channel('admin-vacancy-rt')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'vacancy_reports'},async()=>{
+        await checkVacancyReports();
+      })
+      .subscribe()
+  ];
   render();
   await checkVacancyReports();
 }
@@ -335,8 +345,8 @@ function renderSchool(){
         </div>
         ${sa.map((a,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--surface);border-radius:3px;margin-top:2px">
           <span style="font-size:11px;color:var(--text3);min-width:18px">${i+1}</span>
-          <span style="flex:1;font-size:12px">${a.applicant_name}</span>
-          <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${a.student_id}</span>
+          <span style="flex:1;font-size:12px">${esc(a.applicant_name)}</span>
+          <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${esc(a.student_id)}</span>
           ${a.is_returning?'<span style="font-size:9px;background:rgba(0,119,204,.1);color:var(--accent2);padding:1px 5px;border-radius:2px;font-weight:700">재수강</span>':''}
           <button class="btn btn-d btn-xs" onclick="deleteSchoolApp(${a.id})">삭제</button>
         </div>`).join('')}
@@ -346,7 +356,7 @@ function renderSchool(){
     el.innerHTML=`<div class="card" style="padding:0;overflow:hidden">
       <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;background:rgba(92,158,0,.1);color:var(--accent);border:1px solid rgba(92,158,0,.3)">모집중</span>
-        <span style="font-size:13px;font-weight:700">${getRoundName(cur)}</span>
+        <span style="font-size:13px;font-weight:700">${esc(getRoundName(cur))}</span>
         ${closeAt?`<span style="font-size:11px;color:var(--warn)">⏰ 마감: ${fS(closeAt)} — <span id="schoolCdEl" style="font-family:'Space Mono',monospace;font-weight:700">...</span></span>`:''}
         ${cur.prioritize_returning?'<span style="font-size:11px;color:var(--accent2)">이전 회차 대기 적용 중</span>':''}
         <div style="margin-left:auto;display:flex;gap:5px">
@@ -361,17 +371,17 @@ function renderSchool(){
             const p1=curClasses.find(c=>c.id===a.pref1_school_id);
             const p2=curClasses.find(c=>c.id===a.pref2_school_id);
             return `<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--surface);border-radius:3px;margin-top:2px">
-              <span style="flex:1;font-size:12px">${a.applicant_name}</span>
-              <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${a.student_id}</span>
-              <span style="font-size:10px;color:var(--text3)">${p1?'1지: '+p1.name:''}${p2?' · 2지: '+p2.name:''}</span>
+              <span style="flex:1;font-size:12px">${esc(a.applicant_name)}</span>
+              <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${esc(a.student_id)}</span>
+              <span style="font-size:10px;color:var(--text3)">${p1?'1지: '+esc(p1.name):''}${p2?' · 2지: '+esc(p2.name):''}</span>
               <button class="btn btn-d btn-xs" onclick="deleteSchoolApp(${a.id})">삭제</button>
             </div>`;}).join('')}
         </div>`:''}
         ${unassigned.length?`<div style="border:1px solid rgba(217,48,37,.2);border-radius:5px;padding:9px 12px">
           <div style="font-size:11px;font-weight:700;color:var(--danger);margin-bottom:5px">미배정 (${unassigned.length}명)</div>
           ${unassigned.map(a=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--surface);border-radius:3px;margin-top:2px">
-            <span style="flex:1;font-size:12px">${a.applicant_name}</span>
-            <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${a.student_id}</span>
+            <span style="flex:1;font-size:12px">${esc(a.applicant_name)}</span>
+            <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${esc(a.student_id)}</span>
             <button class="btn btn-d btn-xs" onclick="deleteSchoolApp(${a.id})">삭제</button>
           </div>`).join('')}
         </div>`:''}
@@ -398,8 +408,8 @@ function renderSchool(){
       </div>
       ${sa.map((a,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--surface);border-radius:3px;margin-top:2px">
         <span style="font-size:11px;color:var(--text3);min-width:18px">${i+1}</span>
-        <span style="flex:1;font-size:12px">${a.applicant_name}</span>
-        <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${a.student_id}</span>
+        <span style="flex:1;font-size:12px">${esc(a.applicant_name)}</span>
+        <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${esc(a.student_id)}</span>
         ${a.is_returning?'<span style="font-size:9px;background:rgba(0,119,204,.1);color:var(--accent2);padding:1px 5px;border-radius:2px;font-weight:700">재수강</span>':''}
       </div>`).join('')}
     </div>`;
@@ -416,8 +426,8 @@ function renderSchool(){
       ${unassigned.length?`<div style="border:1px solid rgba(217,48,37,.2);border-radius:5px;padding:9px 12px">
         <div style="font-size:11px;font-weight:700;color:var(--danger);margin-bottom:5px">미배정 (${unassigned.length}명)</div>
         ${unassigned.map(a=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--surface);border-radius:3px;margin-top:2px">
-          <span style="flex:1;font-size:12px">${a.applicant_name}</span>
-          <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${a.student_id}</span>
+          <span style="flex:1;font-size:12px">${esc(a.applicant_name)}</span>
+          <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)">${esc(a.student_id)}</span>
         </div>`).join('')}
       </div>`:''}
     </div>
@@ -713,19 +723,19 @@ function renderSchedule(){
         blk.className=`blk${absent?' absent':''}${isExtra?' extra':''}`;
         if(absent){
           blk.style.cssText=`background:repeating-linear-gradient(45deg,${c}18,${c}18 3px,transparent 3px,transparent 9px);border:1.5px dashed ${c}55;`;
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}88">${t.name}</span><span class="blk-tag" style="color:${c}88">미사용</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}66">${t.info||''}</span></div>`;
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}88">${esc(t.name)}</span><span class="blk-tag" style="color:${c}88">미사용</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}66">${esc(t.info||'')}</span></div>`;
         } else {
           blk.style.background=c;
           if(isExtra) blk.style.borderLeft='4px solid var(--accent2)';
           const tagStyle=isExtra?'background:var(--accent2);color:#000':'color:#000';
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${t.name}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':t.type}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${t.info||''}</span></div>`;
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${esc(t.name)}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':esc(t.type)}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${esc(t.info||'')}</span></div>`;
         }
         blk.onclick=()=>openSlotModal(s); cell.appendChild(blk);
       } else if(pe){
         const t=pe.teams,c=teamClr(t);
         const blk=document.createElement('div');
         blk.className='blk'; blk.style.cssText=`background:${c}20;border:1.5px dashed ${c}77;opacity:.6`;
-        blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}">${t.name}</span><span class="blk-tag" style="color:${c}">대기</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}88">${t.info||''}</span></div>`;
+        blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:${c}">${esc(t.name)}</span><span class="blk-tag" style="color:${c}">대기</span></div><div class="blk-bot"><span class="blk-info" style="color:${c}88">${esc(t.info||'')}</span></div>`;
         blk.onclick=()=>openPendingSlotModal(pe); cell.appendChild(blk);
       } else {
         const ind=document.createElement('div'); ind.className='blk-empty';
@@ -745,11 +755,11 @@ window.selectMobileDay=function(idx){
 
 function openSlotModal(s){
   const t=s.teams,absent=s.status==='absent',isExtra=s.source==='extra',c=teamClr(t);
-  showModal(`${t.name} · ${DAYS[s.day]} ${s.hour}:00`,
-    `<div class="irow"><span class="ik">팀</span><span style="color:${c};font-weight:700">${t.name}</span></div>
+  showModal(`${esc(t.name)} · ${DAYS[s.day]} ${s.hour}:00`,
+    `<div class="irow"><span class="ik">팀</span><span style="color:${c};font-weight:700">${esc(t.name)}</span></div>
      <div class="irow"><span class="ik">시간</span><span>${DAYS[s.day]} ${s.hour}:00</span></div>
      <div class="irow"><span class="ik">상태</span><span>${absent?'⛔ 미사용':'✅ 정상'}</span></div>
-     ${t.info?`<div class="irow"><span class="ik">정보</span><span>${t.info}</span></div>`:''}`,
+     ${t.info?`<div class="irow"><span class="ik">정보</span><span>${esc(t.info)}</span></div>`:''}`,
     `<button class="btn btn-s" onclick="closeModal()">닫기</button>
      ${s.exceptionId?`<button class="btn btn-s" onclick="removeException(${s.exceptionId})">예외 제거</button>`:''}
      ${!absent&&s.source==='base'?`<button class="btn btn-d" onclick="markAbsent(${s.team_id},${s.day},${s.hour})">이번 주 미사용</button>`:''}
@@ -851,10 +861,10 @@ function renderPending(){
     const dateStr=reqActualDate(r.week_offset,r.day);
     return `
     <div class="pcard ${r.type}">
-      <div class="pcard-name" style="color:${teamClr(r.teams)}">${r.teams.name}</div>
+      <div class="pcard-name" style="color:${teamClr(r.teams)}">${esc(r.teams.name)}</div>
       <div class="pcard-detail">${dateStr} ${r.hour}:00 · ${typeLabel}</div>
-      <div class="pcard-detail">${r.reason}</div>
-      ${r.requester_name?`<div class="pcard-detail">신청자: ${r.requester_name}</div>`:''}
+      <div class="pcard-detail">${esc(r.reason)}</div>
+      ${r.requester_name?`<div class="pcard-detail">신청자: ${esc(r.requester_name)}</div>`:''}
       <div class="pcard-detail" style="color:var(--text3)">${fmtTime(r.created_at)}</div>
       <div class="pcard-actions">
         ${isTerminate
@@ -868,9 +878,9 @@ function renderPending(){
 function openPendingSlotModal(req){
   const t=req.teams;
   showModal('추가사용 대기',
-    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${t.name}</span></div>
+    `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${esc(t.name)}</span></div>
      <div class="irow"><span class="ik">시간</span><span>${DAYS[req.day]} ${req.hour}:00</span></div>
-     <div class="irow"><span class="ik">사유</span><span>${req.reason}</span></div>`,
+     <div class="irow"><span class="ik">사유</span><span>${esc(req.reason)}</span></div>`,
     `<button class="btn btn-s" onclick="closeModal()">닫기</button>
      <button class="btn btn-d" onclick="doReject(${req.id});closeModal()">거절</button>
      <button class="btn btn-p" onclick="doApprove(${req.id});closeModal()">승인</button>`
@@ -1499,8 +1509,8 @@ function renderEnsemble(){
       let h=confSongs.map((s,i)=>{
         const allSessDisp=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed'||a.status==='rejected');
         let sh='';
-        if(allSessDisp.length) sh=`<div class="e-sess-list">${allSessDisp.map(a=>{const rej=a.status==='rejected';const isApp=a.student_id===s.student_id;const appBadge=isApp?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';return `<div class="e-sess-row" style="${rej?'opacity:.45':''}"><span class="e-sess-dot ${rej?'rejected':'confirmed'}"></span><span class="e-sess-name" style="${rej?'text-decoration:line-through;color:var(--text3)':''}${isApp?';font-weight:900':''}">${a.applicant_name}${appBadge}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${rej?'':'confirmed'}">${x}</span>`).join('')}</div></div>`;}).join('')}</div>`;
-        return `<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1;min-width:0"><div class="e-song-title">${s.title}</div><div class="e-song-artist">${s.artist}</div></div></div>${sh}</div>`;
+        if(allSessDisp.length) sh=`<div class="e-sess-list">${allSessDisp.map(a=>{const rej=a.status==='rejected';const isApp=a.student_id===s.student_id;const appBadge=isApp?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';return `<div class="e-sess-row" style="${rej?'opacity:.45':''}"><span class="e-sess-dot ${rej?'rejected':'confirmed'}"></span><span class="e-sess-name" style="${rej?'text-decoration:line-through;color:var(--text3)':''}${isApp?';font-weight:900':''}">${esc(a.applicant_name)}${appBadge}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${rej?'':'confirmed'}">${esc(x)}</span>`).join('')}</div></div>`;}).join('')}</div>`;
+        return `<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1;min-width:0"><div class="e-song-title">${esc(s.title)}</div><div class="e-song-artist">${esc(s.artist)}</div></div></div>${sh}</div>`;
       }).join('');
       if(showDndBtn) h+=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">${dndBtnLabel}</button></div>`;
       return h;
@@ -1540,14 +1550,14 @@ function renderEnsemble(){
                 const appBadgeRow=isAppRow?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';
                 return `<div class="e-sess-row">
                 <span class="e-sess-dot ${a.status}"></span>
-                <span class="e-sess-name" style="${isAppRow?'font-weight:900':'normal'}">${a.applicant_name}${appBadgeRow}${rBadge} <span style="color:var(--text3);font-weight:400">${a.student_id}</span></span>
-                <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${x}</span>`).join('')}</div>
+                <span class="e-sess-name" style="${isAppRow?'font-weight:900':'normal'}">${esc(a.applicant_name)}${appBadgeRow}${rBadge} <span style="color:var(--text3);font-weight:400">${esc(a.student_id)}</span></span>
+                <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${esc(x)}</span>`).join('')}</div>
                 <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
               </div>`;}).join('')}
             </div>`;
           } else if(phase==='closed'&&sessApps.length){
             const conf=sessApps.filter(a=>a.status==='confirmed');
-            if(conf.length) sessHtml=`<div class="e-sess-list">${conf.map(a=>`<div class="e-sess-row"><span class="e-sess-dot confirmed"></span><span class="e-sess-name">${a.applicant_name}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag confirmed">${x}</span>`).join('')}</div></div>`).join('')}</div>`;
+            if(conf.length) sessHtml=`<div class="e-sess-list">${conf.map(a=>`<div class="e-sess-row"><span class="e-sess-dot confirmed"></span><span class="e-sess-name">${esc(a.applicant_name)}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag confirmed">${esc(x)}</span>`).join('')}</div></div>`).join('')}</div>`;
           }
           const actions=(phase==='song')?`<div class="e-song-actions">
             ${s.status!=='confirmed'?`<button class="btn btn-p btn-xs" onclick="confirmSong(${s.id})">확정</button>`:''}
@@ -1557,14 +1567,14 @@ function renderEnsemble(){
             <div class="e-song-hdr">
               <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
               <div style="flex:1;min-width:0">
-                <div class="e-song-title">${s.title}</div>
-                <div class="e-song-artist">${s.artist}</div>
+                <div class="e-song-title">${esc(s.title)}</div>
+                <div class="e-song-artist">${esc(s.artist)}</div>
               </div>
               <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
             </div>
             <div class="e-song-meta">
-              <span>${s.applicant_name} <span style="color:var(--text3)">${s.student_id}</span></span>
-              <span style="color:var(--text3)">${s.sessions.join(' · ')}</span>
+              <span>${esc(s.applicant_name)} <span style="color:var(--text3)">${esc(s.student_id)}</span></span>
+              <span style="color:var(--text3)">${esc(s.sessions.join(' · '))}</span>
             </div>
             ${sessHtml}${actions}
           </div>`;
@@ -1693,7 +1703,7 @@ function ensSlotCardHtml(sl,conflicted){
     :`<select class="ens-sess-sel${conflicted?' conflict':''}" onchange="setSlotSession('${sid}',this.value)" onclick="event.stopPropagation()" ondragstart="event.stopPropagation()">${SESSIONS.map(s=>`<option value="${s}"${s===effSess?' selected':''}>${s}${s===sl.session?' *':''}</option>`).join('')}</select>`;
   return `<div class="ens-member-card${conflicted?' conflict':''}${pinned?' applicant':''}" ${dragAttrs} data-id="${sl.id}">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
-      <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${sl.applicantName}</span><span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''}${applicantBadge}${r2Badge}</div>
+      <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${esc(sl.applicantName)}</span><span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${esc(sl.songTitle)}</span>`:''}${applicantBadge}${r2Badge}</div>
       <span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDndTime(sl.createdAt)}</span>
     </div>
     <div class="ens-member-tags">${sessTag}</div>
@@ -1741,8 +1751,8 @@ function renderEnsDndSongs(){
       ondragleave="ensDndDragLeaveSong(event)"
       ondrop="ensDndDropToSong(event,${song.id})">
       <div class="ens-song-card-hdr">
-        <div class="ens-song-card-title">${song.title}</div>
-        <div class="ens-song-card-meta">${song.artist} · ${(song.sessions||[]).join(' · ')} · ${slots.length}명</div>
+        <div class="ens-song-card-title">${esc(song.title)}</div>
+        <div class="ens-song-card-meta">${esc(song.artist)} · ${(song.sessions||[]).map(x=>esc(x)).join(' · ')} · ${slots.length}명</div>
       </div>
       <div class="ens-song-members">
         ${slots.length?slots.map(sl=>ensSlotCardHtml(sl,conflicts.has(sl.id))).join(''):'<div class="ens-empty-hint">멤버 없음</div>'}
@@ -1765,9 +1775,9 @@ function ensMobPoolCardHtml(sl){
   return `<div class="ens-member-card${isSel?' mob-sel':''}" onclick="ensMobSelectPool('${sid}')">
     <div style="display:flex;align-items:center;gap:6px">
       <div style="flex:1;min-width:0">
-        <span class="ens-member-name">${sl.applicantName}</span>
-        <span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>
-        ${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${sl.songTitle}</span>`:''}
+        <span class="ens-member-name">${esc(sl.applicantName)}</span>
+        <span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>
+        ${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${esc(sl.songTitle)}</span>`:''}
         ${sl.sessionRound===2?'<span style="font-size:9px;background:var(--accent2);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>':''}
       </div>
       <span class="ens-member-tag">${effSess}</span>
@@ -1783,8 +1793,8 @@ function ensMobSongMemberHtml(sl,conflicted){
   return `<div class="ens-member-card${conflicted?' conflict':''}${pinned?' applicant':''}">
     <div style="display:flex;align-items:center;gap:6px">
       <div style="flex:1;min-width:0">
-        <span class="ens-member-name" style="${pinned?'font-weight:900':''}">${sl.applicantName}</span>
-        <span class="ens-member-sid">${sl.studentId?.slice(-3)||''}</span>
+        <span class="ens-member-name" style="${pinned?'font-weight:900':''}">${esc(sl.applicantName)}</span>
+        <span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>
         ${pinned?'<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>':''}
         ${sl.sessionRound===2?'<span style="font-size:9px;background:var(--accent2);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>':''}
       </div>
@@ -1824,8 +1834,8 @@ function renderEnsDndMobile(){
     return `<div class="ens-song-card${hasSel?' mob-target':''}" data-song-id="${song.id}"${hasSel?` onclick="ensMobAssign(${song.id})"`:''}>
       <div class="ens-song-card-hdr">
         <div>
-          <div class="ens-song-card-title">${song.title}</div>
-          <div class="ens-song-card-meta">${song.artist} · ${(song.sessions||[]).join(' · ')} · ${slots.length}명</div>
+          <div class="ens-song-card-title">${esc(song.title)}</div>
+          <div class="ens-song-card-meta">${esc(song.artist)} · ${(song.sessions||[]).map(x=>esc(x)).join(' · ')} · ${slots.length}명</div>
         </div>
       </div>
       <div class="ens-song-members" onclick="event.stopPropagation()">
