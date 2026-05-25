@@ -14,27 +14,14 @@ import {
 
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
+import { DAYS, HOURS, GRAY, korSort, teamClr, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js';
 initTheme();
 window.toggleTheme = toggleTheme;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') window.closeModal?.(); });
 
-const DAYS  = ['월','화','수','목','금','토','일'];
-const HOURS = Array.from({length:18},(_,i)=>i+8);
-const GRAY  = '#888888';
 const COLORS= ['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47ffea','#ffd447','#b4ff47','#ff9d47'];
-const korSort=(a,k)=>[...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
-const getWeekDates=off=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);return Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return `${d.getMonth()+1}/${d.getDate()}`;});};
 const reqActualDate=(weekOffset,day)=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+weekOffset*7);const d=new Date(mon);d.setDate(mon.getDate()+day);return `${d.getMonth()+1}/${d.getDate()}`;};
-const teamClr=t=>t.type==='합주'?GRAY:(t.color||GRAY);
-const timeStr=h=>h<24?h+':00':'0'+(h-24)+':00';
 const fmtTime=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;};
-const errMsg=e=>{const m=e?.message||'';if(m.includes('unique')||m.includes('duplicate'))return'이미 동일한 데이터가 존재합니다';if(m.includes('foreign key'))return'참조 데이터가 존재하지 않습니다';if(m.includes('network')||m.includes('fetch'))return'네트워크 오류가 발생했습니다';if(m.includes('JWT')||m.includes('auth'))return'인증 오류입니다. 새로고침 후 시도해주세요';return m||'오류가 발생했습니다';};
-function weekLabel(off){
-  const now=new Date(),m=new Date(now);
-  m.setDate(now.getDate()-((now.getDay()+6)%7)+off*7);
-  const mo=m.getMonth()+1;
-  const wn=Math.ceil((m.getDate()+(new Date(m.getFullYear(),m.getMonth(),1).getDay()+6)%7)/7);
-  return `${mo}월 ${wn}주차`;
-}
 function weekLabelWithThis(off){
   return weekLabel(off)+(off===0?' (이번주)':'');
 }
@@ -102,10 +89,11 @@ supabase.auth.getSession().then(({data:{session}})=>{
 async function loadAll(){
   season=await getConfig('current_season').catch(()=>'1학기');
   document.getElementById('seasonSel').value=season;
-  [teams,baseSlots,exceptions,requests,notices,contacts]=await Promise.all([
+  const _r=await Promise.allSettled([
     fetchTeams(),fetchBaseSlots(season),fetchExceptions(weekOff),
     fetchRequests(weekOff),fetchNotices(),fetchContacts()
   ]);
+  [teams,baseSlots,exceptions,requests,notices,contacts]=_r.map(r=>r.status==='fulfilled'?r.value:[]);
   teams=korSort(teams,'name');
   merged=mergeSchedule(baseSlots,exceptions);
   round=await fetchActiveRound(season);

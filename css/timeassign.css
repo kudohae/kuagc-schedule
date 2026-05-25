@@ -1,26 +1,7 @@
 :root{--tab-h:56px;}
 
 body{min-height:100vh;}
-header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;position:sticky;top:0;background:var(--header-bg);backdrop-filter:blur(8px);z-index:100;}
-.logo{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;}
-.nav{display:flex;gap:1px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
-.nav-btn{padding:5px 13px;border:none;background:transparent;color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;transition:all .12s;white-space:nowrap;text-decoration:none;display:flex;align-items:center;}
-.nav-btn:hover:not(.active){color:var(--text);}
-.hdr-apply-btn{background:rgba(0,119,204,.08);border:1px solid rgba(0,119,204,.3);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--accent2);white-space:nowrap;transition:all .12s;text-decoration:none;}
-body.dark .hdr-apply-btn{background:rgba(71,197,255,.08);border-color:rgba(71,197,255,.25);}
-.hdr-apply-btn:hover{opacity:.8;}
-.hdr-apply-btn.active{background:rgba(0,119,204,.16);border-color:rgba(0,119,204,.55);}
-body.dark .hdr-apply-btn.active{background:rgba(71,197,255,.15);border-color:rgba(71,197,255,.45);}
-.hdr-school-btn{background:rgba(200,118,10,.08);border:1px solid rgba(200,118,10,.3);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--warn);text-decoration:none;white-space:nowrap;transition:all .12s;}
-body.dark .hdr-school-btn{background:rgba(255,170,71,.08);border-color:rgba(255,170,71,.25);}
-.hdr-school-btn:hover{opacity:.8;}
-.hdr-school-btn.active{background:rgba(200,118,10,.16);border-color:rgba(200,118,10,.55);}
-.hdr-ensemble-btn{background:rgba(92,158,0,.1);border:1px solid rgba(92,158,0,.35);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;transition:all .12s;}
-body.dark .hdr-ensemble-btn{background:rgba(232,255,71,.08);border-color:rgba(232,255,71,.25);}
-.hdr-ensemble-btn:hover{opacity:.8;}
-.hdr-ensemble-btn.active{background:rgba(92,158,0,.18);border-color:rgba(92,158,0,.6);}
 .hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
-.theme-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:14px;cursor:pointer;line-height:1;}
 
 /* ── CONTAINER ── */
 .container{max-width:860px;width:100%;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:12px;}
@@ -40,10 +21,10 @@ body.dark .apply-status.finished{background:rgba(71,197,255,.05);border-color:rg
 /* ── FORM CARD ── */
 .apply-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
 .apply-card-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;}
-.fl{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
-.fs,.fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 11px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:14px;outline:none;transition:border-color .12s;}
-.fs:focus,.fi:focus{border-color:var(--accent2);}
-.fs option{background:var(--surface);}
+/* timeassign .fl is uppercase/smaller — overrides base.css */
+.fl{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
+/* timeassign .fi/.fs focus uses accent2 */
+.fi:focus,.fs:focus{border-color:var(--accent2);}
 
 /* ── PREF ROWS ── */
 .pref-form-row{display:flex;flex-direction:column;gap:5px;}
@@ -71,21 +52,16 @@ body.dark .rt-badge{background:rgba(232,255,71,.07);border-color:rgba(232,255,71
 .rt-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:rtpulse 1.5s infinite;}
 @keyframes rtpulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:5px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;transition:all .12s;white-space:nowrap;}
-.btn-p{background:var(--accent);color:#000;}
+/* ── BUTTONS — timeassign uses inline-flex layout ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;transition:all .12s;}
 .btn-p:hover{opacity:.85;}
-.btn:disabled{opacity:.5;cursor:not-allowed;}
 
-/* ── TOAST ── */
-.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 16px;font-size:13px;font-weight:500;z-index:999;display:none;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,.1);}
-.toast.ok{border-color:var(--accent);color:var(--accent);}
-.toast.err{border-color:var(--danger);color:var(--danger);}
+/* ── TOAST — timeassign uses display:none toggle (JS pattern) ── */
+.toast{animation:none;display:none;}
+.toast.show{display:block;}
 
-/* ── LOADER ── */
-.ld{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:12px;}
-.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;}
-@keyframes sp{to{transform:rotate(360deg)}}
+/* ── LOADER — timeassign uses larger spinner ── */
+.spin{width:32px;height:32px;border-width:3px;}
 
 .cd-num{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;margin-top:6px;}
 .cd-open{color:var(--accent2);}
@@ -102,6 +78,3 @@ body.dark .rt-badge{background:rgba(232,255,71,.07);border-color:rgba(232,255,71
   .fs,.fi{font-size:16px;min-height:44px;}
   .btn{min-height:44px;padding:10px 16px;font-size:14px;}
 }
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
