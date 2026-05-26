@@ -305,7 +305,7 @@ function render(){
         render();
       });
     }
-    const confirmedSongs=songs[currentType].filter(s=>s.status==='confirmed');
+    const confirmedSongs=songs[currentType].filter(s=>s.status!=='rejected');
     html+=`<div class="form-card">
       <div class="form-title">세션 신청</div>
       <div class="form-row">
@@ -391,7 +391,7 @@ function render(){
         render();
       });
     }
-    const confirmedSongs=songs[type].filter(s=>s.status==='confirmed');
+    const confirmedSongs=songs[type].filter(s=>s.status!=='rejected');
     const isMissingOnly=r?.session2_mode==='missing_only';
     html+=`<div class="form-card">
       <div class="form-title">2차 세션 신청</div>
@@ -516,7 +516,6 @@ function renderSongItem(s,num,phase){
         <div class="song-title">${esc(s.title)}</div>
         <div class="song-artist">${esc(s.artist)}</div>
       </div>
-      <span class="song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
     </div>
     <div class="song-meta">
       <span class="song-applicant">신청: ${esc(s.applicant_name)}(${esc(s.student_id.slice(-3))})</span>
@@ -524,7 +523,7 @@ function renderSongItem(s,num,phase){
       <div class="sessions-needed">${needBadges}</div>
     </div>
     ${sessApps.length||phase==='session'?sessionRows:''}
-    ${phase==='session'&&s.status==='confirmed'?
+    ${phase==='session'&&s.status!=='rejected'?
       `<div style="display:flex;justify-content:flex-end;margin-top:4px">
          <button class="btn btn-s btn-xs" onclick="openSessionModal(${s.id})">이 곡에 세션 신청</button>
        </div>`:''}
@@ -623,7 +622,7 @@ window.submitSong=async function(){
   if(totalCount>=r.max_songs){window.toast('신청 가능한 곡 수가 초과됐습니다','err');return;}
   try{
     const {data:songData,error:sErr}=await supabase.from('song_applications').insert({
-      round_id:r.id,applicant_name:name,student_id:sid,title,artist,sessions,status:'pending'
+      round_id:r.id,applicant_name:name,student_id:sid,title,artist,sessions,status:'confirmed'
     }).select().single();
     if(sErr) throw sErr;
     const {error:sessErr}=await supabase.from('session_applications').insert({
