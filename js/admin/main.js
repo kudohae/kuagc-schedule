@@ -633,7 +633,7 @@ function render(){
   document.getElementById('weekLbl').textContent=wl;
   document.getElementById('schTitle').innerHTML=`${wl} 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
-  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts();
+  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts(); renderEnsemble(); renderSchool();
 }
 
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
@@ -1466,7 +1466,7 @@ function renderEnsemble(){
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='closed'){
       ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
-            <button class="btn btn-s btn-xs" onclick="exportEnsembleXlsx('${type}')">📥 xlsx</button>`;
+            <button class="btn btn-s btn-xs" onclick="exportEnsembleXlsx('${type}')">📥 엑셀로 내보내기</button>`;
     }
 
     const fS=ts=>ts?fmtScheduled(ts):'—';
