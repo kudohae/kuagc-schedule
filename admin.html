@@ -6,6 +6,7 @@
 <title>그루터기 회장단</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/bug-report.css">
 </head>
 <body>
 
@@ -227,6 +228,14 @@
     <button class="btn btn-d" onclick="openDeleteTeamsModal()">팀 정보 삭제</button>
   </div>
   <div class="card" style="padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;color:var(--text2)">🐛 버그 신고 내역</div>
+    </div>
+    <div id="bugReportsContent">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px 0">불러오는 중...</div>
+    </div>
+  </div>
+  <div class="card" style="padding:16px">
     <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2)">관리자 비밀번호 변경</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <div><div class="fl">새 비밀번호</div><input class="fi" type="password" id="newPw1" placeholder="새 비밀번호 (6자 이상)"/></div>
@@ -284,5 +293,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module" src="js/admin/main.js"></script>
+<script type="module" src="js/bug-report.js"></script>
 </body>
 </html>
