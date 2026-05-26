@@ -1965,14 +1965,6 @@ async function loadEnsemble(){
     if(!r){ eSongs[type]=[]; continue; }
     const {data:s}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
     eSongs[type]=s||[];
-    if(['song_end','session','session_end','session2','session2_end','closed'].includes(r.phase)){
-      const toReject=(eSongs[type]||[]).filter(s=>s.status==='pending');
-      if(toReject.length){
-        await supabase.from('song_applications').update({status:'rejected'}).in('id',toReject.map(s=>s.id));
-        const {data:s2}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
-        eSongs[type]=s2||[];
-      }
-    }
   }
   const allIds=[...eSongs.regular,...eSongs.busking].map(s=>s.id);
   const newMap={};
