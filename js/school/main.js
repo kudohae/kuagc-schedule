@@ -6,6 +6,7 @@ let round=null, prevRound=null, classes=[], apps=[], prevApps=[];
 let cdTimer=null;
 let _rtChannel=null;
 let _outerContainer=null;
+let _withdrawLookup=null;
 
 function stopCd(){if(cdTimer){clearInterval(cdTimer);cdTimer=null;}}
 
@@ -182,8 +183,14 @@ function renderOpen(){
     </div>
   </div>`;
 
+  html+=`<div class="withdraw-card">
+    <div class="withdraw-title">내 신청 철회</div>
+    <div id="withdrawContent">${withdrawInputHtml()}</div>
+  </div>`;
+
   html+=renderClassCards(true);
   el.innerHTML=html;
+  _withdrawLookup=null;
   if(closeAt) startCd(closeAt,autoClose);
 }
 
@@ -310,6 +317,68 @@ function renderClassCards(isOpen){
   }
   return html||'<div class="empty-state">등록된 반이 없습니다.</div>';
 }
+
+function withdrawInputHtml(){
+  return `<div style="display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:12px;color:var(--text2)">학번 전체를 입력하면 신청 내역을 확인하고 철회할 수 있습니다.</div>
+    <div style="display:flex;gap:8px">
+      <input class="fi" id="withdrawSid" placeholder="학번 전체 입력" inputmode="numeric" autocomplete="off" style="flex:1"/>
+      <button class="btn btn-s" onclick="lookupWithdraw()">조회</button>
+    </div>
+  </div>`;
+}
+
+window.lookupWithdraw=function(){
+  const sid=(document.getElementById('withdrawSid')?.value||'').trim();
+  if(!sid){window.toast('학번을 입력해주세요','err');return;}
+  const found=apps.find(a=>a.student_id===sid);
+  if(!found){window.toast('해당 학번으로 접수된 신청이 없습니다','err');return;}
+  _withdrawLookup=found;
+  const c1=classes.find(c=>c.id===found.pref1_school_id);
+  const c2=classes.find(c=>c.id===found.pref2_school_id);
+  const asgn=classes.find(c=>c.id===found.assigned_school_id);
+  const statusText=found.status==='assigned'?`배정됨 (${asgn?.name||''})`:found.status==='pending'?'마감 후 배정 예정':'미배정';
+  document.getElementById('withdrawContent').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:var(--surface2);border-radius:5px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:5px">
+        <div><span style="color:var(--text3);display:inline-block;min-width:44px">이름</span>${found.applicant_name}</div>
+        <div><span style="color:var(--text3);display:inline-block;min-width:44px">1지망</span>${c1?.name||'—'}</div>
+        ${c2?`<div><span style="color:var(--text3);display:inline-block;min-width:44px">2지망</span>${c2.name}</div>`:''}
+        <div><span style="color:var(--text3);display:inline-block;min-width:44px">상태</span>${statusText}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2)">철회하려면 학번을 한 번 더 입력해주세요.</div>
+      <input class="fi" id="withdrawConfirmSid" placeholder="학번 전체 입력" inputmode="numeric" autocomplete="off"/>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn btn-s" onclick="cancelWithdraw()">취소</button>
+        <button class="btn btn-d" id="withdrawConfirmBtn" onclick="confirmWithdraw()">신청 철회</button>
+      </div>
+    </div>`;
+};
+
+window.cancelWithdraw=function(){
+  _withdrawLookup=null;
+  const el=document.getElementById('withdrawContent');
+  if(el) el.innerHTML=withdrawInputHtml();
+};
+
+window.confirmWithdraw=async function(){
+  if(!_withdrawLookup) return;
+  const input=(document.getElementById('withdrawConfirmSid')?.value||'').trim();
+  if(input!==_withdrawLookup.student_id){window.toast('학번이 일치하지 않습니다','err');return;}
+  const btn=document.getElementById('withdrawConfirmBtn');
+  if(btn){btn.disabled=true;btn.textContent='처리 중...';}
+  try{
+    const {error}=await supabase.from('school_applications').delete().eq('id',_withdrawLookup.id);
+    if(error) throw error;
+    apps=apps.filter(a=>a.id!==_withdrawLookup.id);
+    _withdrawLookup=null;
+    window.toast('신청이 철회됐습니다','ok');
+    render();
+  }catch(e){
+    window.toast(e?.message||'오류가 발생했습니다','err');
+    if(btn){btn.disabled=false;btn.textContent='신청 철회';}
+  }
+};
 
 window.submitApply=async function(){
   if(!round||round.status!=='open'){window.toast('신청 기간이 아닙니다','err');return;}
