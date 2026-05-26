@@ -89,9 +89,6 @@ export async function init(outerContainer) {
   return function destroy() {
     if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
-    window.onApplyTeamInput = undefined;
-    window.onApplyDayChange = undefined;
-    window.submitApply = undefined;
   };
 }
 

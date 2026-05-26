@@ -54,8 +54,6 @@ export async function init(outerContainer) {
   return function destroy() {
     stopCd();
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
-    window.submitApply = undefined;
-    window.toggleSchoolDesc = undefined;
     _outerContainer = null;
   };
 }
