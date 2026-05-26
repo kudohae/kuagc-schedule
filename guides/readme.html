@@ -134,6 +134,8 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
       <a class="sn-item sn-sub" href="#sc-assign">배정 방식</a>
       <a class="sn-item" href="#ensemble">합주 신청</a>
       <a class="sn-item sn-sub" href="#en-phases">단계 구조</a>
+      <a class="sn-item sn-sub" href="#en-song">곡 관리</a>
+      <a class="sn-item sn-sub" href="#en-session">세션 관리</a>
       <a class="sn-item sn-sub" href="#en-dnd">팀 구성 DnD</a>
       <a class="sn-item" href="#notice">공지 / 연락처</a>
       <a class="sn-item" href="#caution">주의사항</a>
@@ -265,7 +267,7 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
         <span class="section-num">3</span>
         <div>
           <div class="section-ttl">합주 신청</div>
-          <div class="section-sub">곡 신청 → 세션 신청 → DnD 팀 구성. 일반·버스킹 독립 운영</div>
+          <div class="section-sub">곡 신청 → 세션 신청 → DnD 팀 구성. 일반·버스킹 탭으로 구분하여 독립 운영</div>
         </div>
       </div>
       <div class="section-body">
@@ -296,6 +298,7 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
               <span class="ph prep">8 완료</span>
             </div>
           </div>
+          <div class="info-box" style="margin-top:10px">관리자 페이지의 합주 탭은 <strong>일반 합주 / 버스킹 합주</strong> 두 개의 하위 탭으로 구분됩니다. 각 탭에서 독립적으로 회차를 생성하고 단계를 진행합니다.</div>
         </div>
 
         <div>
@@ -308,8 +311,8 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
           </ul>
         </div>
 
-        <div>
-          <h3>곡 신청 단계 (2단계)</h3>
+        <div id="en-song">
+          <h3>곡 신청 단계 (2단계) — 곡 관리</h3>
           <p style="margin-bottom:8px">학생이 ensemble.html에서 입력하는 항목:</p>
           <ul class="blist">
             <li>신청자 성명·학번</li>
@@ -317,16 +320,21 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
             <li>이 곡에 필요한 세션 전체 (복수 선택)</li>
             <li>내가 담당할 세션 — 필요 세션 중에서만 선택 가능</li>
           </ul>
-          <div class="info-box" style="margin-top:8px">신청자의 세션 담당은 <strong>곡 신청 시 자동 등록</strong>됩니다. 별도 세션 신청 불필요.</div>
+          <div class="info-box" style="margin-top:8px">
+            신청자의 세션 담당은 <strong>곡 신청 시 자동 등록</strong>됩니다. 별도 세션 신청 불필요.<br>
+            곡은 <strong>신청 즉시 자동 확정</strong>되어 목록에 표시됩니다. 관리자 승인 단계 없음.
+          </div>
+          <div class="info-box warn" style="margin-top:6px"><strong>관리자:</strong> 곡 신청 기간 중 관리자 탭에서 각 곡 옆 [삭제] 버튼으로 곡을 삭제(소프트)할 수 있습니다.</div>
         </div>
 
-        <div>
-          <h3>세션 신청 단계 (4/6단계)</h3>
+        <div id="en-session">
+          <h3>세션 신청 단계 (4/6단계) — 세션 관리</h3>
           <ul class="blist">
             <li>확정된 곡 중 원하는 곡 선택 → 신청 가능한 세션만 표시</li>
             <li>신청자가 이미 담당한 세션은 선택 불가</li>
             <li>1인 최대 참여 곡 수 초과 불가 / 동일 곡 중복 신청 불가</li>
           </ul>
+          <div class="info-box" style="margin-top:8px"><strong>관리자:</strong> 곡 신청 마감(대기 단계) 이후부터 <strong>항상</strong> 세션 신청 내역 옆의 [삭제] 버튼으로 특정 신청을 삭제할 수 있습니다. 삭제 즉시 DB에서 제거됩니다.</div>
         </div>
 
         <div id="en-dnd">
@@ -336,16 +344,22 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
             <div class="step"><div class="step-num">2</div><div class="step-body">카드를 드래그해 곡으로 이동 또는 풀로 되돌리기</div></div>
             <div class="step"><div class="step-num">3</div><div class="step-body"><span class="badge green">신청자</span> 배지 카드는 고정(이동 불가). 동일 세션 중복 시 주황 충돌 표시</div></div>
             <div class="step"><div class="step-num">4</div><div class="step-body">[임시저장] → 새로고침해도 복원됨</div></div>
-            <div class="step"><div class="step-num">5</div><div class="step-body">[확정]: 곡 배치된 인원 → confirmed / 풀에 남은 인원 → rejected(취소선)</div></div>
-            <div class="step"><div class="step-num">6</div><div class="step-body">확정 후 [다음 단계] 버튼으로 진행 (DnD 확정 ≠ 단계 전환)</div></div>
+            <div class="step"><div class="step-num">5</div><div class="step-body">[팀 구성 완료]: 곡에 배치된 인원 → confirmed / 풀에 남은 인원 → rejected(취소선)</div></div>
+            <div class="step"><div class="step-num">6</div><div class="step-body">확정 후 단계 목록으로 돌아와 [다음 단계] 버튼으로 진행 (DnD 완료 ≠ 단계 전환)</div></div>
           </div>
-          <div class="info-box warn" style="margin-top:10px">5단계 → 6단계 전환 시, 1차에서 <strong>미확정(pending) 상태로 남은 신청 데이터가 자동 삭제</strong>됩니다.</div>
+          <table class="tbl" style="margin-top:10px">
+            <tr><th>시각적 표시</th><th>의미</th></tr>
+            <tr><td>곡 카드 — <span style="color:rgba(46,160,67,1);font-weight:700">초록 테두리</span></td><td>필요 세션이 모두 채워진 완성 팀</td></tr>
+            <tr><td>곡 카드 — 세션 이름 <span style="color:#c0392b;font-weight:700">붉은색</span></td><td>아직 배정되지 않은 세션</td></tr>
+            <tr><td>미배정 풀 카드 상단 날짜</td><td>세션 신청 일시 (월/일 HH:MM:SS)</td></tr>
+          </table>
+          <div class="info-box warn" style="margin-top:10px"><strong>2차 세션이 있는 경우만 해당:</strong> 1차 팀 구성 완료 후 [2차 세션 신청으로] 버튼 클릭 시, <strong>1차 미확정(pending) 세션 신청 데이터가 자동 삭제</strong>됩니다.</div>
         </div>
 
         <div>
           <h3>이전 단계 되돌리기</h3>
           <p>모든 단계에서 [이전 단계] 버튼으로 한 단계씩 되돌릴 수 있습니다.</p>
-          <div class="info-box danger" style="margin-top:8px">되돌려도 DB에 저장된 신청 데이터는 삭제되지 않습니다. 필요 시 Supabase에서 직접 정리해야 합니다.</div>
+          <div class="info-box danger" style="margin-top:8px">되돌려도 DB에 저장된 신청 데이터(곡·세션)는 삭제되지 않습니다. 불필요한 데이터는 관리자 탭의 [삭제] 버튼 또는 Supabase에서 직접 정리하세요.</div>
         </div>
 
       </div>
