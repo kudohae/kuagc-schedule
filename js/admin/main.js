@@ -133,6 +133,26 @@ async function loadAll(){
         await loadEnsemble();
         renderEnsemble();
       })
+      .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},async()=>{
+        await loadEnsemble();
+        renderEnsemble();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},async()=>{
+        await loadEnsemble();
+        renderEnsemble();
+      })
+      .subscribe(),
+    supabase.channel('admin-schedule-rt')
+      .on('postgres_changes',{event:'*',schema:'public',table:'base_slots'},async()=>{
+        baseSlots=await fetchBaseSlots(season);
+        merged=mergeSchedule(baseSlots,exceptions);
+        renderSchedule();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'slot_exceptions'},async()=>{
+        exceptions=await fetchExceptions(weekOff);
+        merged=mergeSchedule(baseSlots,exceptions);
+        renderSchedule();
+      })
       .subscribe(),
     supabase.channel('admin-apply-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},async()=>{
@@ -1616,7 +1636,7 @@ window.switchEnsTab=function(type){
 
 window.deleteSessionApp=async function(appId){
   if(!confirm('이 세션 신청을 삭제하시겠습니까?')) return;
-  const {error}=await sb.from('ensemble_session_applications').delete().eq('id',appId);
+  const {error}=await supabase.from('session_applications').delete().eq('id',appId);
   if(error){alert('삭제 실패: '+error.message);return;}
   // remove from local state
   for(const sid of Object.keys(eSessionMap)){
