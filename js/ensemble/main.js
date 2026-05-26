@@ -37,16 +37,15 @@ export async function init(outerContainer) {
   songs={regular:[],busking:[]}; sessionMap={}; searchQ='';
   Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
 
-  outerContainer.innerHTML='<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
-
+  outerContainer.innerHTML='';
   const inner=document.createElement('div');
   inner.className='container';
   inner.id='mainContainer';
+  inner.innerHTML='<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
+  outerContainer.appendChild(inner);
 
   try{
     await loadAll();
-    outerContainer.innerHTML='';
-    outerContainer.appendChild(inner);
 
     _rtChannel=supabase.channel('ens-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},refreshList)
@@ -71,10 +70,6 @@ export async function init(outerContainer) {
     Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     document.removeEventListener('visibilitychange',onVisibilityChange);
-    window.switchType=undefined; window.onSearchInput=undefined; window.clearSearch=undefined;
-    window.onSongSelect=undefined; window.onSessionChkChange=undefined;
-    window.submitSong=undefined; window.submitSession=undefined; window.submitSession2=undefined;
-    window.onSess2SongSelect=undefined; window.openSessionModal=undefined; window.submitSessionModal=undefined;
   };
 }
 
