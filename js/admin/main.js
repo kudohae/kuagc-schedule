@@ -521,6 +521,7 @@ window.schoolClose=async function(id){
 };
 
 async function adminSchoolClose(id){
+  const closeClasses=adminSchools.filter(s=>s.round_id===id);
   try{
     const {error}=await supabase.from('school_rounds').update({status:'closed'}).eq('id',id);
     if(error) throw error;
@@ -528,14 +529,13 @@ async function adminSchoolClose(id){
     const r=adminSchoolRounds.find(x=>x.id===id);
     if(r?.prioritize_returning){
       const pending=adminSchoolApps.filter(a=>a.round_id===id&&a.status==='pending').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-      const curClasses=adminSchools.filter(s=>s.round_id===id);
       const counts={};
       adminSchoolApps.filter(a=>a.round_id===id&&a.status==='assigned'&&a.assigned_school_id).forEach(a=>{
         counts[a.assigned_school_id]=(counts[a.assigned_school_id]||0)+1;
       });
       for(const app of pending){
         const p1=app.pref1_school_id,p2=app.pref2_school_id;
-        const c1=curClasses.find(c=>c.id===p1),c2=curClasses.find(c=>c.id===p2);
+        const c1=closeClasses.find(c=>c.id===p1),c2=closeClasses.find(c=>c.id===p2);
         let aid=null;
         if(c1&&(counts[p1]||0)<(c1.capacity||0)){aid=p1;counts[p1]=(counts[p1]||0)+1;}
         else if(p2&&c2&&(counts[p2]||0)<(c2.capacity||0)){aid=p2;counts[p2]=(counts[p2]||0)+1;}
@@ -545,7 +545,31 @@ async function adminSchoolClose(id){
       }
     }
     toast('마감됐습니다','ok'); await loadSchoolData(); renderSchool();
-  }catch(e){toast(errMsg(e),'err');}
+  }catch(e){toast(errMsg(e),'err');return;}
+  // 반별 팀 및 시간표 자동 생성
+  try{
+    const dayMap={'월':0,'화':1,'수':2,'목':3,'금':4,'토':5,'일':6};
+    let added=0;
+    for(const cls of closeClasses){
+      if(teams.find(t=>t.name===cls.name&&t.type==='스쿨')) continue;
+      const newTeam=await createTeam({name:cls.name,type:'스쿨',color:GRAY,info:cls.teacher_name||'',members:[]});
+      teams.push(newTeam);
+      added++;
+      if(cls.schedule_day&&cls.schedule_hour!=null){
+        const dayIdx=dayMap[cls.schedule_day];
+        if(dayIdx!==undefined&&!baseSlots.some(s=>s.team_id===newTeam.id&&s.day===dayIdx&&s.hour===cls.schedule_hour&&s.season===season)){
+          const newSlot=await createBaseSlot({team_id:newTeam.id,day:dayIdx,hour:cls.schedule_hour,season});
+          baseSlots.push(newSlot);
+        }
+      }
+    }
+    if(added){
+      teams=korSort(teams,'name');
+      merged=mergeSchedule(baseSlots,exceptions);
+      renderTeams(); renderSchedule();
+      toast(`${added}개 반의 팀 및 시간표가 자동 생성됐습니다`,'ok');
+    }
+  }catch(e){toast('팀/시간표 자동 생성 실패: '+errMsg(e),'err');}
 }
 
 window.deleteSchoolRound=async function(id){
