@@ -163,21 +163,19 @@
     <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;">합주 신청 관리</div>
     <a href="ensemble.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">→ 신청 페이지</a>
   </div>
-  <div class="ensemble-cols" style="padding:10px;" id="ensembleCols">
-    <div class="ensemble-col" id="ensembleRegular">
-      <div class="ensemble-col-hdr">
-        <span class="ensemble-col-title">일반 합주</span>
-        <span class="ensemble-phase closed" id="ephaseRegular">닫힘</span>
-      </div>
-      <div class="ensemble-col-body" id="ensembleRegularBody"></div>
-    </div>
-    <div class="ensemble-col" id="ensembleBusking">
-      <div class="ensemble-col-hdr">
-        <span class="ensemble-col-title">버스킹 합주</span>
-        <span class="ensemble-phase closed" id="ephaseBusking">닫힘</span>
-      </div>
-      <div class="ensemble-col-body" id="ensembleBuskingBody"></div>
-    </div>
+  <div class="ens-type-tabs">
+    <button class="ens-type-tab active" id="ensTabRegular" onclick="switchEnsTab('regular')">
+      일반 합주<span class="ensemble-phase closed" id="ephaseRegular" style="margin-left:7px">닫힘</span>
+    </button>
+    <button class="ens-type-tab" id="ensTabBusking" onclick="switchEnsTab('busking')">
+      버스킹 합주<span class="ensemble-phase closed" id="ephaseBusking" style="margin-left:7px">닫힘</span>
+    </button>
+  </div>
+  <div class="ens-tab-panel" id="ensembleRegularPanel">
+    <div class="ensemble-col-body" id="ensembleRegularBody"></div>
+  </div>
+  <div class="ens-tab-panel" id="ensembleBuskingPanel" style="display:none">
+    <div class="ensemble-col-body" id="ensembleBuskingBody"></div>
   </div>
 </div>
 

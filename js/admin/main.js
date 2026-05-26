@@ -1540,22 +1540,26 @@ function renderEnsemble(){
         songsHtml=active.map((s,i)=>{
           const sessApps=eSessionMap[s.id]||[];
           let sessHtml='';
-          if((phase==='session'||phase==='session2')&&sessApps.length){
-            sessHtml=`<div class="e-sess-list">
-              ${sessApps.map(a=>{
-                const rBadge=(a.session_round||1)===2?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px">2차</span>`:'';
-                const isAppRow=a.student_id===s.student_id;
-                const appBadgeRow=isAppRow?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';
-                return `<div class="e-sess-row">
-                <span class="e-sess-dot ${a.status}"></span>
-                <span class="e-sess-name" style="${isAppRow?'font-weight:900':'normal'}">${esc(a.applicant_name)}${appBadgeRow}${rBadge} <span style="color:var(--text3);font-weight:400">${esc(a.student_id)}</span></span>
-                <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${esc(x)}</span>`).join('')}</div>
-                <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
-              </div>`;}).join('')}
-            </div>`;
-          } else if(phase==='closed'&&sessApps.length){
-            const conf=sessApps.filter(a=>a.status==='confirmed');
-            if(conf.length) sessHtml=`<div class="e-sess-list">${conf.map(a=>`<div class="e-sess-row"><span class="e-sess-dot confirmed"></span><span class="e-sess-name">${esc(a.applicant_name)}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag confirmed">${esc(x)}</span>`).join('')}</div></div>`).join('')}</div>`;
+          const showSessPhases=['song_end','session','session_end','session2','session2_end','closed'];
+          if(showSessPhases.includes(phase)&&sessApps.length){
+            const isClosedPhase=phase==='closed';
+            const displayApps=isClosedPhase?sessApps.filter(a=>a.status==='confirmed'):sessApps;
+            if(displayApps.length){
+              sessHtml=`<div class="e-sess-list">
+                ${displayApps.map(a=>{
+                  const rBadge=(a.session_round||1)===2?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px">2차</span>`:'';
+                  const isAppRow=a.student_id===s.student_id;
+                  const appBadgeRow=isAppRow?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';
+                  const delBtn=`<button class="btn btn-d btn-xs" style="margin-left:auto;padding:0 6px;font-size:10px;line-height:1.7" onclick="deleteSessionApp(${a.id})">삭제</button>`;
+                  return `<div class="e-sess-row">
+                  <span class="e-sess-dot ${a.status}"></span>
+                  <span class="e-sess-name" style="${isAppRow?'font-weight:900':'normal'}">${esc(a.applicant_name)}${appBadgeRow}${rBadge} <span style="color:var(--text3);font-weight:400">${esc(a.student_id)}</span></span>
+                  <div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${a.status==='confirmed'?'confirmed':''}">${esc(x)}</span>`).join('')}</div>
+                  <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtTime(a.created_at)}</span>
+                  ${delBtn}
+                </div>`;}).join('')}
+              </div>`;
+            }
           }
           const actions=(phase==='song')?`<div class="e-song-actions">
             <button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">삭제</button>
@@ -1581,6 +1585,24 @@ function renderEnsemble(){
     bodyEl.innerHTML=ctrlHtml+meta+songsHtml;
   });
 }
+
+window.switchEnsTab=function(type){
+  document.getElementById('ensTabRegular').classList.toggle('active',type==='regular');
+  document.getElementById('ensTabBusking').classList.toggle('active',type==='busking');
+  document.getElementById('ensembleRegularPanel').style.display=type==='regular'?'':'none';
+  document.getElementById('ensembleBuskingPanel').style.display=type==='busking'?'':'none';
+};
+
+window.deleteSessionApp=async function(appId){
+  if(!confirm('이 세션 신청을 삭제하시겠습니까?')) return;
+  const {error}=await sb.from('ensemble_session_applications').delete().eq('id',appId);
+  if(error){alert('삭제 실패: '+error.message);return;}
+  // remove from local state
+  for(const sid of Object.keys(eSessionMap)){
+    eSessionMap[sid]=eSessionMap[sid].filter(a=>a.id!==appId);
+  }
+  renderEnsemble();
+};
 
 // ── ENSEMBLE DnD MODAL ───────────────────────────────────────────────
 let eDndSt=null;
