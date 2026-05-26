@@ -625,6 +625,10 @@ window.submitSong=async function(){
       round_id:r.id,applicant_name:name,student_id:sid,title,artist,sessions,status:'confirmed'
     }).select().single();
     if(sErr) throw sErr;
+    // ensure confirmed even if a DB trigger overrides the status on insert
+    if(songData.status!=='confirmed'){
+      await supabase.from('song_applications').update({status:'confirmed'}).eq('id',songData.id);
+    }
     const {error:sessErr}=await supabase.from('session_applications').insert({
       song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1
     });
