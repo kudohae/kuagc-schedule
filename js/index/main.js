@@ -629,7 +629,7 @@ function showStatus(){
 }
 window.closeStatus=function(){
   const chk = document.getElementById('statusSuppressChk');
-  if(chk?.checked) localStorage.setItem('statusSuppressUntil', Date.now() + 3600000);
+  if(chk?.checked) localStorage.setItem('statusSuppressUntil', Date.now() + 1800000);
   document.getElementById('statusBd').style.display='none';
   document.body.style.overflow='';
 };
