@@ -1465,7 +1465,9 @@ function renderEnsemble(){
             <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='closed'){
-      ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>`;
+      const hasData=(eSongs[type]||[]).some(s=>s.status!=='rejected');
+      ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
+            ${hasData?`<button class="btn btn-s btn-xs" onclick="exportEnsembleXlsx('${type}')">📥 xlsx</button>`:''}`;
     }
 
     const fS=ts=>ts?fmtScheduled(ts):'—';
@@ -2384,6 +2386,40 @@ window.changeAdminPassword=async function(){
   document.getElementById('newPw1').value='';
   document.getElementById('newPw2').value='';
   toast('비밀번호가 변경되었습니다','ok');
+};
+
+// ── ENSEMBLE XLSX EXPORT ──────────────────────────────────────────────
+window.exportEnsembleXlsx = function(type) {
+  if (typeof XLSX === 'undefined') { toast('라이브러리 로드 중입니다. 잠시 후 다시 시도해주세요', 'err'); return; }
+  const r = eRounds[type];
+  if (!r) { toast('데이터가 없습니다', 'err'); return; }
+  const typeName = type === 'regular' ? '일반합주' : '버스킹합주';
+  const confirmedSongs = (eSongs[type] || []).filter(s => s.status !== 'rejected');
+  if (!confirmedSongs.length) { toast('내보낼 곡 데이터가 없습니다', 'err'); return; }
+
+  const rows = [['번호', '곡명', '아티스트', '이름', '학번', '세션']];
+  confirmedSongs.forEach((song, i) => {
+    const num = String(i + 1).padStart(2, '0');
+    const confirmed = (eSessionMap[song.id] || []).filter(a => a.status === 'confirmed');
+    if (!confirmed.length) {
+      rows.push([num, song.title, song.artist, '', '', '']);
+    } else {
+      confirmed.forEach(a => {
+        rows.push([num, song.title, song.artist, a.applicant_name, a.student_id, a.sessions.join(', ')]);
+      });
+    }
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = rows[0].map((_, ci) => ({
+    wch: Math.max(...rows.map(row => String(row[ci] ?? '').length)) + 2
+  }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, typeName);
+  const d = new Date();
+  const ds = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb, `${typeName}_결과_${ds}.xlsx`);
+  toast('엑셀 파일을 내보냈습니다', 'ok');
 };
 
 // ── TOAST ─────────────────────────────────────────────────────────────
