@@ -1465,9 +1465,8 @@ function renderEnsemble(){
             <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='closed'){
-      const hasData=(eSongs[type]||[]).some(s=>s.status!=='rejected');
       ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
-            ${hasData?`<button class="btn btn-s btn-xs" onclick="exportEnsembleXlsx('${type}')">📥 xlsx</button>`:''}`;
+            <button class="btn btn-s btn-xs" onclick="exportEnsembleXlsx('${type}')">📥 xlsx</button>`;
     }
 
     const fS=ts=>ts?fmtScheduled(ts):'—';
