@@ -2140,8 +2140,10 @@ window.revertPhase=async function(type,roundId){
   const prev=prevMap[r.phase]; if(!prev) return;
   const phaseNames={draft:'준비',song:'곡 신청',song_end:'대기',session:'1차 세션 신청',session_end:'대기',session2:'2차 세션 신청',session2_end:'최종 팀 구성',closed:'완료'};
   if(!confirm(`이전 단계 "${phaseNames[prev]}"(으)로 되돌리시겠습니까?`)) return;
+  // clear the deadline for the phase we're reverting to, so the public page doesn't immediately re-advance
+  const clearOnRevert={song:{song_close_at:null},session:{session_close_at:null},session2:{session2_close_at:null}};
   try{
-    const {error}=await supabase.from('ensemble_rounds').update({phase:prev}).eq('id',roundId);
+    const {error}=await supabase.from('ensemble_rounds').update({phase:prev,...(clearOnRevert[prev]||{})}).eq('id',roundId);
     if(error) throw error;
     toast('이전 단계로 이동했습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
