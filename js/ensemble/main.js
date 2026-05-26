@@ -82,19 +82,26 @@ function syncTypeToggle(){
   document.getElementById('tb-busking')?.classList.toggle('active',currentType==='busking');
 }
 
+let _refreshGen = 0;
+
 async function refreshList(){
+  const gen = ++_refreshGen;
   for(const type of ['regular','busking']){
     const r=rounds[type];
     if(!r){songs[type]=[];continue;}
     const {data:s}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
+    if(gen!==_refreshGen) return;
     songs[type]=s||[];
   }
   const allIds=[...songs.regular,...songs.busking].map(s=>s.id);
-  sessionMap={};
+  const newMap={};
   if(allIds.length){
     const {data:sess}=await supabase.from('session_applications').select('*').in('song_id',allIds).order('created_at');
-    (sess||[]).forEach(s=>{ if(!sessionMap[s.song_id]) sessionMap[s.song_id]=[]; sessionMap[s.song_id].push(s); });
+    if(gen!==_refreshGen) return;
+    (sess||[]).forEach(s=>{ if(!newMap[s.song_id]) newMap[s.song_id]=[]; newMap[s.song_id].push(s); });
   }
+  if(gen!==_refreshGen) return;
+  sessionMap=newMap;
   renderList();
 }
 
