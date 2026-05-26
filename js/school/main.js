@@ -1,13 +1,11 @@
 import { supabase } from '../supabase.js';
 import { initTheme, toggleTheme } from '../utils/theme.js';
-import { toast } from '../utils/toast.js';
 import { diffToHMS, fmtDate } from '../utils/time.js';
-
-initTheme();
-window.toggleTheme = toggleTheme;
 
 let round=null, prevRound=null, classes=[], apps=[], prevApps=[];
 let cdTimer=null;
+let _rtChannel=null;
+let _outerContainer=null;
 
 function stopCd(){if(cdTimer){clearInterval(cdTimer);cdTimer=null;}}
 
@@ -23,12 +21,50 @@ function startCd(targetTs,onExpired){
   cdTimer=setInterval(update,1000);
 }
 
+// ── EXPORTED INIT ─────────────────────────────────────────────────────
+export async function init(outerContainer) {
+  _outerContainer = outerContainer;
+  round=null; prevRound=null; classes=[]; apps=[]; prevApps=[];
+
+  outerContainer.innerHTML = '<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
+
+  const inner = document.createElement('div');
+  inner.className = 'container';
+  inner.id = 'container';
+  outerContainer.innerHTML = '';
+  outerContainer.appendChild(inner);
+
+  await load();
+
+  _rtChannel = supabase.channel('school-public-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},()=>{
+      if(document.getElementById('container')) load();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'schools'},()=>{
+      if(document.getElementById('container')) load();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async()=>{
+      if(!round||!document.getElementById('container')) return;
+      const {data}=await supabase.from('school_applications').select('*').eq('round_id',round.id).order('created_at');
+      apps=data||[];
+      render();
+    })
+    .subscribe();
+
+  return function destroy() {
+    stopCd();
+    if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
+    window.submitApply = undefined;
+    window.toggleSchoolDesc = undefined;
+    _outerContainer = null;
+  };
+}
+
 async function load(){
   const {data:rds}=await supabase.from('school_rounds').select('*').order('created_at',{ascending:false}).limit(2);
   round=(rds||[])[0]||null;
 
   if(round){
-    // Previous closed round (not the current one) for returning-student check
     const {data:prev}=await supabase.from('school_rounds').select('*').eq('status','closed').neq('id',round.id).order('created_at',{ascending:false}).limit(1);
     prevRound=prev?.[0]||null;
 
@@ -76,8 +112,10 @@ function pickClass(pref1,pref2){
 
 function render(){
   stopCd();
+  const el=document.getElementById('container');
+  if(!el) return;
   if(!round){
-    document.getElementById('container').innerHTML='<div class="empty-state">스쿨 신청 기간이 아닙니다.</div>';
+    el.innerHTML='<div class="empty-state">스쿨 신청 기간이 아닙니다.</div>';
     return;
   }
   const {status}=round;
@@ -87,9 +125,10 @@ function render(){
 }
 
 function renderDraft(){
+  const el=document.getElementById('container');
+  if(!el) return;
   const name=getRoundName();
   const openAt=round.open_at;
-  const now=Date.now();
   let html=`<div class="round-status draft">
     <div class="rs-icon">⏳</div>
     <div class="rs-texts">
@@ -98,7 +137,7 @@ function renderDraft(){
       ${openAt?`<div class="rs-sub" style="margin-top:2px">오픈 예정: ${fmtDate(openAt)}</div><div class="cd-num cd-open" id="cdEl">...</div>`:''}
     </div>
   </div>`;
-  document.getElementById('container').innerHTML=html;
+  el.innerHTML=html;
   if(openAt){
     if(new Date(openAt)<=Date.now()){autoOpen();}
     else startCd(openAt,autoOpen);
@@ -111,6 +150,8 @@ async function autoOpen(){
 }
 
 function renderOpen(){
+  const el=document.getElementById('container');
+  if(!el) return;
   const name=getRoundName();
   const closeAt=round.close_at;
   if(closeAt&&new Date(closeAt)<=Date.now()){autoClose();return;}
@@ -144,7 +185,7 @@ function renderOpen(){
   </div>`;
 
   html+=renderClassCards(true);
-  document.getElementById('container').innerHTML=html;
+  el.innerHTML=html;
   if(closeAt) startCd(closeAt,autoClose);
 }
 
@@ -180,6 +221,8 @@ async function processReturning(){
 }
 
 function renderClosed(){
+  const el=document.getElementById('container');
+  if(!el) return;
   const name=getRoundName();
   let html=`<div class="round-status closed">
     <div class="rs-icon">🔒</div>
@@ -189,7 +232,7 @@ function renderClosed(){
     </div>
   </div>`;
   html+=renderClassCards(false);
-  document.getElementById('container').innerHTML=html;
+  el.innerHTML=html;
 }
 
 function renderClassCards(isOpen){
@@ -235,7 +278,6 @@ function renderClassCards(isOpen){
     </div>`;
   });
 
-  // 마감 후 배정 (open 중에만)
   const pending=apps.filter(a=>a.status==='pending');
   if(isOpen&&pending.length){
     html+=`<div class="pending-card">
@@ -253,7 +295,6 @@ function renderClassCards(isOpen){
     </div>`;
   }
 
-  // 미배정
   const unassigned=apps.filter(a=>a.status==='unassigned');
   if(unassigned.length){
     html+=`<div class="unassigned-card">
@@ -273,17 +314,17 @@ function renderClassCards(isOpen){
 }
 
 window.submitApply=async function(){
-  if(!round||round.status!=='open'){toast('신청 기간이 아닙니다','err');return;}
+  if(!round||round.status!=='open'){window.toast('신청 기간이 아닙니다','err');return;}
   const name=(document.getElementById('applyName')?.value||'').trim();
   const sid=(document.getElementById('applySid')?.value||'').trim();
   const pref1Raw=document.getElementById('applyPref1')?.value;
   const pref2Raw=document.getElementById('applyPref2')?.value;
-  if(!name){toast('성명을 입력해주세요','err');return;}
-  if(sid.length<4){toast('학번을 올바르게 입력해주세요','err');return;}
-  if(!pref1Raw){toast('1지망을 선택해주세요','err');return;}
+  if(!name){window.toast('성명을 입력해주세요','err');return;}
+  if(sid.length<4){window.toast('학번을 올바르게 입력해주세요','err');return;}
+  if(!pref1Raw){window.toast('1지망을 선택해주세요','err');return;}
   const pref1=parseInt(pref1Raw);
   const pref2=pref2Raw?parseInt(pref2Raw):null;
-  if(pref2&&pref2===pref1){toast('1지망과 2지망이 같습니다','err');return;}
+  if(pref2&&pref2===pref1){window.toast('1지망과 2지망이 같습니다','err');return;}
 
   const existing=apps.find(a=>a.student_id===sid);
   if(existing){
@@ -316,32 +357,18 @@ window.submitApply=async function(){
     if(error) throw error;
 
     if(returning){
-      toast('신청 등록 완료. 이전 회차 수강자로, 마감 후 남은 자리에 배정될 예정입니다.','ok');
+      window.toast('신청 등록 완료. 이전 회차 수강자로, 마감 후 남은 자리에 배정될 예정입니다.','ok');
     } else if(assignedId){
       const c=classes.find(x=>x.id===assignedId);
-      toast(`${c?.name||'반'}에 배정됐습니다!`,'ok');
+      window.toast(`${c?.name||'반'}에 배정됐습니다!`,'ok');
     } else {
-      toast('신청 등록 완료. 현재 모든 반이 만석입니다.','');
+      window.toast('신청 등록 완료. 현재 모든 반이 만석입니다.','');
     }
   }catch(e){
-    toast(e?.message||'오류가 발생했습니다','err');
+    window.toast(e?.message||'오류가 발생했습니다','err');
     if(btn){btn.disabled=false;btn.textContent='신청하기';}
   }
 };
-
-// 실시간 구독
-supabase.channel('school-public-rt')
-  .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},()=>load())
-  .on('postgres_changes',{event:'*',schema:'public',table:'schools'},()=>load())
-  .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async()=>{
-    if(!round) return;
-    const {data}=await supabase.from('school_applications').select('*').eq('round_id',round.id).order('created_at');
-    apps=data||[];
-    render();
-  })
-  .subscribe();
-
-load();
 
 window.toggleSchoolDesc=function(id){
   const body=document.getElementById('desc-'+id);
