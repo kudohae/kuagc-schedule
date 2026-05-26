@@ -1,4 +1,5 @@
 import { isAdmin } from '../auth.js';
+import { initRouter } from '../router.js';
 import {
   getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,
@@ -10,6 +11,18 @@ import { escapeHtml as esc } from '../utils/html.js';
 import { DAYS, HOURS, GRAY, korSort, teamClr, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js';
 
 window.toggleTheme = toggleTheme;
+
+// ── GLOBAL TOAST (used by all SPA views) ─────────────────────────────
+let _globalToastTimer;
+window.toast = function(msg, type='') {
+  let el = document.getElementById('toast');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.style.cssText = 'display:block;opacity:1;animation:none;';
+  clearTimeout(_globalToastTimer);
+  _globalToastTimer = setTimeout(() => { if(el) el.style.display='none'; }, 2800);
+};
 
 const fmtTime = ts => { if(!ts) return ''; const d=new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
 
@@ -80,17 +93,14 @@ async function loadAll(){
 window.loadAll=loadAll;
 
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
-window.showPage=function(pg){
+function showPage(pg){
   document.getElementById('pgSchedule')?.classList.toggle('active',pg==='schedule');
-  document.getElementById('nb-schedule')?.classList.toggle('active',pg==='schedule');
-  ['schedule','teams'].forEach(p=>{
-    document.getElementById('tb-'+p)?.classList.toggle('active',p===pg);
-  });
   document.getElementById('weekNavEl').style.display = pg==='schedule'?'':'none';
   const teamPanel=document.getElementById('mobileTeamPanel');
   if(pg==='teams'){ teamPanel.classList.add('active'); renderMobileTeams(); }
   else teamPanel.classList.remove('active');
-};
+}
+window._showSchedulePage = showPage;
 
 // ── RENDER ────────────────────────────────────────────────────────────
 function render(){
@@ -620,13 +630,7 @@ window.closeStatus=function(){
   document.body.style.overflow='';
 };
 
-// ── TOAST ─────────────────────────────────────────────────────────────
-let toastT;
-function toast(msg,type=''){
-  let el=document.getElementById('toast');
-  if(!el){el=document.createElement('div');el.id='toast';document.body.appendChild(el);}
-  el.className='toast'+(type?' '+type:''); el.textContent=msg; el.style.display='block';
-  clearTimeout(toastT); toastT=setTimeout(()=>el.style.display='none',2800);
-}
+function toast(msg,type=''){ window.toast(msg,type); }
 
 init();
+initRouter();

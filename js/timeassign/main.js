@@ -3,14 +3,12 @@ import {
   getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchActiveRound, fetchApplications, submitApplication
 } from '../schedule.js';
-import { initTheme, toggleTheme } from '../utils/theme.js';
 import { diffToHMS } from '../utils/time.js';
 
 const DAYS  = ['월','화','수','목','금','토','일'];
 const HOURS = Array.from({length:18},(_,i)=>i+8);
-const GRAY  = '#888888';
 const korSort = (a,k) => [...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
-const teamClr = t => t.type==='합주'?GRAY:(t.color||GRAY);
+const teamClr = t => t.type==='합주'?'#888888':(t.color||'#888888');
 const timeStr = h => h<24?h+':00':'0'+(h-24)+':00';
 const fmtTime = ts => {
   if(!ts) return '';
@@ -24,10 +22,6 @@ const errMsg = e => {
   return m || '오류가 발생했습니다';
 };
 
-// ── THEME ─────────────────────────────────────────────────────────────
-initTheme();
-window.toggleTheme = toggleTheme;
-
 function fmtScheduled(ts){
   const d=new Date(ts),pad=n=>String(n).padStart(2,'0');
   return `${String(d.getFullYear()).slice(2)}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -39,10 +33,19 @@ let teams=[], baseSlots=[], exceptions=[], merged=[];
 let round=null, applications=[];
 let applyPrefs={}, applyTeamId=null, applyTeamName='';
 let taCountdownTimer=null;
+let _rtChannel=null;
 
-// ── INIT ──────────────────────────────────────────────────────────────
-async function init(){
-  try{
+// ── EXPORTED INIT ─────────────────────────────────────────────────────
+export async function init(outerContainer) {
+  // reset state
+  season='1학기'; teams=[]; baseSlots=[]; exceptions=[]; merged=[];
+  round=null; applications=[];
+  applyPrefs={}; applyTeamId=null; applyTeamName='';
+
+  // Create inner container
+  outerContainer.innerHTML = '<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
+
+  try {
     season = await getConfig('current_season').catch(()=>'1학기');
     [teams, baseSlots, exceptions] = await Promise.all([
       fetchTeams(), fetchBaseSlots(season), fetchExceptions(0)
@@ -51,42 +54,56 @@ async function init(){
     merged=mergeSchedule(baseSlots,exceptions);
     round=await fetchActiveRound(season);
     if(round) applications=await fetchApplications(round.id);
-    document.getElementById('ld').style.display='none';
+
+    outerContainer.innerHTML='';
+    const inner=document.createElement('div');
+    inner.className='container';
+    inner.id='applyContent';
+    outerContainer.appendChild(inner);
+
     render();
 
-    // ── REALTIME ──────────────────────────────────────────────────────
-    supabase.channel('ta-rt')
+    _rtChannel = supabase.channel('ta-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},async()=>{
-        if(round){
+        if(round && document.getElementById('applyContent')){
           applications=await fetchApplications(round.id);
           renderList();
         }
       })
       .on('postgres_changes',{event:'*',schema:'public',table:'application_rounds'},async()=>{
+        if(!document.getElementById('applyContent')) return;
         round=await fetchActiveRound(season);
         if(round) applications=await fetchApplications(round.id);
         render();
       })
       .subscribe();
-  } catch(e){
-    document.getElementById('ld').innerHTML=`
-      <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
+  } catch(e) {
+    outerContainer.innerHTML=`
+      <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px">
         <div style="font-size:14px;color:var(--danger)">데이터를 불러오지 못했습니다</div>
         <div style="font-size:12px;color:var(--text2)">${e.message||'네트워크 오류'}</div>
-        <button class="btn btn-p" onclick="location.reload()">다시 시도</button>
+        <button class="btn btn-p" onclick="navigate('timeassign')">다시 시도</button>
       </div>`;
   }
+
+  return function destroy() {
+    if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
+    if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
+    window.onApplyTeamInput = undefined;
+    window.onApplyDayChange = undefined;
+    window.submitApply = undefined;
+  };
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────
 function render(){
-  // clear any existing countdown
   if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
+  const contentEl=document.getElementById('applyContent');
+  if(!contentEl) return;
 
   const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
   const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
   const isFin=round&&(round.status==='finished'||round.draft_approved);
-  const teamOpts=korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   const occMap=new Map(merged.filter(s=>s.status!=='absent').map(s=>[`${s.day}-${s.hour}`,s.teams.name]));
 
   let html=`
@@ -106,7 +123,7 @@ function render(){
         <div class="cd-num cd-open" id="ta-cd">${diffToHMS(diff)}</div>
       </div>
     </div>`;
-    document.getElementById('applyContent').innerHTML=html;
+    contentEl.innerHTML=html;
     renderList();
     taCountdownTimer=setInterval(()=>{
       const d2=new Date(targetDate)-Date.now();
@@ -127,7 +144,6 @@ function render(){
       <div class="apply-status-texts">
         <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'신청 마감 — 배정 완료':'신청 기간이 아닙니다'}</div>
         ${closeTs?`<div class="apply-status-sub" style="color:var(--warn)">⏰ 마감: ${fmtScheduled(closeTs)}</div>`
-          :isOpen&&round.close_at?''
           :!isOpen&&!isFin?`<div class="apply-status-sub">관리자가 신청을 열면 여기서 신청할 수 있습니다.</div>`:''}
         ${closeTs?`<div class="cd-num cd-close" id="ta-close-cd">${diffToHMS(closeDiff)}</div>`:''}
       </div>
@@ -192,28 +208,22 @@ function render(){
     </div>`;
   }
 
-  document.getElementById('applyContent').innerHTML=html;
-  const sel=document.getElementById('apTeam');
+  contentEl.innerHTML=html;
   renderList();
 }
 
 function renderList(){
-  const isFin=round&&(round.status==='finished'||round.draft_approved);
-  const pc=p=>p===1?'p1':p===2?'p2':p===3?'p3':'none';
-  const pl=p=>p?p+'지망':'미배정';
+  const contentEl=document.getElementById('applyContent');
+  if(!contentEl) return;
 
+  const isFin=round&&(round.status==='finished'||round.draft_approved);
   const old=document.getElementById('taListCard');
   if(old) old.remove();
-
   if(!round||!applications.length) return;
 
-  // applications is already sorted by submitted_at asc (fetchApplications uses .order('submitted_at'))
-  // latest entry per team_id is valid; earlier entries are void
   const latestIdByTeam=new Map();
   for(const a of applications) latestIdByTeam.set(a.team_id,a.id);
   const isVoid=a=>latestIdByTeam.get(a.team_id)!==a.id;
-
-  // count valid (non-void) entries
   const validCount=applications.filter(a=>!isVoid(a)).length;
 
   const div=document.createElement('div');
@@ -235,14 +245,14 @@ function renderList(){
               <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
               <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
               <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
-              ${isFin?`<td>${!void_&&a.assigned_day!=null?`<span class="pbadge ${pc(a.assigned_pref)}">${pl(a.assigned_pref)}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">${void_?'무효':'미배정'}</span>`}</td>`:''}
+              ${isFin?`<td>${!void_&&a.assigned_day!=null?`<span class="pbadge p${a.assigned_pref||'none'}">${a.assigned_pref?a.assigned_pref+'지망':'—'}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">${void_?'무효':'미배정'}</span>`}</td>`:''}
               <td style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace">${fmtTime(a.submitted_at)}</td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>`;
-  document.getElementById('applyContent').appendChild(div);
+  contentEl.appendChild(div);
 }
 
 // ── INTERACTIONS ──────────────────────────────────────────────────────
@@ -285,11 +295,11 @@ window.onApplyDayChange=function(n){
 
 window.submitApply=async function(){
   const _sched=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
-  if(!round||round.status!=='open'||_sched){toast('현재 신청 기간이 아닙니다','err');return;}
-  if(!applyTeamId){toast('팀을 선택해주세요','err');return;}
+  if(!round||round.status!=='open'||_sched){window.toast('현재 신청 기간이 아닙니다','err');return;}
+  if(!applyTeamId){window.toast('팀을 선택해주세요','err');return;}
   const d1=document.getElementById('apD1')?.value;
   const h1=document.getElementById('apH1')?.value;
-  if(!d1||!h1){toast('1지망 요일과 시간을 선택해주세요','err');return;}
+  if(!d1||!h1){window.toast('1지망 요일과 시간을 선택해주세요','err');return;}
   const d2=document.getElementById('apD2')?.value, h2=document.getElementById('apH2')?.value;
   const d3=document.getElementById('apD3')?.value, h3=document.getElementById('apH3')?.value;
   try{
@@ -298,19 +308,7 @@ window.submitApply=async function(){
       pref2_day:d2&&h2?parseInt(d2):null,pref2_hour:d2&&h2?parseInt(h2):null,
       pref3_day:d3&&h3?parseInt(d3):null,pref3_hour:d3&&h3?parseInt(h3):null});
     applyPrefs={}; applyTeamId=null; applyTeamName='';
-    toast('신청이 제출됐습니다','ok');
-    // 최신 목록은 realtime이 자동으로 받아옴 — 폼만 리렌더
+    window.toast('신청이 제출됐습니다','ok');
     render();
-  }catch(e){toast(errMsg(e),'err');}
+  }catch(e){window.toast(errMsg(e),'err');}
 };
-
-// ── TOAST ─────────────────────────────────────────────────────────────
-let toastT;
-function toast(msg,type=''){
-  const el=document.getElementById('toast');
-  el.className='toast'+(type?' '+type:'');
-  el.textContent=msg; el.style.display='block';
-  clearTimeout(toastT); toastT=setTimeout(()=>el.style.display='none',2800);
-}
-
-init();

@@ -271,3 +271,12 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
   .day-tab-bar{display:none !important;}
   #mobileTeamPanel{display:none !important;}
 }
+
+/* type-toggle — always available (ensemble.css also defines these) */
+.type-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+.type-btn{padding:5px 15px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;transition:all .12s;}
+.type-btn.active{background:var(--surface);color:var(--text);font-weight:700;}
+
+/* SPA dynamic view container */
+#view-dynamic{display:none;height:calc(100vh - var(--hh));overflow-y:auto;}
+@media(max-width:700px){#view-dynamic{padding-bottom:var(--tab-h);}}

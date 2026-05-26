@@ -1,10 +1,6 @@
 import { supabase } from '../supabase.js';
-import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
 import { diffToHMS } from '../utils/time.js';
-
-initTheme();
-window.toggleTheme = toggleTheme;
 
 const SESSIONS = ['보컬1','보컬2','기타1','기타2','베이스','키보드1','키보드2','드럼','이외 악기'];
 
@@ -14,6 +10,7 @@ let songs = {regular:[], busking:[]};
 let sessionMap = {};
 let searchQ = '';
 let countdownTimers = {};
+let _rtChannel = null;
 
 function fmtTime(ts){
   if(!ts) return '';
@@ -34,26 +31,60 @@ function fmtScheduled(ts){
 
 const errMsg=e=>{const m=e?.message||'';if(m.includes('unique')||m.includes('duplicate'))return'이미 동일한 신청이 존재합니다';if(m.includes('network')||m.includes('fetch'))return'네트워크 오류가 발생했습니다. 다시 시도해주세요';if(m.includes('JWT')||m.includes('auth'))return'인증 오류입니다. 새로고침 후 시도해주세요';return m||'오류가 발생했습니다';};
 
-async function init(){
+// ── EXPORTED INIT ─────────────────────────────────────────────────────
+export async function init(outerContainer) {
+  currentType='regular'; rounds={regular:null,busking:null};
+  songs={regular:[],busking:[]}; sessionMap={}; searchQ='';
+  Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
+
+  outerContainer.innerHTML='<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
+
+  const inner=document.createElement('div');
+  inner.className='container';
+  inner.id='mainContainer';
+
   try{
     await loadAll();
-    document.getElementById('ld').style.display='none';
-    supabase.channel('ens-rt')
+    outerContainer.innerHTML='';
+    outerContainer.appendChild(inner);
+
+    _rtChannel=supabase.channel('ens-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},loadAll)
       .subscribe();
-    document.addEventListener('visibilitychange',()=>{
-      if(!document.hidden) refreshList();
-    });
+
+    document.addEventListener('visibilitychange',onVisibilityChange);
+
+    // sync type-toggle header buttons
+    syncTypeToggle();
   }catch(e){
-    document.getElementById('ld').innerHTML=`
-      <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
+    outerContainer.innerHTML=`
+      <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px">
         <div style="color:var(--danger);font-size:15px">불러오기 실패</div>
         <div style="color:var(--text2);font-size:13px">${e.message}</div>
-        <button class="btn btn-p" onclick="location.reload()">다시 시도</button>
+        <button class="btn btn-p" onclick="navigate('ensemble')">다시 시도</button>
       </div>`;
   }
+
+  return function destroy(){
+    Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
+    if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
+    document.removeEventListener('visibilitychange',onVisibilityChange);
+    window.switchType=undefined; window.onSearchInput=undefined; window.clearSearch=undefined;
+    window.onSongSelect=undefined; window.onSessionChkChange=undefined;
+    window.submitSong=undefined; window.submitSession=undefined; window.submitSession2=undefined;
+    window.onSess2SongSelect=undefined; window.openSessionModal=undefined; window.submitSessionModal=undefined;
+  };
+}
+
+function onVisibilityChange(){
+  if(!document.hidden&&document.getElementById('mainContainer')) refreshList();
+}
+
+function syncTypeToggle(){
+  document.getElementById('tb-regular')?.classList.toggle('active',currentType==='regular');
+  document.getElementById('tb-busking')?.classList.toggle('active',currentType==='busking');
 }
 
 async function refreshList(){
@@ -84,8 +115,7 @@ async function loadAll(){
 
 window.switchType=function(t){
   currentType=t; searchQ='';
-  document.getElementById('tb-regular').classList.toggle('active',t==='regular');
-  document.getElementById('tb-busking').classList.toggle('active',t==='busking');
+  syncTypeToggle();
   render();
 };
 
@@ -115,6 +145,9 @@ function startCountdown(type,targetDate,onExpired){
 }
 
 function render(){
+  const el=document.getElementById('mainContainer');
+  if(!el) return;
+
   const r=rounds[currentType];
   const phase=r?.phase||'closed';
   const typeName=currentType==='regular'?'일반 합주':'버스킹 합주';
@@ -130,7 +163,6 @@ function render(){
     <button class="search-clear" onclick="clearSearch()" style="${searchQ?'':'display:none'}">×</button>
   </div>`;
 
-  // 1단계: 준비 중 (draft)
   if(phase==='draft'){
     const target=r?.song_scheduled_at;
     if(target){
@@ -144,7 +176,7 @@ function render(){
             <div class="cd-num cd-open" id="cd-${type}">${diffToHMS(diff)}</div>
           </div>
         </div>`;
-        document.getElementById('mainContainer').innerHTML=html;
+        el.innerHTML=html;
         startCountdown(type,target,async()=>{
           if(rounds[type]?.id===r.id){rounds[type].phase='song';rounds[type].song_scheduled_at=null;}
           try{await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id);}catch(e){}
@@ -166,7 +198,6 @@ function render(){
     </div>`;
   }
 
-  // 2단계: 곡 신청 진행 (song)
   else if(phase==='song'){
     const closeAt=r?.song_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
@@ -220,7 +251,6 @@ function render(){
     </div>`;
   }
 
-  // 3단계: 세션 신청 준비 (song_end)
   else if(phase==='song_end'){
     const target=r?.session_scheduled_at;
     if(target&&new Date(target)<=new Date()){
@@ -247,7 +277,6 @@ function render(){
     }
   }
 
-  // 4단계: 세션 신청 진행 (session)
   else if(phase==='session'){
     const closeAt=r?.session_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
@@ -295,7 +324,6 @@ function render(){
     </div>`;
   }
 
-  // 5단계: 1차 팀 배정 (session_end)
   else if(phase==='session_end'){
     const allSessApps=Object.values(sessionMap).flat().filter(a=>a.round_id===r.id);
     const dndDone=allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
@@ -334,7 +362,6 @@ function render(){
     }
   }
 
-  // 6단계: 2차 세션 신청 (session2)
   else if(phase==='session2'){
     const closeAt=r?.session2_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
@@ -387,7 +414,6 @@ function render(){
     </div>`;
   }
 
-  // 7단계: 2차 팀 배정 (session2_end)
   else if(phase==='session2_end'){
     const allSessApps2=Object.values(sessionMap).flat().filter(a=>a.round_id===r.id&&(a.session_round||1)===2);
     const dndDone2=allSessApps2.some(a=>a.status==='confirmed'||a.status==='rejected');
@@ -400,7 +426,6 @@ function render(){
     </div>`;
   }
 
-  // 8단계: 확정 (closed)
   else if(phase==='closed'){
     html+=`<div class="status-card closed">
       <div class="status-icon">✅</div>
@@ -411,7 +436,6 @@ function render(){
     </div>`;
   }
 
-  // 기본 (회차 없음)
   else {
     html+=`<div class="status-card closed">
       <div class="status-icon">❌</div>
@@ -423,7 +447,7 @@ function render(){
   }
 
   html+=`<div id="songListEl"></div>`;
-  document.getElementById('mainContainer').innerHTML=html;
+  el.innerHTML=html;
   renderList();
 }
 
@@ -544,7 +568,7 @@ window.onSessionChkChange=function(el){
       if(!reqEl||!reqEl.checked){
         el.checked=false;
         const base=s.slice(0,-1);
-        toast(`${base} 1을 선택해야 ${base} 2를 추가할 수 있습니다`,'err');
+        window.toast(`${base} 1을 선택해야 ${base} 2를 추가할 수 있습니다`,'err');
       }
     }
   } else {
@@ -569,17 +593,17 @@ function syncMySessionCheckboxes(){
 
 window.submitSong=async function(){
   const r=rounds[currentType];
-  if(!r||r.phase!=='song'){toast('현재 곡 신청 기간이 아닙니다','err');return;}
-  if(r.song_close_at&&new Date(r.song_close_at)<=new Date()){toast('곡 신청이 마감됐습니다','err');return;}
+  if(!r||r.phase!=='song'){window.toast('현재 곡 신청 기간이 아닙니다','err');return;}
+  if(r.song_close_at&&new Date(r.song_close_at)<=new Date()){window.toast('곡 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('sName').value.trim();
   const sid=document.getElementById('sStudentId').value.trim();
   const title=document.getElementById('sTitle').value.trim();
   const artist=document.getElementById('sArtist').value.trim();
   const sessions=[...document.querySelectorAll('[id^="ns_"]:checked')].map(c=>c.value);
   const mySessions=[...document.querySelectorAll('[id^="ms_"]:checked')].map(c=>c.value);
-  if(!name||!sid||!title||!artist){toast('모든 필드를 입력해주세요','err');return;}
-  if(!sessions.length){toast('필요 세션을 하나 이상 선택해주세요','err');return;}
-  if(!mySessions.length){toast('본인이 담당할 세션을 하나 이상 선택해주세요','err');return;}
+  if(!name||!sid||!title||!artist){window.toast('모든 필드를 입력해주세요','err');return;}
+  if(!sessions.length){window.toast('필요 세션을 하나 이상 선택해주세요','err');return;}
+  if(!mySessions.length){window.toast('본인이 담당할 세션을 하나 이상 선택해주세요','err');return;}
   const titleNorm=title.trim().toLowerCase();
   const artistNorm=artist.trim().toLowerCase();
   const dup=songs[currentType].find(s=>
@@ -587,11 +611,11 @@ window.submitSong=async function(){
     s.title.trim().toLowerCase()===titleNorm&&
     s.artist.trim().toLowerCase()===artistNorm
   );
-  if(dup){toast('이미 동일한 곡이 신청되어 있습니다','err');return;}
+  if(dup){window.toast('이미 동일한 곡이 신청되어 있습니다','err');return;}
   const myCount=songs[currentType].filter(s=>s.student_id===sid&&s.status!=='rejected').length;
-  if(myCount>=r.max_songs_per_person){toast(`인당 최대 ${r.max_songs_per_person}곡까지 신청 가능합니다`,'err');return;}
+  if(myCount>=r.max_songs_per_person){window.toast(`인당 최대 ${r.max_songs_per_person}곡까지 신청 가능합니다`,'err');return;}
   const totalCount=songs[currentType].filter(s=>s.status!=='rejected').length;
-  if(totalCount>=r.max_songs){toast('신청 가능한 곡 수가 초과됐습니다','err');return;}
+  if(totalCount>=r.max_songs){window.toast('신청 가능한 곡 수가 초과됐습니다','err');return;}
   try{
     const {data:songData,error:sErr}=await supabase.from('song_applications').insert({
       round_id:r.id,applicant_name:name,student_id:sid,title,artist,sessions,status:'pending'
@@ -601,34 +625,34 @@ window.submitSong=async function(){
       song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1
     });
     if(sessErr) console.error('신청자 세션 등록 실패:',sessErr.message);
-    toast('곡 신청이 완료됐습니다','ok');
+    window.toast('곡 신청이 완료됐습니다','ok');
     await loadAll();
-  }catch(e){toast(errMsg(e),'err');}
+  }catch(e){window.toast(errMsg(e),'err');}
 };
 
 window.submitSession=async function(){
   const r=rounds[currentType];
-  if(!r||r.phase!=='session'){toast('현재 세션 신청 기간이 아닙니다','err');return;}
-  if(r.session_close_at&&new Date(r.session_close_at)<=new Date()){toast('세션 신청이 마감됐습니다','err');return;}
+  if(!r||r.phase!=='session'){window.toast('현재 세션 신청 기간이 아닙니다','err');return;}
+  if(r.session_close_at&&new Date(r.session_close_at)<=new Date()){window.toast('세션 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('ssName').value.trim();
   const sid=document.getElementById('ssStudentId').value.trim();
   const songId=document.getElementById('ssSong').value;
-  if(!name||!sid||!songId){toast('모든 필드를 입력해주세요','err');return;}
+  if(!name||!sid||!songId){window.toast('모든 필드를 입력해주세요','err');return;}
   const sessions=[...document.querySelectorAll('[id^="sss_"]:checked')].map(c=>c.value);
-  if(!sessions.length){toast('참여할 세션을 하나 이상 선택해주세요','err');return;}
+  if(!sessions.length){window.toast('참여할 세션을 하나 이상 선택해주세요','err');return;}
   await doSubmitSession(parseInt(songId),r,name,sid,sessions,1);
 };
 
 window.submitSession2=async function(){
   const r=rounds[currentType];
-  if(!r||r.phase!=='session2'){toast('현재 2차 세션 신청 기간이 아닙니다','err');return;}
-  if(r.session2_close_at&&new Date(r.session2_close_at)<=new Date()){toast('2차 세션 신청이 마감됐습니다','err');return;}
+  if(!r||r.phase!=='session2'){window.toast('현재 2차 세션 신청 기간이 아닙니다','err');return;}
+  if(r.session2_close_at&&new Date(r.session2_close_at)<=new Date()){window.toast('2차 세션 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('ssName').value.trim();
   const sid=document.getElementById('ssStudentId').value.trim();
   const songId=document.getElementById('ssSong').value;
-  if(!name||!sid||!songId){toast('모든 필드를 입력해주세요','err');return;}
+  if(!name||!sid||!songId){window.toast('모든 필드를 입력해주세요','err');return;}
   const sessions=[...document.querySelectorAll('[id^="sss_"]:checked')].map(c=>c.value);
-  if(!sessions.length){toast('참여할 세션을 하나 이상 선택해주세요','err');return;}
+  if(!sessions.length){window.toast('참여할 세션을 하나 이상 선택해주세요','err');return;}
   await doSubmitSession(parseInt(songId),r,name,sid,sessions,2);
 };
 
@@ -677,8 +701,8 @@ window.submitSessionModal=async function(songId){
   const name=document.getElementById('mssName').value.trim();
   const sid=document.getElementById('mssId').value.trim();
   const sessions=[...document.querySelectorAll('[id^="mss_"]:checked')].map(c=>c.value);
-  if(!name||!sid){toast('성명과 학번을 입력해주세요','err');return;}
-  if(!sessions.length){toast('세션을 하나 이상 선택해주세요','err');return;}
+  if(!name||!sid){window.toast('성명과 학번을 입력해주세요','err');return;}
+  if(!sessions.length){window.toast('세션을 하나 이상 선택해주세요','err');return;}
   const btn=document.getElementById('mssBtn'); btn.disabled=true;
   const ok=await doSubmitSession(songId,r,name,sid,sessions,r?.phase==='session2'?2:1);
   if(!ok) btn.disabled=false;
@@ -688,57 +712,45 @@ async function doSubmitSession(songId,r,name,sid,sessions,sessionRound=1){
   const allSess=Object.values(sessionMap).flat().filter(a=>(a.session_round||1)===sessionRound);
   const mySongs=new Set(allSess.filter(a=>a.student_id===sid&&a.round_id===r.id&&a.status!=='rejected').map(a=>a.song_id));
   if(!mySongs.has(songId)&&mySongs.size>=r.max_sessions_per_person){
-    toast(`인당 최대 ${r.max_sessions_per_person}곡까지 참여 가능합니다`,'err');return false;
+    window.toast(`인당 최대 ${r.max_sessions_per_person}곡까지 참여 가능합니다`,'err');return false;
   }
   const existing=(sessionMap[songId]||[]).find(a=>a.student_id===sid&&a.status!=='rejected'&&(a.session_round||1)===sessionRound);
-  if(existing){toast('이미 이 곡에 세션을 신청했습니다','err');return false;}
+  if(existing){window.toast('이미 이 곡에 세션을 신청했습니다','err');return false;}
   const songObj=[...songs.regular,...songs.busking].find(s=>s.id===songId);
   if(songObj&&songObj.student_id!==sid){
     const applicantApp=(sessionMap[songId]||[]).find(a=>a.student_id===songObj.student_id&&a.status!=='rejected');
     if(applicantApp){
       const conflict=sessions.filter(s=>applicantApp.sessions.includes(s));
-      if(conflict.length){toast(`신청자가 담당한 세션(${conflict.join(', ')})에는 신청할 수 없습니다`,'err');return false;}
+      if(conflict.length){window.toast(`신청자가 담당한 세션(${conflict.join(', ')})에는 신청할 수 없습니다`,'err');return false;}
     }
   }
   try{
     await supabase.from('session_applications').insert({
       song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending',session_round:sessionRound
     });
-    toast('세션 신청이 완료됐습니다','ok');
-    closeModal(); await loadAll(); return true;
-  }catch(e){toast(errMsg(e),'err');return false;}
+    window.toast('세션 신청이 완료됐습니다','ok');
+    window.closeModal?.(); await loadAll(); return true;
+  }catch(e){window.toast(errMsg(e),'err');return false;}
 }
 
-const isMobile=()=>window.innerWidth<=700;
-
 function showModal(title,body,foot){
-  document.getElementById('modalTtl').textContent=title;
-  document.getElementById('modalBody').innerHTML=body;
-  document.getElementById('modalFoot').innerHTML=foot;
-  document.getElementById('modalBd').style.display='flex';
+  const ttl=document.getElementById('modalTtl');
+  const bd=document.getElementById('modalBody');
+  const ft=document.getElementById('modalFoot');
+  const modalBd=document.getElementById('modalBd');
+  if(!ttl||!bd||!ft||!modalBd) return;
+  ttl.textContent=title; bd.innerHTML=body; ft.innerHTML=foot;
+  const modal=document.querySelector('#modalBd .modal');
+  if(modal){ modal.style.transform=''; modal.style.transition=''; }
+  modalBd.style.display='flex';
   document.body.style.overflow='hidden';
-  if(isMobile()){
-    const modal=document.querySelector('#modalBd .modal');
-    if(!modal) return;
+  if(window.innerWidth<=700&&modal){
     let startY=0,isDragging=false;
-    modal.style.transform='';
     const onStart=e=>{startY=e.touches[0].clientY;isDragging=true;modal.style.transition='none';};
     const onMove=e=>{if(!isDragging)return;const dy=e.touches[0].clientY-startY;if(dy>0)modal.style.transform=`translateY(${dy}px)`;};
-    const onEnd=e=>{if(!isDragging)return;isDragging=false;const dy=e.changedTouches[0].clientY-startY;modal.style.transition='transform .2s';if(dy>100){modal.style.transform=`translateY(100%)`;setTimeout(closeModal,200);}else{modal.style.transform='';}};
+    const onEnd=e=>{if(!isDragging)return;isDragging=false;const dy=e.changedTouches[0].clientY-startY;modal.style.transition='transform .2s';if(dy>100){modal.style.transform=`translateY(100%)`;setTimeout(()=>window.closeModal?.(),200);}else{modal.style.transform='';}};
     modal.addEventListener('touchstart',onStart,{passive:true});
     modal.addEventListener('touchmove',onMove,{passive:true});
     modal.addEventListener('touchend',onEnd);
   }
 }
-window.closeModal=()=>{document.getElementById('modalBd').style.display='none';document.body.style.overflow='';};
-window.onMBd=e=>{if(e.target===document.getElementById('modalBd'))closeModal();};
-
-let toastT;
-function toast(msg,type=''){
-  let el=document.getElementById('toast');
-  if(!el){el=document.createElement('div');el.id='toast';document.body.appendChild(el);}
-  el.className='toast'+(type?' '+type:'');el.textContent=msg;el.style.display='block';
-  clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',3000);
-}
-
-init();
