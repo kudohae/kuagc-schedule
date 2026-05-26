@@ -79,3 +79,12 @@ inputEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
 });
 sendBtn.addEventListener('click', send);
+
+// ── 모바일 키보드 대응 (iOS Safari: 키보드가 올라와도 뷰포트 높이 불변) ──
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    if (win.style.display === 'none') return;
+    const kbH = Math.max(0, window.innerHeight - window.visualViewport.height);
+    win.style.bottom = kbH > 50 ? (kbH + 8) + 'px' : '';
+  });
+}
