@@ -445,3 +445,14 @@ export async function deleteVacancyReport(id) {
   const { error } = await supabase.from('vacancy_reports').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ─── BUG REPORTS ─────────────────────────────────────────────────────
+export async function fetchBugReports() {
+  const { data, error } = await supabase.from('bug_reports').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+export async function deleteBugReport(id) {
+  const { error } = await supabase.from('bug_reports').delete().eq('id', id);
+  if (error) throw error;
+}
