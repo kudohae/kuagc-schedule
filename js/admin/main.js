@@ -633,6 +633,27 @@ window.deleteSchoolApp=async function(id){
   try{
     const {error}=await supabase.from('school_applications').delete().eq('id',id);
     if(error) throw error;
+    // 배정된 학생이 삭제됐으면 미배정자 중 가장 빠른 지원자를 자동 배정
+    if(app?.status==='assigned'&&app?.assigned_school_id){
+      const schoolId=app.assigned_school_id;
+      const school=adminSchools.find(s=>s.id===schoolId);
+      const round=adminSchoolRounds.find(r=>r.id===app.round_id);
+      if(school&&round&&round.status==='open'){
+        const occupied=adminSchoolApps.filter(a=>a.id!==id&&a.assigned_school_id===schoolId&&a.status==='assigned').length;
+        if(occupied<(school.capacity||0)){
+          const candidate=adminSchoolApps.filter(a=>
+            a.id!==id&&a.round_id===app.round_id&&a.status==='unassigned'&&
+            (a.pref1_school_id===schoolId||a.pref2_school_id===schoolId)
+          ).sort((a,b)=>{
+            const ap=a.pref1_school_id===schoolId?0:1,bp=b.pref1_school_id===schoolId?0:1;
+            return ap!==bp?ap-bp:new Date(a.created_at)-new Date(b.created_at);
+          })[0];
+          if(candidate){
+            await supabase.from('school_applications').update({assigned_school_id:schoolId,status:'assigned'}).eq('id',candidate.id);
+          }
+        }
+      }
+    }
     toast('삭제됐습니다','ok'); await loadSchoolData(); renderSchool();
   }catch(e){toast(errMsg(e),'err');}
 };
@@ -1652,7 +1673,7 @@ function computeEnsDndInitial(type){
       const confirmedSlots=sApps.filter(a=>a.status==='confirmed').flatMap(a=>makeSlots(a,song.title,song.student_id));
       const pendingSlots=sApps.filter(a=>a.status==='pending').flatMap(a=>makeSlots(a,song.title,song.student_id));
       const slots=[...confirmedSlots];
-      pendingSlots.forEach(sl=>{if(sl.isApplicant)slots.push(sl);else unassigned.push(sl);});
+      pendingSlots.forEach(sl=>{if(sl.isApplicant||sl.sessionRound>=2)slots.push(sl);else unassigned.push(sl);});
       sortSongSlots(slots);
       songs.push({song,slots});
     }
