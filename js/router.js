@@ -65,7 +65,7 @@ export async function navigate(view) {
   } else {
     pgSchedule.classList.remove('active');
     if (mobileTeamPanel) mobileTeamPanel.classList.remove('active');
-    dynamicEl.style.display = '';
+    dynamicEl.style.display = 'block';
     dynamicEl.innerHTML = '';
 
     if (VIEW_CSS[view]) {
