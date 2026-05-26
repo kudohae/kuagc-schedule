@@ -1748,7 +1748,7 @@ function renderEnsDndSongs(){
       ondrop="ensDndDropToSong(event,${song.id})">
       <div class="ens-song-card-hdr">
         <div class="ens-song-card-title">${esc(song.title)}</div>
-        <div class="ens-song-card-meta">${esc(song.artist)} · ${(song.sessions||[]).map(x=>esc(x)).join(' · ')} · ${slots.length}명</div>
+        <div class="ens-song-card-meta">${esc(song.artist)} · ${(song.sessions||[]).map(x=>`<span style="${filledSess.has(x)?'':'color:#c0392b'}">${esc(x)}</span>`).join(' · ')}</div>
       </div>
       <div class="ens-song-members">
         ${slots.length?slots.map(sl=>ensSlotCardHtml(sl,conflicts.has(sl.id))).join(''):'<div class="ens-empty-hint">멤버 없음</div>'}
@@ -1827,11 +1827,12 @@ function renderEnsDndMobile(){
   const hasSel=eMobileSelected!==null;
   document.getElementById('ensDndSongs').innerHTML=eDndSt.songs.map(({song,slots})=>{
     const conflicts=getConflictedSlotIds(slots);
+    const filledSess=new Set(slots.map(sl=>sl.overrideSession??sl.session));
     return `<div class="ens-song-card${hasSel?' mob-target':''}" data-song-id="${song.id}"${hasSel?` onclick="ensMobAssign(${song.id})"`:''}>
       <div class="ens-song-card-hdr">
         <div>
           <div class="ens-song-card-title">${esc(song.title)}</div>
-          <div class="ens-song-card-meta">${esc(song.artist)} · ${(song.sessions||[]).map(x=>esc(x)).join(' · ')} · ${slots.length}명</div>
+          <div class="ens-song-card-meta">${esc(song.artist)} · ${(song.sessions||[]).map(x=>`<span style="${filledSess.has(x)?'':'color:#c0392b'}">${esc(x)}</span>`).join(' · ')}</div>
         </div>
       </div>
       <div class="ens-song-members" onclick="event.stopPropagation()">
