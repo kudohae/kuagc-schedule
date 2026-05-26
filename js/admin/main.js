@@ -1591,7 +1591,7 @@ let eMobileSelected=null;
 const ENS_SESS_ORDER=SESSIONS;
 function sessOrder(s){const i=ENS_SESS_ORDER.indexOf(s);return i===-1?99:i;}
 function sortSongSlots(slots){slots.sort((a,b)=>sessOrder(a.overrideSession??a.session)-sessOrder(b.overrideSession??b.session)||new Date(a.createdAt)-new Date(b.createdAt));}
-function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;}
 function makeSlots(app,songTitle='',songApplicantSid=null){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle,sessionRound:app.session_round||1,isApplicant:!!(songApplicantSid&&app.student_id===songApplicantSid)}));}
 
 function computeEnsDndInitial(type){
@@ -1698,10 +1698,8 @@ function ensSlotCardHtml(sl,conflicted){
     ?`<span class="ens-member-tag">${effSess}</span>`
     :`<select class="ens-sess-sel${conflicted?' conflict':''}" onchange="setSlotSession('${sid}',this.value)" onclick="event.stopPropagation()" ondragstart="event.stopPropagation()">${SESSIONS.map(s=>`<option value="${s}"${s===effSess?' selected':''}>${s}${s===sl.session?' *':''}</option>`).join('')}</select>`;
   return `<div class="ens-member-card${conflicted?' conflict':''}${pinned?' applicant':''}" ${dragAttrs} data-id="${sl.id}">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px">
-      <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${esc(sl.applicantName)}</span><span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${esc(sl.songTitle)}</span>`:''}${applicantBadge}${r2Badge}</div>
-      <span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDndTime(sl.createdAt)}</span>
-    </div>
+    <span style="font-size:10px;color:var(--text3);line-height:1.2">${fmtDndTime(sl.createdAt)}</span>
+    <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${esc(sl.applicantName)}</span><span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${esc(sl.songTitle)}</span>`:''}${applicantBadge}${r2Badge}</div>
     <div class="ens-member-tags">${sessTag}</div>
   </div>`;
 }
@@ -1742,7 +1740,9 @@ function renderEnsDndSongs(){
   if(!eDndSt) return;
   document.getElementById('ensDndSongs').innerHTML=eDndSt.songs.map(({song,slots})=>{
     const conflicts=getConflictedSlotIds(slots);
-    return `<div class="ens-song-card" data-song-id="${song.id}"
+    const filledSess=new Set(slots.map(sl=>sl.overrideSession??sl.session));
+    const complete=(song.sessions||[]).length>0&&(song.sessions||[]).every(s=>filledSess.has(s));
+    return `<div class="ens-song-card${complete?' complete':''}" data-song-id="${song.id}"
       ondragover="ensDndDragOverSong(event,${song.id})"
       ondragleave="ensDndDragLeaveSong(event)"
       ondrop="ensDndDropToSong(event,${song.id})">
