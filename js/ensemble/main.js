@@ -196,7 +196,8 @@ function render(){
   else if(phase==='song'){
     const closeAt=r?.song_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
-      if(rounds[type]?.id===r.id){rounds[type].phase='song_end';}
+      if(rounds[type]?.id===r.id){rounds[type].phase='song_end';rounds[type].song_close_at=null;}
+      supabase.from('ensemble_rounds').update({phase:'song_end',song_close_at:null}).eq('id',r.id).then(()=>{});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
@@ -211,8 +212,8 @@ function render(){
     </div>`;
     if(closeAt){
       startCountdown(type,closeAt,async()=>{
-        if(rounds[type]?.id===r.id){rounds[type].phase='song_end';}
-        const {error}=await supabase.from('ensemble_rounds').update({phase:'song_end'}).eq('id',r.id);
+        if(rounds[type]?.id===r.id){rounds[type].phase='song_end';rounds[type].song_close_at=null;}
+        const {error}=await supabase.from('ensemble_rounds').update({phase:'song_end',song_close_at:null}).eq('id',r.id);
         if(error) console.error('song→song_end(timer):',error.message);
         render();
       });
@@ -275,7 +276,8 @@ function render(){
   else if(phase==='session'){
     const closeAt=r?.session_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
-      if(rounds[type]?.id===r.id){rounds[type].phase='session_end';}
+      if(rounds[type]?.id===r.id){rounds[type].phase='session_end';rounds[type].session_close_at=null;}
+      supabase.from('ensemble_rounds').update({phase:'session_end',session_close_at:null}).eq('id',r.id).then(()=>{});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
@@ -290,8 +292,8 @@ function render(){
     </div>`;
     if(closeAt){
       startCountdown(type,closeAt,async()=>{
-        if(rounds[type]?.id===r.id){rounds[type].phase='session_end';}
-        const {error}=await supabase.from('ensemble_rounds').update({phase:'session_end'}).eq('id',r.id);
+        if(rounds[type]?.id===r.id){rounds[type].phase='session_end';rounds[type].session_close_at=null;}
+        const {error}=await supabase.from('ensemble_rounds').update({phase:'session_end',session_close_at:null}).eq('id',r.id);
         if(error) console.error('session→session_end(timer):',error.message);
         render();
       });
@@ -360,7 +362,8 @@ function render(){
   else if(phase==='session2'){
     const closeAt=r?.session2_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
-      if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';}
+      if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';rounds[type].session2_close_at=null;}
+      supabase.from('ensemble_rounds').update({phase:'session2_end',session2_close_at:null}).eq('id',r.id).then(()=>{});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
@@ -375,8 +378,8 @@ function render(){
     </div>`;
     if(closeAt){
       startCountdown(type,closeAt,async()=>{
-        if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';}
-        const {error}=await supabase.from('ensemble_rounds').update({phase:'session2_end'}).eq('id',r.id);
+        if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';rounds[type].session2_close_at=null;}
+        const {error}=await supabase.from('ensemble_rounds').update({phase:'session2_end',session2_close_at:null}).eq('id',r.id);
         if(error) console.error('session2→session2_end(timer):',error.message);
         render();
       });
