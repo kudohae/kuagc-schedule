@@ -567,6 +567,8 @@ window.onMBd=e=>{ if(e.target===document.getElementById('modalBd')) closeModal()
 
 // ── STATUS POPUP ──────────────────────────────────────────────────────
 function showStatus(){
+  const suppressed = localStorage.getItem('statusSuppressUntil');
+  if(suppressed && Date.now() < parseInt(suppressed)) return;
   const now = new Date();
   const dow = (now.getDay()+6)%7; // 0=월
   const h   = now.getHours();
@@ -584,12 +586,12 @@ function showStatus(){
     const isClosed=activeRound.status==='closed';
     if(isOpen||isSched||isClosed){
       const label=isSched?'시간 신청 예약됨':isClosed?'시간 신청 마감됨 (배정 대기)':'시간 신청 진행 중';
-      notifs.push(`<div class="notif-item"><span class="notif-txt">⏱ ${label}</span><a href="timeassign.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none;white-space:nowrap;display:inline-block;min-width:fit-content">이동</a></div>`);
+      notifs.push(`<div class="notif-item"><span class="notif-txt">⏱ ${label}</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;white-space:nowrap;min-width:fit-content" onclick="closeStatus();navigate('timeassign')">이동</button></div>`);
     }
   }
   if(activeSchoolRound){
     const label=activeSchoolRound.status==='draft'?'스쿨 신청 준비 중':'스쿨 신청 진행 중';
-    notifs.push(`<div class="notif-item"><span class="notif-txt">🏫 ${label}</span><a href="school.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none">이동</a></div>`);
+    notifs.push(`<div class="notif-item"><span class="notif-txt">🏫 ${label}</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;" onclick="closeStatus();navigate('school')">이동</button></div>`);
   }
   if(activeEnsemble){
     const phase=activeEnsemble.phase;
@@ -597,7 +599,7 @@ function showStatus(){
     const isSessSched=phase==='song'&&activeEnsemble.session_scheduled_at&&new Date(activeEnsemble.session_scheduled_at)>now;
     if(phase==='song'||phase==='session'||isSongSched||isSessSched){
       const label=isSongSched?'합주 곡 신청 예약됨':isSessSched?'합주 세션 신청 예약됨':phase==='song'?'합주 곡 신청 진행 중':'합주 세션 신청 진행 중';
-      notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${label}</span><a href="ensemble.html" class="btn btn-s" style="font-size:11px;padding:4px 10px;text-decoration:none;white-space:nowrap;display:inline-block;min-width:fit-content">이동</a></div>`);
+      notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${label}</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;white-space:nowrap;min-width:fit-content" onclick="closeStatus();navigate('ensemble')">이동</button></div>`);
     }
   }
   const notifBar=notifs.length?`<div class="notif-bar">${notifs.join('')}</div>`:'';
@@ -626,6 +628,8 @@ function showStatus(){
   document.body.style.overflow='hidden';
 }
 window.closeStatus=function(){
+  const chk = document.getElementById('statusSuppressChk');
+  if(chk?.checked) localStorage.setItem('statusSuppressUntil', Date.now() + 3600000);
   document.getElementById('statusBd').style.display='none';
   document.body.style.overflow='';
 };
