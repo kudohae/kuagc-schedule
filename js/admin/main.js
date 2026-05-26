@@ -520,6 +520,15 @@ window.schoolClose=async function(id){
   await adminSchoolClose(id);
 };
 
+function schoolInstrKey(name){
+  if(/보컬/.test(name)) return '보컬';
+  if(/기타/.test(name)) return '기타';
+  if(/베이스/.test(name)) return '베이스';
+  if(/드럼/.test(name)) return '드럼';
+  if(/키보드|건반|피아노/.test(name)) return '키보드';
+  return name;
+}
+
 async function adminSchoolClose(id){
   const closeClasses=adminSchools.filter(s=>s.round_id===id);
   try{
@@ -549,10 +558,14 @@ async function adminSchoolClose(id){
   // 반별 팀 및 시간표 자동 생성
   try{
     const dayMap={'월':0,'화':1,'수':2,'목':3,'금':4,'토':5,'일':6};
+    // 악기별 색상 매핑 (같은 악기 = 같은 색)
+    const uniqueInstrs=[...new Set(closeClasses.map(c=>schoolInstrKey(c.name)))];
+    const instrColor=Object.fromEntries(uniqueInstrs.map((k,i)=>[k,COLORS[i%COLORS.length]]));
     let added=0;
     for(const cls of closeClasses){
       if(teams.find(t=>t.name===cls.name&&t.type==='스쿨')) continue;
-      const newTeam=await createTeam({name:cls.name,type:'스쿨',color:GRAY,info:cls.teacher_name||'',members:[]});
+      const color=instrColor[schoolInstrKey(cls.name)];
+      const newTeam=await createTeam({name:cls.name,type:'스쿨',color,info:cls.teacher_name||'',members:[]});
       teams.push(newTeam);
       added++;
       if(cls.schedule_day&&cls.schedule_hour!=null){
