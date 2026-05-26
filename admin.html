@@ -158,24 +158,28 @@
 </div>
 
 <!-- ENSEMBLE -->
-<div class="page" id="pgEnsemble" style="flex-direction:column;overflow:hidden;">
-  <div style="padding:8px 10px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-    <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;">합주 신청 관리</div>
-    <a href="ensemble.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">→ 신청 페이지</a>
-  </div>
-  <div class="ens-type-tabs">
-    <button class="ens-type-tab active" id="ensTabRegular" onclick="switchEnsTab('regular')">
-      일반 합주<span class="ensemble-phase closed" id="ephaseRegular" style="margin-left:7px">닫힘</span>
-    </button>
-    <button class="ens-type-tab" id="ensTabBusking" onclick="switchEnsTab('busking')">
-      버스킹 합주<span class="ensemble-phase closed" id="ephaseBusking" style="margin-left:7px">닫힘</span>
-    </button>
-  </div>
-  <div class="ens-tab-panel" id="ensembleRegularPanel">
-    <div class="ensemble-col-body" id="ensembleRegularBody"></div>
-  </div>
-  <div class="ens-tab-panel" id="ensembleBuskingPanel" style="display:none">
-    <div class="ensemble-col-body" id="ensembleBuskingBody"></div>
+<div class="page" id="pgEnsemble" style="flex-direction:column;overflow-y:auto;padding:10px 14px;align-items:center;">
+  <div class="focused-inner">
+    <div class="section-hdr">
+      <div class="section-title">합주 신청 관리</div>
+      <a href="ensemble.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">→ 신청 페이지</a>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+      <div class="ens-type-tabs">
+        <button class="ens-type-tab active" id="ensTabRegular" onclick="switchEnsTab('regular')">
+          일반 합주<span class="ensemble-phase closed" id="ephaseRegular" style="margin-left:7px">닫힘</span>
+        </button>
+        <button class="ens-type-tab" id="ensTabBusking" onclick="switchEnsTab('busking')">
+          버스킹 합주<span class="ensemble-phase closed" id="ephaseBusking" style="margin-left:7px">닫힘</span>
+        </button>
+      </div>
+      <div class="ens-tab-panel" id="ensembleRegularPanel">
+        <div class="ensemble-col-body" id="ensembleRegularBody"></div>
+      </div>
+      <div class="ens-tab-panel" id="ensembleBuskingPanel" style="display:none">
+        <div class="ensemble-col-body" id="ensembleBuskingBody"></div>
+      </div>
+    </div>
   </div>
 </div>
 
