@@ -1456,7 +1456,7 @@ function renderEnsemble(){
             <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session_end'){
-      const allSessApps=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
+      const allSessApps=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
       const sess1DndDone=allSessApps.length===0||allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
       const advLabel=r.has_session2?'2차 세션 신청으로':'완료';
       ctrl=`${sess1DndDone?`<button class="btn btn-p btn-xs" onclick="advanceFromSessionEnd('${type}',${r.id})">${advLabel}</button>`:''}
@@ -1467,7 +1467,7 @@ function renderEnsemble(){
             <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
             <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session2_end'){
-      const allSessApps2=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
+      const allSessApps2=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
       const sess2Apps=allSessApps2.filter(a=>(a.session_round||1)===2);
       const sess2DndDone=sess2Apps.length===0||sess2Apps.some(a=>a.status==='confirmed'||a.status==='rejected');
       ctrl=`${sess2DndDone?`<button class="btn btn-p btn-xs" onclick="completeRound(${r.id})">완료</button>`:''}
@@ -1516,7 +1516,7 @@ function renderEnsemble(){
 
     let songsHtml='';
     if(phase==='session_end'){
-      const allSessApps=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
+      const allSessApps=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
       const dndDone=allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
       if(dndDone){
         songsHtml=mkConfirmedSongHtml(songList,true,'팀 구성 다시 하기');
@@ -1524,7 +1524,7 @@ function renderEnsemble(){
         songsHtml=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
       }
     } else if(phase==='session2_end'){
-      const allSessApps2=(eSongs[type]||[]).filter(s=>s.status==='confirmed').flatMap(s=>eSessionMap[s.id]||[]);
+      const allSessApps2=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
       const sess2Apps=allSessApps2.filter(a=>(a.session_round||1)===2);
       const dndDone2=sess2Apps.some(a=>a.status==='confirmed'||a.status==='rejected');
       if(dndDone2){
@@ -1558,8 +1558,7 @@ function renderEnsemble(){
             if(conf.length) sessHtml=`<div class="e-sess-list">${conf.map(a=>`<div class="e-sess-row"><span class="e-sess-dot confirmed"></span><span class="e-sess-name">${esc(a.applicant_name)}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag confirmed">${esc(x)}</span>`).join('')}</div></div>`).join('')}</div>`;
           }
           const actions=(phase==='song')?`<div class="e-song-actions">
-            ${s.status!=='confirmed'?`<button class="btn btn-p btn-xs" onclick="confirmSong(${s.id})">확정</button>`:''}
-            ${s.status!=='rejected'?`<button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">거절</button>`:''}
+            <button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">삭제</button>
           </div>`:'';
           return `<div class="e-song-item">
             <div class="e-song-hdr">
@@ -1568,7 +1567,6 @@ function renderEnsemble(){
                 <div class="e-song-title">${esc(s.title)}</div>
                 <div class="e-song-artist">${esc(s.artist)}</div>
               </div>
-              <span class="e-song-status ${s.status}">${s.status==='confirmed'?'확정':s.status==='pending'?'대기':'거절'}</span>
             </div>
             <div class="e-song-meta">
               <span>${esc(s.applicant_name)} <span style="color:var(--text3)">${esc(s.student_id)}</span></span>
@@ -2243,18 +2241,11 @@ window.closeRound=async function(id){
   }catch(e){toast(errMsg(e),'err');}
 };
 
-window.confirmSong=async function(id){
-  try{
-    await supabase.from('song_applications').update({status:'confirmed'}).eq('id',id);
-    toast('확정되었습니다','ok'); await loadEnsemble(); renderEnsemble();
-  }catch(e){toast(errMsg(e),'err');}
-};
-
 window.rejectSong=async function(id){
-  if(!confirm('이 곡을 거절할까요?')) return;
+  if(!confirm('이 곡을 삭제할까요?')) return;
   try{
     await supabase.from('song_applications').update({status:'rejected'}).eq('id',id);
-    toast('거절되었습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('삭제되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
 
