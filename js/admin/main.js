@@ -2557,7 +2557,7 @@ window.submitRoundCreate=function(type){
   if(manualTab&&manualTab.style.display!=='none'){
     createManualRound(type);
   } else {
-    createRound(type);
+    window.createEnsembleRound(type);
   }
 };
 
@@ -2577,7 +2577,7 @@ window.createManualRound=async function(type){
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
-window.createRound=async function(type){
+window.createEnsembleRound=async function(type){
   const name=document.getElementById('eName').value.trim();
   const max_songs=parseInt(document.getElementById('eMaxS').value);
   const max_songs_per_person=parseInt(document.getElementById('eMaxSP').value);
