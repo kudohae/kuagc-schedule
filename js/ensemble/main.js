@@ -16,6 +16,10 @@ let _bcChannel = null;
 let manualStages={regular:{},busking:{}};
 let manualViewStage={regular:null,busking:null};
 
+function broadcastRefresh(){
+  _bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
+}
+
 function fmtTime(ts){
   if(!ts) return '';
   const d=new Date(ts);
@@ -61,6 +65,7 @@ export async function init(outerContainer) {
 
     _bcChannel=supabase.channel('ens-pub')
       .on('broadcast',{event:'update'},()=>loadAll(true))
+      .on('broadcast',{event:'songUpdate'},()=>loadAll(true))
       .subscribe();
 
     _pollTimer=setInterval(pollRoundState,5000);
@@ -731,7 +736,7 @@ window.submitSong=async function(){
       sessionMap[songData.id].push(sa);
     }
     window.toast('곡 신청이 완료됐습니다','ok');
-    _bcChannel?.send({type:'broadcast',event:'songUpdate',payload:{}}).catch(()=>{});
+    broadcastRefresh();
     render();
   }catch(e){window.toast(errMsg(e),'err');}
 };
@@ -842,7 +847,7 @@ async function doSubmitSession(songId,r,name,sid,sessions,sessionRound=1){
     if(!sessionMap[songId]) sessionMap[songId]=[];
     sessionMap[songId].push(sa);
     window.toast('세션 신청이 완료됐습니다','ok');
-    _bcChannel?.send({type:'broadcast',event:'songUpdate',payload:{}}).catch(()=>{});
+    broadcastRefresh();
     window.closeModal?.(); render(); return true;
   }catch(e){window.toast(errMsg(e),'err');return false;}
 }
@@ -993,6 +998,7 @@ window.submitManualForm=async function(roundId,stageNum){
     const {error}=await supabase.from('manual_stage_responses').insert({round_id:roundId,stage_num:stageNum,data});
     if(error) throw error;
     window.toast('제출됐습니다','ok');
+    broadcastRefresh();
     await loadAll(); render();
   }catch(e){window.toast(errMsg(e),'err');}
 };
