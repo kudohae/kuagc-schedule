@@ -13,8 +13,7 @@ let countdownTimers = {};
 let _rtChannel = null;
 let _pollTimer = null;
 let _bcChannel = null;
-let manualStages={regular:{},busking:{}};
-let manualViewStage={regular:null,busking:null};
+let manualEntries={regular:[],busking:[]};
 
 function broadcastRefresh(){
   _bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
@@ -59,8 +58,7 @@ export async function init(outerContainer) {
       .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},()=>loadAll(true))
-      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_columns'},()=>loadAll(true))
-      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_responses'},()=>loadAll(true))
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_entries'},()=>loadAll(true))
       .subscribe();
 
     _bcChannel=supabase.channel('ens-pub')
@@ -100,20 +98,16 @@ async function pollRoundState(){
   try{
     const {data:rds}=await supabase
       .from('ensemble_rounds')
-      .select('id,type,phase,manual_stage_phase,manual_cur_stage,manual_public_stages')
+      .select('id,type,phase,is_sheet_public,mode')
       .order('created_at',{ascending:false});
     if(!rds) return;
     const newReg=rds.find(r=>r.type==='regular')||null;
     const newBus=rds.find(r=>r.type==='busking')||null;
     const changed=
       newReg?.phase!==rounds.regular?.phase||
-      newReg?.manual_stage_phase!==rounds.regular?.manual_stage_phase||
-      newReg?.manual_cur_stage!==rounds.regular?.manual_cur_stage||
-      JSON.stringify(newReg?.manual_public_stages||[])!==JSON.stringify(rounds.regular?.manual_public_stages||[])||
+      newReg?.is_sheet_public!==rounds.regular?.is_sheet_public||
       newBus?.phase!==rounds.busking?.phase||
-      newBus?.manual_stage_phase!==rounds.busking?.manual_stage_phase||
-      newBus?.manual_cur_stage!==rounds.busking?.manual_cur_stage||
-      JSON.stringify(newBus?.manual_public_stages||[])!==JSON.stringify(rounds.busking?.manual_public_stages||[]);
+      newBus?.is_sheet_public!==rounds.busking?.is_sheet_public;
     if(changed) await loadAll();
   }catch(e){ /* silent — poll errors don't matter */ }
 }
@@ -161,8 +155,7 @@ async function refreshList(){
 async function loadAll(forceRender=false){
   const prev={
     rp:rounds.regular?.phase,bp:rounds.busking?.phase,
-    rm:rounds.regular?.manual_stage_phase,bm:rounds.busking?.manual_stage_phase,
-    rs:rounds.regular?.manual_cur_stage,bs:rounds.busking?.manual_cur_stage,
+    rs:rounds.regular?.is_sheet_public,bs:rounds.busking?.is_sheet_public,
   };
   const {data:rds}=await supabase.from('ensemble_rounds').select('*').order('created_at',{ascending:false});
   if(rds){
@@ -171,29 +164,14 @@ async function loadAll(forceRender=false){
   }
   const structChanged=forceRender||
     rounds.regular?.phase!==prev.rp||rounds.busking?.phase!==prev.bp||
-    rounds.regular?.manual_stage_phase!==prev.rm||rounds.busking?.manual_stage_phase!==prev.bm||
-    rounds.regular?.manual_cur_stage!==prev.rs||rounds.busking?.manual_cur_stage!==prev.bs;
+    rounds.regular?.is_sheet_public!==prev.rs||rounds.busking?.is_sheet_public!==prev.bs;
   await refreshList();
   for(const type of ['regular','busking']){
     const r=rounds[type];
-    manualStages[type]={};
-    if(r?.mode==='manual'&&r.phase!=='closed'){
-      const maxStage=r.manual_cur_stage||1;
-      const publicStages=Array.isArray(r.manual_public_stages)?r.manual_public_stages:[];
-      const {data:allCols}=await supabase.from('manual_stage_columns').select('*').eq('round_id',r.id).order('stage_num').order('col_order');
-      const {data:allResps}=await supabase.from('manual_stage_responses').select('*').eq('round_id',r.id).order('created_at');
-      for(let stage=1;stage<=maxStage;stage++){
-        const isPublic=publicStages.includes(stage);
-        manualStages[type][stage]={
-          cols:(allCols||[]).filter(c=>c.stage_num===stage),
-          resps:isPublic?(allResps||[]).filter(rp=>rp.stage_num===stage):[],
-          isPublic
-        };
-      }
-      if(manualViewStage[type]===null||manualStages[type][manualViewStage[type]]===undefined){
-        const firstPublic=publicStages.length?Math.min(...publicStages):null;
-        manualViewStage[type]=firstPublic||maxStage;
-      }
+    manualEntries[type]=[];
+    if(r?.mode==='manual'){
+      const {data}=await supabase.from('manual_entries').select('*').eq('round_id',r.id).order('team_no').order('sort_key');
+      manualEntries[type]=data||[];
     }
   }
   if(structChanged) render();
@@ -874,131 +852,31 @@ function showModal(title,body,foot){
   }
 }
 
-function _pubStageTableHtml(cols,resps,stageNum){
-  return `<div class="list-card" style="overflow-x:auto">
-    <div class="list-card-hdr"><div class="list-card-title">${stageNum}단계 결과</div><div class="list-card-count">${resps.length}건</div></div>
-    ${resps.length?`<table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="border-bottom:1px solid var(--border);background:var(--surface2)">
-        <th style="padding:7px 12px;text-align:left;font-size:11px;color:var(--text3)">타임스탬프</th>
-        ${cols.map(c=>`<th style="padding:7px 12px;text-align:left;font-weight:700">${esc(c.col_name)}</th>`).join('')}
-      </tr></thead>
-      <tbody>
-        ${resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:7px 12px;font-size:11px;color:var(--text3);white-space:nowrap">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
-          ${cols.map(c=>`<td style="padding:7px 12px">${esc(resp.data[c.col_name]||'')}</td>`).join('')}
-        </tr>`).join('')}
-      </tbody>
-    </table>`:`<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">아직 제출된 내용이 없습니다</div>`}
-  </div>`;
-}
-
 function renderManualPublicHtml(r,type){
-  const curPhase=r.manual_stage_phase||'admin_config';
-  const curStage=r.manual_cur_stage||1;
+  const entries=manualEntries[type]||[];
   const typeName=type==='regular'?'일반 합주':'버스킹 합주';
-  const stagesMap=manualStages[type]||{};
-  const publicStages=Array.isArray(r.manual_public_stages)?r.manual_public_stages:[];
+  const name=r.name||typeName;
+  const isClosed=r.phase==='closed';
+  const isPublished=!!r.is_sheet_public;
 
-  if(r.phase==='closed'){
-    const closedPublic=publicStages.slice().sort((a,b)=>a-b);
-    let h=`<div class="status-card closed"><div class="status-icon">✅</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — 완료됐습니다</div></div></div>`;
-    if(closedPublic.length){
-      const vStage=manualViewStage[type]&&closedPublic.includes(manualViewStage[type])?manualViewStage[type]:closedPublic[0];
-      if(closedPublic.length>1){
-        h+=`<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:10px;overflow-x:auto">`;
-        for(const s of closedPublic){
-          const isV=s===vStage;
-          h+=`<button onclick="switchManualPublicTab('${type}',${s})" style="padding:6px 14px;border:none;background:${isV?'var(--surface)':'transparent'};color:${isV?'var(--text)':'var(--text2)'};font-weight:${isV?'700':'500'};font-size:12px;cursor:pointer;border-bottom:2px solid ${isV?'var(--accent)':'transparent'};white-space:nowrap;font-family:'Noto Sans KR',sans-serif">${s}단계</button>`;
-        }
-        h+=`</div>`;
-      }
-      const sd=stagesMap[vStage]||{cols:[],resps:[]};
-      h+=_pubStageTableHtml(sd.cols,sd.resps,vStage);
-    }
-    return h;
+  if(!isPublished&&!isClosed){
+    return `<div class="status-card closed"><div class="status-icon">🎸</div><div class="status-texts"><div class="status-title">${esc(name)}</div><div class="status-sub">팀 구성 중입니다. 구성이 완료되면 이곳에 공개됩니다.</div></div></div>`;
   }
 
-  // Determine which tabs to show: public past stages + current stage
-  const pastPublic=publicStages.filter(s=>s<curStage).sort((a,b)=>a-b);
-  const tabStages=[...pastPublic,curStage];
-  const viewStage=manualViewStage[type]&&tabStages.includes(manualViewStage[type])?manualViewStage[type]:curStage;
+  const teamNos=[...new Set(entries.map(e=>e.team_no))].sort((a,b)=>a-b);
+  const statusHtml=isClosed
+    ?`<div class="status-card closed"><div class="status-icon">✅</div><div class="status-texts"><div class="status-title">${esc(name)} — 완료됐습니다</div></div></div>`
+    :'';
 
-  let statusHtml='';
-  if(curPhase==='admin_config'){
-    statusHtml=`<div class="status-card closed"><div class="status-icon">⏳</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)}</div><div class="status-sub">${curStage}단계 준비 중입니다. 잠시 기다려주세요.</div></div></div>`;
-  } else if(curPhase==='user_input'){
-    statusHtml=`<div class="status-card session"><div class="status-icon">📝</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — ${curStage}단계 입력</div><div class="status-sub">아래 폼을 작성해 제출해주세요.</div></div></div>`;
-  } else {
-    statusHtml=`<div class="status-card closed"><div class="status-icon">📋</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)}</div><div class="status-sub">${curStage}단계가 마감됐습니다. 관리자가 검토 중입니다.</div></div></div>`;
+  if(!teamNos.length){
+    return statusHtml||`<div class="status-card closed"><div class="status-icon">🎸</div><div class="status-texts"><div class="status-title">${esc(name)}</div><div class="status-sub">팀 구성 중입니다.</div></div></div>`;
   }
 
-  let h=statusHtml;
-
-  // Tab bar (only if there are past public stages to show alongside current)
-  if(tabStages.length>1){
-    h+=`<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:10px;overflow-x:auto">`;
-    for(const s of tabStages){
-      const isV=s===viewStage;
-      const label=s===curStage?`${s}단계 (현재)`:`${s}단계`;
-      h+=`<button onclick="switchManualPublicTab('${type}',${s})" style="padding:6px 14px;border:none;background:${isV?'var(--surface)':'transparent'};color:${isV?'var(--text)':'var(--text2)'};font-weight:${isV?'700':'500'};font-size:12px;cursor:pointer;border-bottom:2px solid ${isV?'var(--accent)':'transparent'};white-space:nowrap;font-family:'Noto Sans KR',sans-serif">${label}</button>`;
-    }
-    h+=`</div>`;
+  let tbody='';
+  for(const no of teamNos){
+    const te=entries.filter(e=>e.team_no===no).sort((a,b)=>a.sort_key-b.sort_key);
+    te.forEach((e,i)=>{tbody+=`<tr style="border-bottom:1px solid var(--border)">${i===0?`<td rowspan="${te.length}" style="padding:8px 12px;text-align:center;font-weight:700;font-size:14px;vertical-align:middle;background:var(--surface2)">${no}</td><td rowspan="${te.length}" style="padding:8px 12px;vertical-align:middle;font-weight:600">${esc(e.song_name)}</td><td rowspan="${te.length}" style="padding:8px 12px;vertical-align:middle;color:var(--text2)">${esc(e.artist_name)}</td>`:''}<td style="padding:8px 12px;color:var(--text2)">${esc(e.session_name)}</td><td style="padding:8px 12px">${esc(e.member_name)}</td></tr>`;});
   }
 
-  // Content for viewed stage
-  if(viewStage<curStage){
-    // Past public stage
-    const sd=stagesMap[viewStage]||{cols:[],resps:[]};
-    h+=_pubStageTableHtml(sd.cols,sd.resps,viewStage);
-  } else {
-    // Current stage
-    const sd=stagesMap[curStage]||{cols:[],resps:[],isPublic:false};
-    const cols=sd.cols||[];
-    if(curPhase==='admin_config'){
-      // no additional content
-    } else if(curPhase==='user_input'){
-      const qCols=cols.filter(c=>c.is_question);
-      if(!qCols.length){
-        h+=`<div class="status-card closed"><div class="status-icon">⏳</div><div class="status-texts"><div class="status-sub">관리자가 입력 항목을 준비하고 있습니다.</div></div></div>`;
-      } else {
-        h+=`<div class="form-card">
-          <div class="form-title">${curStage}단계 입력 폼</div>
-          ${qCols.map(c=>`<div style="margin-bottom:10px"><div class="fl">${esc(c.col_name)} *</div><input class="fi" id="mf_${c.id}" placeholder="${esc(c.col_name)}"/></div>`).join('')}
-          <div class="form-footer"><button class="btn btn-p" onclick="submitManualForm(${r.id},${curStage})">제출</button></div>
-        </div>`;
-      }
-    } else if(curPhase==='review'){
-      if(sd.isPublic){
-        h+=_pubStageTableHtml(cols,sd.resps,curStage);
-      }
-      // else: status card already shows "검토 중"
-    }
-  }
-
-  return h;
+  return `${statusHtml}<div class="list-card" style="overflow-x:auto"><div class="list-card-hdr"><div class="list-card-title">${esc(name)}</div><div class="list-card-count">${teamNos.length}팀</div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:2px solid var(--border);background:var(--surface2)"><th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text3)">팀</th><th style="padding:8px 12px;text-align:left">곡명</th><th style="padding:8px 12px;text-align:left">아티스트명</th><th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text3)">세션</th><th style="padding:8px 12px;text-align:left">성명</th></tr></thead><tbody>${tbody}</tbody></table></div>`;
 }
-
-window.switchManualPublicTab=function(type,stageNum){
-  manualViewStage[type]=stageNum;
-  render();
-};
-
-window.submitManualForm=async function(roundId,stageNum){
-  const r=rounds[currentType];
-  if(!r||r.id!==roundId){window.toast('잘못된 회차입니다','err');return;}
-  const cols=(manualStages[currentType]?.[stageNum]?.cols)||[];
-  const qCols=cols.filter(c=>c.is_question);
-  const data={};
-  for(const c of qCols){
-    const val=(document.getElementById('mf_'+c.id)?.value||'').trim();
-    data[c.col_name]=val;
-  }
-  if(qCols.some(c=>!data[c.col_name])){window.toast('모든 항목을 입력해주세요','err');return;}
-  try{
-    const {error}=await supabase.from('manual_stage_responses').insert({round_id:roundId,stage_num:stageNum,data});
-    if(error) throw error;
-    window.toast('제출됐습니다','ok');
-    broadcastRefresh();
-    await loadAll(); render();
-  }catch(e){window.toast(errMsg(e),'err');}
-};

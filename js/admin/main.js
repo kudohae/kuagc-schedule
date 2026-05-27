@@ -144,10 +144,7 @@ async function loadAll(){
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},async()=>{
         await ensUpdated();
       })
-      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_columns'},async()=>{
-        await ensUpdated();
-      })
-      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_responses'},async()=>{
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_entries'},async()=>{
         await ensUpdated();
       })
       .subscribe(),
@@ -1526,8 +1523,7 @@ let eSongs={regular:[],busking:[]};
 let eSessionMap={};
 let eDraggingId=null;
 let _ftRowIdx=0;
-let eManualStages={regular:{},busking:{}};
-let eManualViewStage={regular:null,busking:null};
+let eManualEntries={regular:[],busking:[]};
 
 function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
@@ -1553,17 +1549,8 @@ function renderEnsemble(){
     if(!bodyEl) return;
 
     if(r?.mode==='manual'){
-      if(r.phase==='closed'){
-        if(badge){badge.textContent='완료';badge.className='ensemble-phase closed';}
-        bodyEl.innerHTML=`<div class="ens-empty">
-          <div class="ens-empty-txt">회차가 종료됐습니다</div>
-          <button class="btn btn-p" onclick="openCreateRoundModal('${type}')">+ 새 회차 생성</button>
-        </div>`;
-        return;
-      }
       if(badge){
-        const phL={admin_config:'준비',user_input:'입력 중',review:'검토'}[r.manual_stage_phase||'admin_config']||'진행 중';
-        badge.textContent=`수동 ${r.manual_cur_stage||1}단계 — ${phL}`;
+        badge.textContent=`수동 진행${r.is_sheet_public?' — 공개':''}`;
         badge.className='ensemble-phase closed';
       }
       renderManualAdminBody(r,type,bodyEl);
@@ -1748,136 +1735,62 @@ function renderEnsemble(){
   });
 }
 
-function _manualStageTableHtml(type,stageNum,cols,resps,isEditable,isDeletable){
-  const tableId=`mst_${type}_${stageNum}`;
-  return `<div style="overflow-x:auto;margin:8px 0"><table id="${tableId}" style="min-width:100%;border-collapse:collapse;font-size:12px">
-    <thead><tr style="border-bottom:2px solid var(--border);background:var(--surface2)">
-      <th style="padding:6px 10px;text-align:left;white-space:nowrap;color:var(--text3)">타임스탬프</th>
-      ${cols.map(c=>`<th style="padding:6px 10px;text-align:left;white-space:nowrap">${esc(c.col_name)}</th>`).join('')}
-      ${isDeletable?`<th style="padding:6px 10px"></th>`:''}
-    </tr></thead>
-    <tbody>
-      ${resps.length?resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:5px 10px;color:var(--text3);white-space:nowrap;font-size:11px">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
-        ${cols.map(c=>`<td style="padding:4px 8px">${isEditable
-          ?`<input class="fi" style="padding:3px 7px;font-size:12px;margin:0;min-width:80px" value="${esc(resp.data[c.col_name]||'')}" onblur="updateManualCell(${resp.id},${JSON.stringify(c.col_name)},this.value)"/>`
-          :`<span>${esc(resp.data[c.col_name]||'')}</span>`
-        }</td>`).join('')}
-        ${isDeletable?`<td style="padding:4px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualResp(${resp.id})">✕</button></td>`:''}
-      </tr>`).join('')
-      :`<tr><td colspan="${cols.length+(isDeletable?2:1)}" style="text-align:center;color:var(--text3);padding:20px;font-size:12px">응답이 없습니다</td></tr>`}
-    </tbody>
-  </table></div>`;
-}
-
-function _manualExportBtns(type,stageNum){
-  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">
-    <button class="btn btn-s btn-xs" onclick="exportManualStageXlsx('${type}',${stageNum})">📥 XLSX</button>
-    <button class="btn btn-s btn-xs" onclick="exportManualStagePdf('${type}',${stageNum})">🖨️ PDF</button>
-    <button class="btn btn-s btn-xs" onclick="exportManualStagePng('${type}',${stageNum})">🖼️ PNG</button>
-  </div>`;
-}
-
 function renderManualAdminBody(r,type,bodyEl){
-  const curPhase=r.manual_stage_phase||'admin_config';
-  const curStage=r.manual_cur_stage||1;
-  const viewStage=eManualViewStage[type]||curStage;
-  const stagesMap=eManualStages[type]||{};
-  const sd=stagesMap[viewStage]||{cols:[],resps:[],isPublic:false};
-  const cols=sd.cols||[];
-  const resps=sd.resps||[];
-  const isPublic=!!sd.isPublic;
-  const isPast=viewStage<curStage;
+  const entries=eManualEntries[type]||[];
+  const isPublished=!!r.is_sheet_public;
+  const teamNos=[...new Set(entries.map(e=>e.team_no))].sort((a,b)=>a-b);
   let h='';
 
-  // Round name header (danger delete only in admin_config of stage 1)
-  const showDelete=!isPast&&curPhase==='admin_config';
   h+=`<div class="ens-round-hdr">
     <span class="ens-round-name">${esc(r.name)}</span>
-    ${showDelete?`<button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>`:''}
+    <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>
   </div>`;
 
-  // Stage tab bar (show when more than one stage)
-  if(curStage>1){
-    h+=`<div style="display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto">`;
-    for(let s=1;s<=curStage;s++){
-      const isV=s===viewStage;
-      const label=s===curStage?`${s}단계 (현재)`:`${s}단계`;
-      h+=`<button onclick="switchManualStageTab('${type}',${s})" style="padding:7px 16px;border:none;background:${isV?'var(--surface)':'transparent'};color:${isV?'var(--text)':'var(--text2)'};font-weight:${isV?'700':'500'};font-size:12px;cursor:pointer;border-bottom:2px solid ${isV?'var(--accent)':'transparent'};white-space:nowrap;font-family:'Noto Sans KR',sans-serif">${label}</button>`;
-    }
-    h+=`</div>`;
-  }
+  h+=`<div class="ens-action-bar">
+    <div class="ens-action-main">
+      ${isPublished
+        ?`<span style="font-size:11px;font-weight:600;color:var(--ok)">● 공개 중</span>
+          <button class="btn btn-d btn-xs" onclick="toggleManualPublish(${r.id},'${type}',false)">팀 비공개</button>`
+        :`<span style="font-size:11px;font-weight:600;color:var(--text3)">● 비공개</span>
+          <button class="btn btn-p btn-xs" onclick="toggleManualPublish(${r.id},'${type}',true)">팀 공개</button>`}
+    </div>
+    <div class="ens-action-side">
+      <button class="btn btn-s btn-xs" onclick="exportManualXlsx('${type}')">📥 XLSX</button>
+      <button class="btn btn-s btn-xs" onclick="exportManualPng('${type}')">🖼️ PNG</button>
+      <button class="btn btn-d btn-xs" onclick="startNewManualRound('${type}',${r.id})">새로운 회차 시작</button>
+    </div>
+  </div>`;
 
-  if(isPast){
-    // Past stage: read-only + public toggle + export
-    h+=`<div class="ens-action-bar">
-      <div class="ens-action-main">
-        <span style="font-size:11px;font-weight:600;color:var(--text2)">${viewStage}단계 — 완료</span>
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-left:4px">
-          <input type="checkbox" ${isPublic?'checked':''} onchange="toggleManualSheetPublic(${r.id},${viewStage},this.checked)"/>
-          <span>공개</span>
-        </label>
+  h+=`<div style="padding:12px;display:flex;flex-direction:column;gap:10px">`;
+  for(const no of teamNos){
+    const te=entries.filter(e=>e.team_no===no).sort((a,b)=>a.sort_key-b.sort_key);
+    const songName=te[0]?.song_name||'';
+    const artistName=te[0]?.artist_name||'';
+    h+=`<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-bottom:1px solid var(--border)">
+        <span style="font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap">팀 ${no}</span>
+        <input class="fi" style="flex:1;padding:4px 8px;font-size:12px;margin:0" placeholder="곡명" value="${esc(songName)}"
+               onblur="updateManualTeamInfo(${r.id},${no},'song_name',this.value)"/>
+        <input class="fi" style="flex:1;padding:4px 8px;font-size:12px;margin:0" placeholder="아티스트명" value="${esc(artistName)}"
+               onblur="updateManualTeamInfo(${r.id},${no},'artist_name',this.value)"/>
+        <button class="btn btn-d btn-xs" style="white-space:nowrap" onclick="deleteManualTeam(${r.id},${no})">팀 삭제</button>
       </div>
-      <div class="ens-action-side">
-        <button class="btn btn-s btn-xs" onclick="exportManualStageXlsx('${type}',${viewStage})">📥 XLSX</button>
-        <button class="btn btn-s btn-xs" onclick="exportManualStagePdf('${type}',${viewStage})">🖨️ PDF</button>
-        <button class="btn btn-s btn-xs" onclick="exportManualStagePng('${type}',${viewStage})">🖼️ PNG</button>
+      <div style="padding:6px 10px;display:flex;flex-direction:column;gap:4px">
+        ${te.map(entry=>`<div style="display:flex;gap:6px;align-items:center">
+          <input class="fi" style="flex:1;padding:3px 7px;font-size:12px;margin:0" placeholder="세션명" value="${esc(entry.session_name)}"
+                 onblur="updateManualEntry(${entry.id},'session_name',this.value)"/>
+          <input class="fi" style="flex:1;padding:3px 7px;font-size:12px;margin:0" placeholder="성명" value="${esc(entry.member_name)}"
+                 onblur="updateManualEntry(${entry.id},'member_name',this.value)"/>
+          <button class="btn btn-d btn-xs" style="padding:2px 7px;font-size:11px" onclick="deleteManualEntry(${entry.id},${r.id},${no})">✕</button>
+        </div>`).join('')}
+        <button class="btn btn-s" style="width:100%;margin-top:2px;font-size:12px"
+                onclick="addManualSession(${r.id},${no})">+ 세션</button>
       </div>
     </div>`;
-    h+=_manualStageTableHtml(type,viewStage,cols,resps,false,false);
-  } else {
-    if(curPhase==='admin_config'){
-      h+=`<div style="padding:10px 13px;border-bottom:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;letter-spacing:.3px">${curStage}단계 — 열 설정</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead><tr style="border-bottom:1px solid var(--border)">
-            <th style="padding:5px 8px;text-align:left;color:var(--text3)">#</th>
-            <th style="padding:5px 8px;text-align:left">열 이름</th>
-            <th style="padding:5px 8px;text-align:center;color:var(--text3)">질문 사용</th>
-            <th style="padding:5px 8px"></th>
-          </tr></thead>
-          <tbody>
-            <tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:5px 8px;color:var(--text3)">1</td>
-              <td style="padding:5px 8px;color:var(--text3);font-size:11px">타임스탬프 (자동)</td>
-              <td style="padding:5px 8px;text-align:center;color:var(--text3)">—</td>
-              <td></td>
-            </tr>
-            ${cols.map((c,i)=>`<tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:5px 8px;color:var(--text3)">${i+2}</td>
-              <td style="padding:4px 8px"><input class="fi" style="padding:4px 8px;font-size:12px;margin:0" value="${esc(c.col_name)}" onblur="updateManualCol(${c.id},this.value)"/></td>
-              <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${c.is_question?'checked':''} onchange="toggleManualColQuestion(${c.id},this.checked)"/></td>
-              <td style="padding:5px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualCol(${c.id})">✕</button></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-        <button class="btn btn-s" style="width:100%;margin-top:8px;font-size:12px" onclick="addManualCol(${r.id},${curStage})">+ 열 추가</button>
-      </div>
-      <div class="ens-action-bar">
-        <div class="ens-action-main">
-          <button class="btn btn-p btn-xs" onclick="startManualUserInput(${r.id})">유저 입력 열기</button>
-        </div>
-      </div>`;
-    } else if(curPhase==='user_input'||curPhase==='review'){
-      const isReview=curPhase==='review';
-      h+=`<div class="ens-action-bar">
-        <div class="ens-action-main">
-          <span style="font-size:11px;font-weight:600;color:var(--text2)">${curStage}단계 — ${isReview?'검토':'입력 중'}</span>
-          ${!isReview?`<button class="btn btn-p btn-xs" onclick="endManualUserInput(${r.id})">입력 마감</button>`:''}
-          ${isReview?`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-left:4px">
-            <input type="checkbox" ${isPublic?'checked':''} onchange="toggleManualSheetPublic(${r.id},${curStage},this.checked)"/>
-            <span>공개</span>
-          </label>`:''}
-        </div>
-        ${isReview?`<div class="ens-action-side">
-          <button class="btn btn-p btn-xs" onclick="addManualStage(${r.id})">+ 단계 추가</button>
-          <button class="btn btn-d btn-xs" onclick="closeManualRound(${r.id})">회차 종료</button>
-        </div>`:''}
-      </div>`;
-      h+=_manualStageTableHtml(type,curStage,cols,resps,isReview,isReview);
-      if(isReview) h+=_manualExportBtns(type,curStage);
-    }
   }
+  h+=`<button class="btn btn-p" style="width:100%;font-size:13px" onclick="addManualTeam(${r.id},'${type}')">+ 팀 추가</button>`;
+  h+=`</div>`;
+
   bodyEl.innerHTML=h;
 }
 
@@ -1997,112 +1910,117 @@ window.deleteFixedSong=async function(songId){
   }catch(e){toast(errMsg(e),'err');}
 };
 
-window.addManualCol=async function(roundId,stageNum){
+window.addManualTeam=async function(roundId,type){
+  const entries=eManualEntries[type]||[];
+  const nextNo=entries.length?Math.max(...entries.map(e=>e.team_no))+1:1;
+  const {error}=await supabase.from('manual_entries').insert({round_id:roundId,team_no:nextNo,song_name:'',artist_name:'',session_name:'',member_name:'',sort_key:0});
+  if(error){toast(errMsg(error),'err');return;}
+  await ensUpdated();
+};
+window.deleteManualTeam=async function(roundId,teamNo){
+  if(!confirm(`팀 ${teamNo}을(를) 삭제하시겠습니까?`)) return;
+  const {error}=await supabase.from('manual_entries').delete().eq('round_id',roundId).eq('team_no',teamNo);
+  if(error){toast(errMsg(error),'err');return;}
+  await ensUpdated();
+};
+window.addManualSession=async function(roundId,teamNo){
   const type=eRounds.regular?.id===roundId?'regular':'busking';
-  const colOrder=(eManualStages[type]?.[stageNum]?.cols||[]).length;
-  const {error}=await supabase.from('manual_stage_columns').insert({round_id:roundId,stage_num:stageNum,col_name:'새 열',is_question:true,col_order:colOrder});
+  const te=(eManualEntries[type]||[]).filter(e=>e.team_no===teamNo);
+  const first=te[0];
+  const {error}=await supabase.from('manual_entries').insert({round_id:roundId,team_no:teamNo,song_name:first?.song_name||'',artist_name:first?.artist_name||'',session_name:'',member_name:'',sort_key:te.length});
   if(error){toast(errMsg(error),'err');return;}
   await ensUpdated();
 };
-window.deleteManualCol=async function(colId){
-  const {error}=await supabase.from('manual_stage_columns').delete().eq('id',colId);
+window.deleteManualEntry=async function(entryId,roundId,teamNo){
+  const type=eRounds.regular?.id===roundId?'regular':'busking';
+  const te=(eManualEntries[type]||[]).filter(e=>e.team_no===teamNo);
+  if(te.length<=1&&!confirm(`마지막 세션입니다. 팀 ${teamNo}을(를) 삭제하시겠습니까?`)) return;
+  const {error}=await supabase.from('manual_entries').delete().eq('id',entryId);
   if(error){toast(errMsg(error),'err');return;}
   await ensUpdated();
 };
-window.updateManualCol=async function(colId,name){
-  if(!name.trim()) return;
-  await supabase.from('manual_stage_columns').update({col_name:name.trim()}).eq('id',colId);
+window.updateManualEntry=async function(entryId,field,value){
+  await supabase.from('manual_entries').update({[field]:value}).eq('id',entryId);
 };
-window.toggleManualColQuestion=async function(colId,isQ){
-  await supabase.from('manual_stage_columns').update({is_question:isQ}).eq('id',colId);
+window.updateManualTeamInfo=async function(roundId,teamNo,field,value){
+  await supabase.from('manual_entries').update({[field]:value}).eq('round_id',roundId).eq('team_no',teamNo);
 };
-window.startManualUserInput=async function(roundId){
-  const {error}=await supabase.from('ensemble_rounds').update({manual_stage_phase:'user_input'}).eq('id',roundId);
+window.toggleManualPublish=async function(roundId,type,publish){
+  const {error}=await supabase.from('ensemble_rounds').update({is_sheet_public:publish}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');return;}
-  toast('유저 입력이 열렸습니다','ok'); await ensUpdated();
+  toast(publish?'팀이 공개됐습니다':'팀이 비공개됐습니다','ok'); await ensUpdated();
 };
-window.endManualUserInput=async function(roundId){
-  const {error}=await supabase.from('ensemble_rounds').update({manual_stage_phase:'review'}).eq('id',roundId);
-  if(error){toast(errMsg(error),'err');return;}
-  toast('입력이 마감됐습니다','ok'); await ensUpdated();
-};
-window.toggleManualSheetPublic=async function(roundId,stageNum,isPublic){
-  const r=eRounds.regular?.id===roundId?eRounds.regular:eRounds.busking;
-  if(!r) return;
-  const stages=Array.isArray(r.manual_public_stages)?[...r.manual_public_stages]:[];
-  const newStages=isPublic
-    ?(stages.includes(stageNum)?stages:[...stages,stageNum])
-    :stages.filter(s=>s!==stageNum);
-  const {error}=await supabase.from('ensemble_rounds').update({manual_public_stages:newStages}).eq('id',roundId);
-  if(error){toast(errMsg(error),'err');}
-  else{toast(isPublic?'시트가 공개됐습니다':'시트가 비공개됐습니다','ok'); await ensUpdated();}
-};
-window.addManualStage=async function(roundId){
-  const r=eRounds.regular?.id===roundId?eRounds.regular:eRounds.busking;
-  if(!r) return;
-  const nextStage=(r.manual_cur_stage||1)+1;
-  const {error}=await supabase.from('ensemble_rounds').update({manual_cur_stage:nextStage,manual_stage_phase:'admin_config'}).eq('id',roundId);
-  if(error){toast(errMsg(error),'err');return;}
-  eManualViewStage[r.type]=nextStage;
-  toast(`${nextStage}단계가 시작됐습니다`,'ok'); await ensUpdated();
-};
-window.closeManualRound=async function(roundId){
-  if(!confirm('이 회차를 종료하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
-  const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
-  if(error){toast(errMsg(error),'err');return;}
-  toast('회차가 종료됐습니다','ok'); await ensUpdated();
-};
-window.updateManualCell=async function(respId,colName,value){
-  const {data:resp}=await supabase.from('manual_stage_responses').select('data').eq('id',respId).single();
-  if(!resp) return;
-  const newData={...resp.data,[colName]:value};
-  await supabase.from('manual_stage_responses').update({data:newData}).eq('id',respId);
-};
-window.deleteManualResp=async function(respId){
-  if(!confirm('이 응답을 삭제하시겠습니까?')) return;
-  const {error}=await supabase.from('manual_stage_responses').delete().eq('id',respId);
-  if(error){toast(errMsg(error),'err');return;}
-  await ensUpdated();
-};
-
-window.switchManualStageTab=function(type,stageNum){
-  eManualViewStage[type]=stageNum;
-  renderEnsemble();
-};
-
-window.exportManualStageXlsx=function(type,stageNum){
-  const sd=eManualStages[type]?.[stageNum]; if(!sd) return;
-  const {cols,resps}=sd; const r=eRounds[type];
-  const ws=XLSX.utils.aoa_to_sheet([
-    ['타임스탬프',...cols.map(c=>c.col_name)],
-    ...resps.map(resp=>[new Date(resp.created_at).toLocaleString('ko-KR'),...cols.map(c=>resp.data[c.col_name]||'')])
-  ]);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,`${stageNum}단계`);
-  XLSX.writeFile(wb,`${r?.name||'합주'}_${stageNum}단계.xlsx`);
-};
-
-window.exportManualStagePdf=function(type,stageNum){
-  const sd=eManualStages[type]?.[stageNum]; if(!sd) return;
-  const {cols,resps}=sd; const r=eRounds[type];
-  const win=window.open('','_blank');
-  const rows=resps.map(resp=>`<tr><td style="border:1px solid #ccc;padding:5px 8px;white-space:nowrap;font-size:11px">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>${cols.map(c=>`<td style="border:1px solid #ccc;padding:5px 8px">${(resp.data[c.col_name]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</td>`).join('')}</tr>`).join('');
-  const ths=cols.map(c=>`<th style="border:1px solid #ccc;padding:6px 8px;background:#eee">${c.col_name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</th>`).join('');
-  win.document.write(`<html><head><meta charset="utf-8"><title>${r?.name||'합주'} ${stageNum}단계</title><style>body{font-family:sans-serif;padding:20px}table{border-collapse:collapse;width:100%}h2{margin-bottom:12px}</style></head><body><h2>${r?.name||'합주'} — ${stageNum}단계 (${resps.length}건)</h2><table><thead><tr><th style="border:1px solid #ccc;padding:6px 8px;background:#eee">타임스탬프</th>${ths}</tr></thead><tbody>${rows||'<tr><td colspan="'+(cols.length+1)+'" style="text-align:center;padding:20px;color:#999">응답 없음</td></tr>'}</tbody></table><script>window.onload=function(){window.print();}<\/script></body></html>`);
-  win.document.close();
-};
-
-window.exportManualStagePng=async function(type,stageNum){
-  const tableEl=document.getElementById(`mst_${type}_${stageNum}`);
-  if(!tableEl){toast('테이블 요소를 찾을 수 없습니다','err');return;}
-  if(typeof html2canvas==='undefined'){toast('html2canvas 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요','err');return;}
+window.startNewManualRound=async function(type,roundId){
+  if(!confirm('새 회차를 시작하면 기존 회차 입력값은 사라집니다. 새 회차를 열까요?')) return;
   try{
-    const canvas=await html2canvas(tableEl,{backgroundColor:'#ffffff',scale:2});
-    const link=document.createElement('a');
-    const r=eRounds[type];
-    link.download=`${r?.name||'합주'}_${stageNum}단계.png`;
-    link.href=canvas.toDataURL('image/png');
-    link.click();
+    await supabase.from('manual_entries').delete().eq('round_id',roundId);
+    await supabase.from('ensemble_rounds').update({is_sheet_public:false}).eq('id',roundId);
+    toast('새 회차가 시작됐습니다','ok'); await ensUpdated();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.exportManualXlsx=function(type){
+  const entries=eManualEntries[type]||[]; const r=eRounds[type];
+  if(!entries.length){toast('데이터가 없습니다','err');return;}
+  const teamNos=[...new Set(entries.map(e=>e.team_no))].sort((a,b)=>a-b);
+  const rows=[['팀 번호','곡명','아티스트명','세션명','성명']];
+  const merges=[];
+  let ri=1;
+  for(const no of teamNos){
+    const te=entries.filter(e=>e.team_no===no).sort((a,b)=>a.sort_key-b.sort_key);
+    te.forEach((e,i)=>rows.push([i===0?no:'',i===0?e.song_name:'',i===0?e.artist_name:'',e.session_name,e.member_name]));
+    if(te.length>1) merges.push({s:{r:ri,c:0},e:{r:ri+te.length-1,c:0}},{s:{r:ri,c:1},e:{r:ri+te.length-1,c:1}},{s:{r:ri,c:2},e:{r:ri+te.length-1,c:2}});
+    ri+=te.length;
+  }
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!merges']=merges;
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,r?.name||'합주');
+  XLSX.writeFile(wb,`${r?.name||'합주'}_팀구성.xlsx`);
+};
+
+window.exportManualPng=async function(type){
+  const entries=eManualEntries[type]||[]; const r=eRounds[type];
+  if(!entries.length){toast('데이터가 없습니다','err');return;}
+  if(typeof html2canvas==='undefined'){toast('html2canvas 로딩 중입니다. 잠시 후 다시 시도해주세요','err');return;}
+  const eh=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const teamNos=[...new Set(entries.map(e=>e.team_no))].sort((a,b)=>a-b);
+  const buildTable=nos=>{
+    let tb='';
+    for(const no of nos){
+      const te=entries.filter(e=>e.team_no===no).sort((a,b)=>a.sort_key-b.sort_key);
+      te.forEach((e,i)=>{tb+=`<tr>${i===0?`<td rowspan="${te.length}" style="border:1px solid #ccc;padding:6px 10px;text-align:center;font-weight:700;vertical-align:middle">${no}</td><td rowspan="${te.length}" style="border:1px solid #ccc;padding:6px 10px;vertical-align:middle">${eh(e.song_name)}</td><td rowspan="${te.length}" style="border:1px solid #ccc;padding:6px 10px;vertical-align:middle">${eh(e.artist_name)}</td>`:''}<td style="border:1px solid #ccc;padding:6px 10px">${eh(e.session_name)}</td><td style="border:1px solid #ccc;padding:6px 10px">${eh(e.member_name)}</td></tr>`;});
+    }
+    return `<table style="border-collapse:collapse;font-family:sans-serif;font-size:13px"><thead><tr style="background:#f0f0f0"><th style="border:1px solid #ccc;padding:7px 10px">팀 번호</th><th style="border:1px solid #ccc;padding:7px 10px">곡명</th><th style="border:1px solid #ccc;padding:7px 10px">아티스트명</th><th style="border:1px solid #ccc;padding:7px 10px">세션명</th><th style="border:1px solid #ccc;padding:7px 10px">성명</th></tr></thead><tbody>${tb}</tbody></table>`;
+  };
+  const groups=[];
+  for(let i=0;i<teamNos.length;i+=4) groups.push(teamNos.slice(i,i+4));
+  try{
+    const canvases=[];
+    for(const grp of groups){
+      const div=document.createElement('div');
+      div.style.cssText='position:fixed;top:-9999px;left:-9999px;background:#fff;padding:16px';
+      div.innerHTML=buildTable(grp);
+      document.body.appendChild(div);
+      const canvas=await html2canvas(div,{backgroundColor:'#ffffff',scale:2});
+      document.body.removeChild(div);
+      canvases.push(canvas);
+    }
+    if(canvases.length===1){
+      const a=document.createElement('a');
+      a.download=`${r?.name||'합주'}_팀구성.png`;
+      a.href=canvases[0].toDataURL('image/png');
+      a.click();
+    } else {
+      if(typeof JSZip==='undefined'){toast('JSZip 로딩 중입니다. 잠시 후 다시 시도해주세요','err');return;}
+      const zip=new JSZip();
+      canvases.forEach((c,i)=>zip.file(`${r?.name||'합주'}_팀구성_${i+1}.png`,c.toDataURL('image/png').split(',')[1],{base64:true}));
+      const blob=await zip.generateAsync({type:'blob'});
+      const a=document.createElement('a');
+      a.download=`${r?.name||'합주'}_팀구성.zip`;
+      a.href=URL.createObjectURL(blob);
+      a.click();
+    }
   }catch(e){toast('PNG 내보내기 실패: '+e.message,'err');}
 };
 
@@ -2500,22 +2418,10 @@ async function loadEnsemble(){
   eSessionMap=newMap;
   for(const type of ['regular','busking']){
     const r=eRounds[type];
-    eManualStages[type]={};
-    if(r?.mode==='manual'&&r.phase!=='closed'){
-      const maxStage=r.manual_cur_stage||1;
-      const publicStages=Array.isArray(r.manual_public_stages)?r.manual_public_stages:[];
-      const {data:allCols}=await supabase.from('manual_stage_columns').select('*').eq('round_id',r.id).order('stage_num').order('col_order');
-      const {data:allResps}=await supabase.from('manual_stage_responses').select('*').eq('round_id',r.id).order('created_at');
-      for(let stage=1;stage<=maxStage;stage++){
-        eManualStages[type][stage]={
-          cols:(allCols||[]).filter(c=>c.stage_num===stage),
-          resps:(allResps||[]).filter(rp=>rp.stage_num===stage),
-          isPublic:publicStages.includes(stage)
-        };
-      }
-      if(eManualViewStage[type]===null||eManualStages[type][eManualViewStage[type]]===undefined){
-        eManualViewStage[type]=maxStage;
-      }
+    eManualEntries[type]=[];
+    if(r?.mode==='manual'){
+      const {data}=await supabase.from('manual_entries').select('*').eq('round_id',r.id).order('team_no').order('sort_key');
+      eManualEntries[type]=data||[];
     }
   }
 }
@@ -2577,11 +2483,7 @@ window.openCreateRoundModal=function(type){
      <div id="ctabContentManual" style="display:none">
        <div style="background:var(--surface2);border-radius:6px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.8;color:var(--text2)">
          <div style="font-weight:700;color:var(--text);margin-bottom:6px">수동 진행 방식</div>
-         <div>관리자가 각 단계에서 직접 스프레드시트 열(질문 항목)을 설정하고, 유저가 입력한 응답을 실시간으로 확인합니다.</div>
-         <div style="margin-top:6px"><b>1단계 [준비]</b> — 관리자가 스프레드시트 열을 추가하고, 유저에게 보여줄 질문 항목을 선택합니다.</div>
-         <div><b>2단계 [유저 입력]</b> — 유저가 질문에 답합니다. 응답이 실시간으로 스프레드시트에 반영됩니다.</div>
-         <div><b>3단계 [검토]</b> — 관리자가 스프레드시트를 수정하고, "이 시트 공개" 토글로 유저에게 공개할 수 있습니다.</div>
-         <div style="color:var(--text3);margin-top:4px">※ "단계 추가"로 준비→입력→검토 사이클을 무한 반복할 수 있습니다. 곡 수·세션 수 제한이 없습니다.</div>
+         <div>이 시스템을 이용하지 않고, Google Forms, Google Sheets 등 제3의 시스템을 이용하여 합주 신청을 진행합니다. 이곳은 확정된 팀 구성 결과를 공지하는 용도로만 사용합니다.</div>
        </div>
        <div><div class="fl">회차 이름</div><input class="fi" id="eManualName" value="${new Date().getFullYear()} ${typeName}" maxlength="50"/></div>
      </div>`,
@@ -2617,9 +2519,7 @@ window.createManualRound=async function(type){
   const btn=document.getElementById('ecBtn'); btn.disabled=true;
   try{
     const {error}=await supabase.from('ensemble_rounds').insert({
-      type,name,phase:'draft',mode:'manual',
-      manual_cur_stage:1,manual_stage_phase:'admin_config',is_sheet_public:false,
-      manual_public_stages:[],
+      type,name,phase:'draft',mode:'manual',is_sheet_public:false,
       max_songs:9999,max_songs_per_person:9999,max_sessions_per_person:9999
     });
     if(error) throw error;
@@ -2811,8 +2711,6 @@ window.deleteRound=async function(id){
     const songIds=(songs||[]).map(s=>s.id);
     if(songIds.length) await supabase.from('session_applications').delete().in('song_id',songIds);
     await supabase.from('song_applications').delete().eq('round_id',id);
-    await supabase.from('manual_stage_columns').delete().eq('round_id',id);
-    await supabase.from('manual_stage_responses').delete().eq('round_id',id);
     await supabase.from('ensemble_rounds').delete().eq('id',id);
     toast('삭제되었습니다'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
