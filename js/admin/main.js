@@ -1743,21 +1743,18 @@ function renderManualAdminBody(r,type,bodyEl){
 
   h+=`<div class="ens-round-hdr">
     <span class="ens-round-name">${esc(r.name)}</span>
-    <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>
   </div>`;
 
   h+=`<div class="ens-action-bar">
     <div class="ens-action-main">
       ${isPublished
-        ?`<span style="font-size:11px;font-weight:600;color:var(--ok)">● 공개 중</span>
-          <button class="btn btn-d btn-xs" onclick="toggleManualPublish(${r.id},'${type}',false)">팀 비공개</button>`
-        :`<span style="font-size:11px;font-weight:600;color:var(--text3)">● 비공개</span>
-          <button class="btn btn-p btn-xs" onclick="toggleManualPublish(${r.id},'${type}',true)">팀 공개</button>`}
+        ?`<span style="font-size:11px;font-weight:600;color:var(--ok)">✓ 팀 공개됨</span>`
+        :`<span style="font-size:11px;font-weight:600;color:var(--text3)">● 비공개</span>`}
     </div>
     <div class="ens-action-side">
       <button class="btn btn-s btn-xs" onclick="exportManualXlsx('${type}')">📥 XLSX</button>
       <button class="btn btn-s btn-xs" onclick="exportManualPng('${type}')">🖼️ PNG</button>
-      <button class="btn btn-d btn-xs" onclick="startNewManualRound('${type}',${r.id})">새로운 회차 시작</button>
+      ${!isPublished?`<button class="btn btn-d btn-xs" onclick="closeAndPublishManual(${r.id})">회차 종료 및 팀 공개</button>`:''}
     </div>
   </div>`;
 
@@ -1945,18 +1942,11 @@ window.updateManualEntry=async function(entryId,field,value){
 window.updateManualTeamInfo=async function(roundId,teamNo,field,value){
   await supabase.from('manual_entries').update({[field]:value}).eq('round_id',roundId).eq('team_no',teamNo);
 };
-window.toggleManualPublish=async function(roundId,type,publish){
-  const {error}=await supabase.from('ensemble_rounds').update({is_sheet_public:publish}).eq('id',roundId);
+window.closeAndPublishManual=async function(roundId){
+  if(!confirm('이 회차를 종료하고 팀 구성 결과를 공개할까요? 회차를 종료해도 구성을 수정할 수 있습니다.')) return;
+  const {error}=await supabase.from('ensemble_rounds').update({is_sheet_public:true}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');return;}
-  toast(publish?'팀이 공개됐습니다':'팀이 비공개됐습니다','ok'); await ensUpdated();
-};
-window.startNewManualRound=async function(type,roundId){
-  if(!confirm('새 회차를 시작하면 기존 회차 입력값은 사라집니다. 새 회차를 열까요?')) return;
-  try{
-    await supabase.from('manual_entries').delete().eq('round_id',roundId);
-    await supabase.from('ensemble_rounds').update({is_sheet_public:false}).eq('id',roundId);
-    toast('새 회차가 시작됐습니다','ok'); await ensUpdated();
-  }catch(e){toast(errMsg(e),'err');}
+  toast('팀이 공개됐습니다','ok'); await ensUpdated();
 };
 
 window.exportManualXlsx=function(type){
