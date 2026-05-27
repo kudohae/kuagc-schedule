@@ -12,6 +12,7 @@ let searchQ = '';
 let countdownTimers = {};
 let _rtChannel = null;
 let _pollTimer = null;
+let _bcChannel = null;
 let manualStages={regular:{},busking:{}};
 let manualViewStage={regular:null,busking:null};
 
@@ -48,14 +49,18 @@ export async function init(outerContainer) {
   outerContainer.appendChild(inner);
 
   try{
-    await loadAll();
+    await loadAll(true);
 
     _rtChannel=supabase.channel('ens-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},refreshList)
-      .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},loadAll)
-      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_columns'},loadAll)
-      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_responses'},()=>{loadAll().then(()=>render());})
+      .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},()=>loadAll(true))
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_columns'},()=>loadAll(true))
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_responses'},()=>loadAll(true))
+      .subscribe();
+
+    _bcChannel=supabase.channel('ens-pub')
+      .on('broadcast',{event:'update'},()=>loadAll(true))
       .subscribe();
 
     _pollTimer=setInterval(pollRoundState,5000);
@@ -75,6 +80,7 @@ export async function init(outerContainer) {
   return function destroy(){
     Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
+    if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
     if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; }
     document.removeEventListener('visibilitychange',onVisibilityChange);
   };
@@ -98,11 +104,11 @@ async function pollRoundState(){
       newReg?.phase!==rounds.regular?.phase||
       newReg?.manual_stage_phase!==rounds.regular?.manual_stage_phase||
       newReg?.manual_cur_stage!==rounds.regular?.manual_cur_stage||
-      JSON.stringify(newReg?.manual_public_stages)!==JSON.stringify(rounds.regular?.manual_public_stages)||
+      JSON.stringify(newReg?.manual_public_stages||[])!==JSON.stringify(rounds.regular?.manual_public_stages||[])||
       newBus?.phase!==rounds.busking?.phase||
       newBus?.manual_stage_phase!==rounds.busking?.manual_stage_phase||
       newBus?.manual_cur_stage!==rounds.busking?.manual_cur_stage||
-      JSON.stringify(newBus?.manual_public_stages)!==JSON.stringify(rounds.busking?.manual_public_stages);
+      JSON.stringify(newBus?.manual_public_stages||[])!==JSON.stringify(rounds.busking?.manual_public_stages||[]);
     if(changed) await loadAll();
   }catch(e){ /* silent — poll errors don't matter */ }
 }
@@ -135,12 +141,21 @@ async function refreshList(){
   renderList();
 }
 
-async function loadAll(){
+async function loadAll(forceRender=false){
+  const prev={
+    rp:rounds.regular?.phase,bp:rounds.busking?.phase,
+    rm:rounds.regular?.manual_stage_phase,bm:rounds.busking?.manual_stage_phase,
+    rs:rounds.regular?.manual_cur_stage,bs:rounds.busking?.manual_cur_stage,
+  };
   const {data:rds}=await supabase.from('ensemble_rounds').select('*').order('created_at',{ascending:false});
   if(rds){
     rounds.regular=rds.find(r=>r.type==='regular')||null;
     rounds.busking=rds.find(r=>r.type==='busking')||null;
   }
+  const structChanged=forceRender||
+    rounds.regular?.phase!==prev.rp||rounds.busking?.phase!==prev.bp||
+    rounds.regular?.manual_stage_phase!==prev.rm||rounds.busking?.manual_stage_phase!==prev.bm||
+    rounds.regular?.manual_cur_stage!==prev.rs||rounds.busking?.manual_cur_stage!==prev.bs;
   await refreshList();
   for(const type of ['regular','busking']){
     const r=rounds[type];
@@ -164,7 +179,7 @@ async function loadAll(){
       }
     }
   }
-  render();
+  if(structChanged) render();
 }
 
 window.switchType=function(t){
