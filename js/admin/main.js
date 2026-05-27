@@ -141,6 +141,14 @@ async function loadAll(){
         await loadEnsemble();
         renderEnsemble();
       })
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_columns'},async()=>{
+        await loadEnsemble();
+        renderEnsemble();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_responses'},async()=>{
+        await loadEnsemble();
+        renderEnsemble();
+      })
       .subscribe(),
     supabase.channel('admin-schedule-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'base_slots'},async()=>{
@@ -1495,6 +1503,8 @@ let eSongs={regular:[],busking:[]};
 let eSessionMap={};
 let eDraggingId=null;
 let _ftRowIdx=0;
+let eManualCols={regular:[],busking:[]};
+let eManualResps={regular:[],busking:[]};
 
 function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
@@ -1518,6 +1528,16 @@ function renderEnsemble(){
     // controls + body
     const bodyEl=document.getElementById(`ensemble${type==='regular'?'Regular':'Busking'}Body`);
     if(!bodyEl) return;
+
+    if(r?.mode==='manual'){
+      if(badge){
+        const phL={admin_config:'준비',user_input:'입력 중',review:'검토'}[r.manual_stage_phase||'admin_config']||'진행 중';
+        badge.textContent=`수동 ${r.manual_cur_stage||1}단계 — ${phL}`;
+        badge.className='ensemble-phase closed';
+      }
+      renderManualAdminBody(r,type,bodyEl);
+      return;
+    }
 
     let ctrl='';
     if(!r){
@@ -1682,6 +1702,89 @@ function renderEnsemble(){
   });
 }
 
+function renderManualAdminBody(r,type,bodyEl){
+  const phase=r.manual_stage_phase||'admin_config';
+  const stageNum=r.manual_cur_stage||1;
+  const cols=eManualCols[type]||[];
+  const resps=eManualResps[type]||[];
+  let h='';
+  if(phase==='admin_config'){
+    h+=`<div class="ensemble-col-ctrl">
+      <span style="font-size:12px;font-weight:700">${stageNum}단계 — 스프레드시트 열 설정</span>
+      <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>
+    </div>
+    <div style="margin:10px 0;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:5px 8px;text-align:left;color:var(--text3)">#</th>
+          <th style="padding:5px 8px;text-align:left">열 이름</th>
+          <th style="padding:5px 8px;text-align:center;color:var(--text3)">질문 사용</th>
+          <th style="padding:5px 8px"></th>
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:5px 8px;color:var(--text3)">1</td>
+            <td style="padding:5px 8px;color:var(--text3);font-size:11px">타임스탬프 (자동)</td>
+            <td style="padding:5px 8px;text-align:center;color:var(--text3)">—</td>
+            <td></td>
+          </tr>
+          ${cols.map((c,i)=>`<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:5px 8px;color:var(--text3)">${i+2}</td>
+            <td style="padding:4px 8px"><input class="fi" style="padding:4px 8px;font-size:12px;margin:0" value="${esc(c.col_name)}" onblur="updateManualCol(${c.id},this.value)"/></td>
+            <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${c.is_question?'checked':''} onchange="toggleManualColQuestion(${c.id},this.checked)"/></td>
+            <td style="padding:5px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualCol(${c.id})">✕</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <button class="btn btn-s" style="width:100%;margin-top:8px;font-size:12px" onclick="addManualCol(${r.id},${stageNum})">+ 열 추가</button>
+    </div>
+    <div class="ensemble-col-ctrl">
+      <button class="btn btn-p btn-xs" onclick="startManualUserInput(${r.id})">유저 입력 열기</button>
+    </div>`;
+  } else if(phase==='user_input'||phase==='review'){
+    const isReview=phase==='review';
+    h+=`<div class="ensemble-col-ctrl">
+      <span style="font-size:12px;font-weight:700">${stageNum}단계 — ${isReview?'검토':'유저 입력 중'}</span>
+      ${!isReview?`<button class="btn btn-p btn-xs" onclick="endManualUserInput(${r.id})">입력 마감</button>`:''}
+    </div>`;
+    if(isReview){
+      h+=`<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:8px;margin:6px 0">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+          <input type="checkbox" ${r.is_sheet_public?'checked':''} onchange="toggleManualSheetPublic(${r.id},this.checked)"/>
+          <span>이 시트 공개 (유저에게 공개)</span>
+        </label>
+      </div>`;
+    }
+    h+=`<div style="overflow-x:auto;margin:8px 0">
+      <table style="min-width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="border-bottom:2px solid var(--border);background:var(--surface2)">
+          <th style="padding:6px 10px;text-align:left;white-space:nowrap;color:var(--text3)">타임스탬프</th>
+          ${cols.map(c=>`<th style="padding:6px 10px;text-align:left;white-space:nowrap">${esc(c.col_name)}</th>`).join('')}
+          ${isReview?`<th style="padding:6px 10px"></th>`:''}
+        </tr></thead>
+        <tbody>
+          ${resps.length?resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:5px 10px;color:var(--text3);white-space:nowrap;font-size:11px">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
+            ${cols.map(c=>`<td style="padding:4px 8px">${isReview
+              ?`<input class="fi" style="padding:3px 7px;font-size:12px;margin:0;min-width:80px" value="${esc(resp.data[c.col_name]||'')}" onblur="updateManualCell(${resp.id},'${esc(c.col_name)}',this.value)"/>`
+              :`<span>${esc(resp.data[c.col_name]||'')}</span>`
+            }</td>`).join('')}
+            ${isReview?`<td style="padding:4px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualResp(${resp.id})">✕</button></td>`:''}
+          </tr>`).join('')
+          :`<tr><td colspan="${cols.length+(isReview?2:1)}" style="text-align:center;color:var(--text3);padding:20px;font-size:12px">응답이 없습니다</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
+    if(isReview){
+      h+=`<div class="ensemble-col-ctrl" style="margin-top:4px">
+        <button class="btn btn-p btn-xs" onclick="addManualStage(${r.id})">단계 추가</button>
+        <button class="btn btn-d btn-xs" onclick="closeManualRound(${r.id})">이 회차 종료</button>
+      </div>`;
+    }
+  }
+  bodyEl.innerHTML=h;
+}
+
 window.switchEnsTab=function(type){
   document.getElementById('ensTabRegular').classList.toggle('active',type==='regular');
   document.getElementById('ensTabBusking').classList.toggle('active',type==='busking');
@@ -1796,6 +1899,66 @@ window.deleteFixedSong=async function(songId){
     if(error) throw error;
     toast('삭제됐습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
+};
+
+window.addManualCol=async function(roundId,stageNum){
+  const colOrder=(eManualCols.regular.concat(eManualCols.busking).filter(c=>c.round_id===roundId&&c.stage_num===stageNum).length);
+  const {error}=await supabase.from('manual_stage_columns').insert({round_id:roundId,stage_num:stageNum,col_name:'새 열',is_question:true,col_order:colOrder});
+  if(error){toast(errMsg(error),'err');return;}
+  await loadEnsemble(); renderEnsemble();
+};
+window.deleteManualCol=async function(colId){
+  const {error}=await supabase.from('manual_stage_columns').delete().eq('id',colId);
+  if(error){toast(errMsg(error),'err');return;}
+  await loadEnsemble(); renderEnsemble();
+};
+window.updateManualCol=async function(colId,name){
+  if(!name.trim()) return;
+  await supabase.from('manual_stage_columns').update({col_name:name.trim()}).eq('id',colId);
+};
+window.toggleManualColQuestion=async function(colId,isQ){
+  await supabase.from('manual_stage_columns').update({is_question:isQ}).eq('id',colId);
+};
+window.startManualUserInput=async function(roundId){
+  const {error}=await supabase.from('ensemble_rounds').update({manual_stage_phase:'user_input'}).eq('id',roundId);
+  if(error){toast(errMsg(error),'err');return;}
+  toast('유저 입력이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
+};
+window.endManualUserInput=async function(roundId){
+  const {error}=await supabase.from('ensemble_rounds').update({manual_stage_phase:'review'}).eq('id',roundId);
+  if(error){toast(errMsg(error),'err');return;}
+  toast('입력이 마감됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+};
+window.toggleManualSheetPublic=async function(roundId,isPublic){
+  const {error}=await supabase.from('ensemble_rounds').update({is_sheet_public:isPublic}).eq('id',roundId);
+  if(error){toast(errMsg(error),'err');}
+  else{toast(isPublic?'시트가 공개됐습니다':'시트가 비공개됐습니다','ok'); await loadEnsemble(); renderEnsemble();}
+};
+window.addManualStage=async function(roundId){
+  const r=eRounds.regular?.id===roundId?eRounds.regular:eRounds.busking;
+  if(!r) return;
+  const nextStage=(r.manual_cur_stage||1)+1;
+  const {error}=await supabase.from('ensemble_rounds').update({manual_cur_stage:nextStage,manual_stage_phase:'admin_config',is_sheet_public:false}).eq('id',roundId);
+  if(error){toast(errMsg(error),'err');return;}
+  toast(`${nextStage}단계가 시작됐습니다`,'ok'); await loadEnsemble(); renderEnsemble();
+};
+window.closeManualRound=async function(roundId){
+  if(!confirm('이 회차를 종료하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+  const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
+  if(error){toast(errMsg(error),'err');return;}
+  toast('회차가 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+};
+window.updateManualCell=async function(respId,colName,value){
+  const {data:resp}=await supabase.from('manual_stage_responses').select('data').eq('id',respId).single();
+  if(!resp) return;
+  const newData={...resp.data,[colName]:value};
+  await supabase.from('manual_stage_responses').update({data:newData}).eq('id',respId);
+};
+window.deleteManualResp=async function(respId){
+  if(!confirm('이 응답을 삭제하시겠습니까?')) return;
+  const {error}=await supabase.from('manual_stage_responses').delete().eq('id',respId);
+  if(error){toast(errMsg(error),'err');return;}
+  await loadEnsemble(); renderEnsemble();
 };
 
 // ── ENSEMBLE DnD MODAL ───────────────────────────────────────────────
@@ -2190,6 +2353,16 @@ async function loadEnsemble(){
     (sess||[]).forEach(s=>{ if(!newMap[s.song_id]) newMap[s.song_id]=[]; newMap[s.song_id].push(s); });
   }
   eSessionMap=newMap;
+  for(const type of ['regular','busking']){
+    const r=eRounds[type];
+    if(r?.mode==='manual'&&r.phase!=='closed'){
+      const stageNum=r.manual_cur_stage||1;
+      const {data:cols}=await supabase.from('manual_stage_columns').select('*').eq('round_id',r.id).eq('stage_num',stageNum).order('col_order');
+      eManualCols[type]=cols||[];
+      const {data:resps}=await supabase.from('manual_stage_responses').select('*').eq('round_id',r.id).eq('stage_num',stageNum).order('created_at');
+      eManualResps[type]=resps||[];
+    }else{eManualCols[type]=[];eManualResps[type]=[];}
+  }
 }
 
 // 회차 생성
