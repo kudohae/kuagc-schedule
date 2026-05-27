@@ -1494,6 +1494,7 @@ let eRounds={regular:null,busking:null};
 let eSongs={regular:[],busking:[]};
 let eSessionMap={};
 let eDraggingId=null;
+let _ftRowIdx=0;
 
 function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
@@ -1574,12 +1575,19 @@ function renderEnsemble(){
     const schedRows=(r&&schedFieldMap[phase]||[]).map(({field,label,icon})=>{
       const ts=r[field];
       const isFuture=ts&&new Date(ts)>now2;
-      if(ts&&!isFuture) return '';
+      const addFixedBtn=(phase==='draft'&&field==='song_scheduled_at')
+        ?`<button class="btn btn-s" style="padding:1px 7px;font-size:10px;line-height:1.6" onclick="openAddFixedTeamModal(${r.id},'${type}')">완성 팀 추가</button>`
+        :'';
+      if(ts&&!isFuture){
+        if(addFixedBtn) return `<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${addFixedBtn}</div>`;
+        return '';
+      }
       const tsArg=ts?`'${ts}'`:'null';
       return `<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
         <span>${icon} ${label}:</span>
         ${isFuture?`<span style="color:var(--accent2)">${fS(ts)}</span>`:`<span style="color:var(--text3)">미설정</span>`}
         <button class="btn btn-s" style="padding:1px 7px;font-size:10px;line-height:1.6" onclick="openSetScheduleModal(${r.id},'${field}','${label}',${tsArg})">변경</button>
+        ${addFixedBtn}
       </div>`;
     }).join('');
     const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡 · 세션 ${r.max_sessions_per_person}곡</div>${schedRows}`:'';
@@ -1624,7 +1632,8 @@ function renderEnsemble(){
           const sessApps=eSessionMap[s.id]||[];
           let sessHtml='';
           const showSessPhases=['song_end','session','session_end','session2','session2_end','closed'];
-          if(showSessPhases.includes(phase)&&sessApps.length){
+          const showSess=sessApps.length&&(showSessPhases.includes(phase)||(s.is_fixed&&(phase==='draft'||phase==='song')));
+          if(showSess){
             const isClosedPhase=phase==='closed';
             const displayApps=isClosedPhase?sessApps.filter(a=>a.status==='confirmed'):sessApps;
             if(displayApps.length){
@@ -1644,14 +1653,18 @@ function renderEnsemble(){
               </div>`;
             }
           }
-          const actions=(phase==='song')?`<div class="e-song-actions">
+          const fixedBadge=s.is_fixed?`<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;background:rgba(0,119,204,.12);color:var(--accent2);margin-left:4px">FIXED</span>`:'';
+          const canDeleteFixed=(phase==='draft'||phase==='song')&&s.is_fixed;
+          const actions=canDeleteFixed?`<div class="e-song-actions">
+            <button class="btn btn-d btn-xs" onclick="deleteFixedSong(${s.id})">삭제</button>
+          </div>`:phase==='song'&&!s.is_fixed?`<div class="e-song-actions">
             <button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">삭제</button>
           </div>`:'';
           return `<div class="e-song-item">
             <div class="e-song-hdr">
               <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
               <div style="flex:1;min-width:0">
-                <div class="e-song-title">${esc(s.title)}</div>
+                <div class="e-song-title">${esc(s.title)}${fixedBadge}</div>
                 <div class="e-song-artist">${esc(s.artist)}</div>
               </div>
             </div>
@@ -1685,6 +1698,104 @@ window.deleteSessionApp=async function(appId){
     eSessionMap[sid]=eSessionMap[sid].filter(a=>a.id!==appId);
   }
   renderEnsemble();
+};
+
+window.openAddFixedTeamModal=function(roundId,type){
+  _ftRowIdx=0;
+  const sessCbHtml=idx=>SESSIONS.map(sess=>
+    `<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;cursor:pointer"><input type="checkbox" name="ftSess_${idx}" value="${sess}" style="margin:0"> ${sess}</label>`
+  ).join('');
+  const rowHtml=idx=>`<div id="ftRow${idx}" style="border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--text3);font-weight:700">참여자 ${idx+1}${idx===0?' (자동 신청자)':''}</span>
+      ${idx>0?`<button class="btn btn-d btn-xs" style="margin-left:auto;padding:0 6px;font-size:10px;line-height:1.7" onclick="removeFtRow(${idx})">제거</button>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div><div class="fl">이름</div><input class="fi" id="ftName${idx}" placeholder="이름"/></div>
+      <div><div class="fl">학번</div><input class="fi" id="ftSid${idx}" placeholder="학번"/></div>
+    </div>
+    <div class="fl">담당 세션</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 10px">${sessCbHtml(idx)}</div>
+  </div>`;
+  showModal('완성 팀 추가',
+    `<div><div class="fl">곡 제목</div><input class="fi" id="ftTitle" placeholder="곡 제목"/></div>
+     <div style="margin-bottom:12px"><div class="fl">아티스트</div><input class="fi" id="ftArtist" placeholder="아티스트"/></div>
+     <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text2);margin-bottom:8px">참여자</div>
+     <div id="ftRows">${rowHtml(0)}</div>
+     <button class="btn btn-s" style="width:100%;margin-top:4px" onclick="addFtParticipantRow()">+ 참여자 추가</button>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="ftSubmitBtn" onclick="submitAddFixedTeam(${roundId},'${type}')">저장</button>`
+  );
+};
+
+window.addFtParticipantRow=function(){
+  _ftRowIdx++;
+  const idx=_ftRowIdx;
+  const sessCbHtml=SESSIONS.map(sess=>
+    `<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;cursor:pointer"><input type="checkbox" name="ftSess_${idx}" value="${sess}" style="margin:0"> ${sess}</label>`
+  ).join('');
+  const html=`<div id="ftRow${idx}" style="border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--text3);font-weight:700">참여자 ${idx+1}</span>
+      <button class="btn btn-d btn-xs" style="margin-left:auto;padding:0 6px;font-size:10px;line-height:1.7" onclick="removeFtRow(${idx})">제거</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div><div class="fl">이름</div><input class="fi" id="ftName${idx}" placeholder="이름"/></div>
+      <div><div class="fl">학번</div><input class="fi" id="ftSid${idx}" placeholder="학번"/></div>
+    </div>
+    <div class="fl">담당 세션</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 10px">${sessCbHtml}</div>
+  </div>`;
+  document.getElementById('ftRows').insertAdjacentHTML('beforeend',html);
+};
+
+window.removeFtRow=function(idx){
+  document.getElementById('ftRow'+idx)?.remove();
+};
+
+window.submitAddFixedTeam=async function(roundId,type){
+  const title=(document.getElementById('ftTitle')?.value||'').trim();
+  const artist=(document.getElementById('ftArtist')?.value||'').trim();
+  if(!title){toast('곡 제목을 입력해주세요','err');return;}
+  if(!artist){toast('아티스트를 입력해주세요','err');return;}
+  const rowEls=[...document.querySelectorAll('#ftRows>[id^="ftRow"]')];
+  const participants=rowEls.map(el=>{
+    const idx=el.id.replace('ftRow','');
+    const name=(document.getElementById('ftName'+idx)?.value||'').trim();
+    const sid=(document.getElementById('ftSid'+idx)?.value||'').trim();
+    const sessions=[...el.querySelectorAll('input[type="checkbox"]:checked')].map(cb=>cb.value);
+    return {name,sid,sessions};
+  }).filter(p=>p.name&&p.sid);
+  if(!participants.length){toast('참여자를 1명 이상 입력해주세요','err');return;}
+  const first=participants[0];
+  if(!first.sessions.length){toast('첫 번째 참여자의 담당 세션을 선택해주세요','err');return;}
+  const allSessions=[...new Set(participants.flatMap(p=>p.sessions))];
+  const btn=document.getElementById('ftSubmitBtn'); btn.disabled=true;
+  try{
+    const {data:songData,error:songErr}=await supabase.from('song_applications').insert({
+      round_id:roundId,title,artist,
+      applicant_name:first.name,student_id:first.sid,
+      sessions:allSessions,status:'confirmed',is_fixed:true
+    }).select().single();
+    if(songErr) throw songErr;
+    const sessInserts=participants.map(p=>({
+      song_id:songData.id,applicant_name:p.name,student_id:p.sid,
+      sessions:p.sessions,status:'confirmed',session_round:1
+    }));
+    const {error:sessErr}=await supabase.from('session_applications').insert(sessInserts);
+    if(sessErr) throw sessErr;
+    toast('완성 팀이 추가됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+
+window.deleteFixedSong=async function(songId){
+  if(!confirm('이 완성 팀을 삭제하시겠습니까?')) return;
+  try{
+    await supabase.from('session_applications').delete().eq('song_id',songId);
+    const {error}=await supabase.from('song_applications').delete().eq('id',songId);
+    if(error) throw error;
+    toast('삭제됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');}
 };
 
 // ── ENSEMBLE DnD MODAL ───────────────────────────────────────────────
