@@ -1530,6 +1530,13 @@ function renderEnsemble(){
     if(!bodyEl) return;
 
     if(r?.mode==='manual'){
+      if(r.phase==='closed'){
+        if(badge){badge.textContent='완료';badge.className='ensemble-phase closed';}
+        bodyEl.innerHTML=`<div class="ensemble-col-ctrl">
+          <button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
+        </div>`;
+        return;
+      }
       if(badge){
         const phL={admin_config:'준비',user_input:'입력 중',review:'검토'}[r.manual_stage_phase||'admin_config']||'진행 중';
         badge.textContent=`수동 ${r.manual_cur_stage||1}단계 — ${phL}`;
