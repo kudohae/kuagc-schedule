@@ -707,9 +707,14 @@ window.submitSong=async function(){
       song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1
     });
     if(sessErr) console.error('신청자 세션 등록 실패:',sessErr.message);
+    songs[currentType]=[...songs[currentType],songData];
+    if(!sessErr){
+      if(!sessionMap[songData.id]) sessionMap[songData.id]=[];
+      sessionMap[songData.id].push({song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1,created_at:songData.created_at||new Date().toISOString()});
+    }
     window.toast('곡 신청이 완료됐습니다','ok');
     _bcChannel?.send({type:'broadcast',event:'songUpdate',payload:{}}).catch(()=>{});
-    await loadAll(true);
+    render();
   }catch(e){window.toast(errMsg(e),'err');}
 };
 
@@ -808,12 +813,15 @@ async function doSubmitSession(songId,r,name,sid,sessions,sessionRound=1){
     }
   }
   try{
-    await supabase.from('session_applications').insert({
+    const {error:insErr}=await supabase.from('session_applications').insert({
       song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending',session_round:sessionRound
     });
+    if(insErr) throw insErr;
+    if(!sessionMap[songId]) sessionMap[songId]=[];
+    sessionMap[songId].push({song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending',session_round:sessionRound,created_at:new Date().toISOString()});
     window.toast('세션 신청이 완료됐습니다','ok');
     _bcChannel?.send({type:'broadcast',event:'songUpdate',payload:{}}).catch(()=>{});
-    window.closeModal?.(); await loadAll(true); return true;
+    window.closeModal?.(); render(); return true;
   }catch(e){window.toast(errMsg(e),'err');return false;}
 }
 
