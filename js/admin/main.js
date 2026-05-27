@@ -267,9 +267,8 @@ function renderSchool(){
   const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date(ts).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   const fS=ts=>ts?fmtSchoolDate(ts):'—';
   const getRoundName=r=>r.name||'스쿨 신청';
-  const nameMatch=(cur.name||'').match(/^(\d+)학기\s*(\d+)차/);
-  const initSem=nameMatch?nameMatch[1]:'';
-  const initRnd=nameMatch?nameMatch[2]:'';
+  const rndMatch=(cur.name||'').match(/(\d+)차/);
+  const initRnd=rndMatch?rndMatch[1]:'';
 
   // ── DRAFT ──
   if(cur.status==='draft'){
@@ -295,8 +294,8 @@ function renderSchool(){
       <div style="padding:14px 16px;display:flex;flex-direction:column;gap:14px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div>
-            <div class="fl">학기(숫자로)</div>
-            <input class="fi" id="scSemester" type="number" min="1" value="${initSem}" placeholder="1"/>
+            <div class="fl">학기</div>
+            <div class="fi" style="background:var(--surface2);color:var(--text2);cursor:default">${semLabel(season)}</div>
           </div>
           <div>
             <div class="fl">회차(숫자로)</div>
@@ -335,12 +334,10 @@ function renderSchool(){
 
     // 이름 미리보기 업데이트
     const upd=()=>{
-      const m=parseInt(document.getElementById('scSemester')?.value)||'m';
       const n=parseInt(document.getElementById('scRoundNum')?.value)||'n';
       const el2=document.getElementById('scNamePreview');
-      if(el2) el2.textContent=`${m}학기 ${n}차 스쿨 신청`;
+      if(el2) el2.textContent=`${semLabel(season)} ${n}차 스쿨 신청`;
     };
-    document.getElementById('scSemester')?.addEventListener('input',upd);
     document.getElementById('scRoundNum')?.addEventListener('input',upd);
     return;
   }
@@ -459,24 +456,26 @@ window.openCreateSchoolRoundModal=function(){
   showModal('새 스쿨 회차 만들기',
     `<div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div><div class="fl">학기(숫자로)</div><input class="fi" id="nSchSem" type="number" min="1" placeholder="1"/></div>
+        <div>
+          <div class="fl">학기</div>
+          <div class="fi" style="background:var(--surface2);color:var(--text2);cursor:default">${semLabel(season)}</div>
+        </div>
         <div><div class="fl">회차(숫자로)</div><input class="fi" id="nSchRnd" type="number" min="1" placeholder="1"/></div>
       </div>
     </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="createSchRoundBtn" onclick="submitCreateSchoolRound()">만들기</button>`
   );
-  setTimeout(()=>document.getElementById('nSchSem')?.focus(),50);
+  setTimeout(()=>document.getElementById('nSchRnd')?.focus(),50);
 };
 window.submitCreateSchoolRound=async function(){
-  const sem=parseInt(document.getElementById('nSchSem')?.value);
   const rnd=parseInt(document.getElementById('nSchRnd')?.value);
-  if(!sem||!rnd){toast('학기와 회차를 입력해주세요','err');return;}
+  if(!rnd){toast('회차를 입력해주세요','err');return;}
   const btn=document.getElementById('createSchRoundBtn');
   if(btn){btn.disabled=true;btn.textContent='생성 중...';}
   try{
     const {error}=await supabase.from('school_rounds').insert({
-      name:`${sem}학기 ${rnd}차 스쿨 신청`,status:'draft'
+      name:`${semLabel(season)} ${rnd}차 스쿨 신청`,status:'draft'
     });
     if(error) throw error;
     closeModal(); toast('회차가 생성됐습니다','ok');
@@ -485,17 +484,16 @@ window.submitCreateSchoolRound=async function(){
 };
 
 window.saveDraftSettings=async function(id){
-  const sem=parseInt(document.getElementById('scSemester')?.value);
   const rnd=parseInt(document.getElementById('scRoundNum')?.value);
   const openAtVal=document.getElementById('scOpenAt')?.value;
   const closeAtVal=document.getElementById('scCloseAt')?.value;
   const priorRet=document.getElementById('scPriorRet')?.checked||false;
-  if(!sem||!rnd){toast('학기와 회차를 입력해주세요','err');return;}
+  if(!rnd){toast('회차를 입력해주세요','err');return;}
   const btn=document.getElementById('scSaveBtn');
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
   try{
     const {error}=await supabase.from('school_rounds').update({
-      name:`${sem}학기 ${rnd}차 스쿨 신청`,
+      name:`${semLabel(season)} ${rnd}차 스쿨 신청`,
       open_at:openAtVal?new Date(openAtVal).toISOString():null,
       close_at:closeAtVal?new Date(closeAtVal).toISOString():null,
       prioritize_returning:priorRet
@@ -527,6 +525,13 @@ function schoolInstrKey(name){
   if(/드럼/.test(name)) return '드럼';
   if(/키보드|건반|피아노/.test(name)) return '키보드';
   return name;
+}
+
+function semLabel(s){
+  if(s==='여름방학') return '여름학기';
+  if(s==='겨울방학') return '겨울학기';
+  const m=(s||'').match(/^(\d+)/);
+  return m?m[1]+'학기':s;
 }
 
 async function adminSchoolClose(id){
