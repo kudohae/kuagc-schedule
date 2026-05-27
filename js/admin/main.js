@@ -29,6 +29,7 @@ function weekLabelWithThis(off){
 
 let weekOff=0, season='1학기';
 let _adminInited=false, _adminChannels=[];
+let _ensBroadcastCh=null;
 let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let pendingAll=[];
@@ -74,6 +75,7 @@ supabase.auth.onAuthStateChange((_event,session)=>{
     showAdminUI();
   } else {
     _adminInited=false;
+    if(_ensBroadcastCh){ supabase.removeChannel(_ensBroadcastCh); _ensBroadcastCh=null; }
     _adminChannels.forEach(ch=>supabase.removeChannel(ch));
     _adminChannels=[];
     document.getElementById('loginWrap').style.display='';
@@ -104,6 +106,8 @@ async function loadAll(){
   await loadEnsemble();
   await loadSchoolData();
   bugReports=await fetchBugReports().catch(()=>[]);
+  if(_ensBroadcastCh){ supabase.removeChannel(_ensBroadcastCh); _ensBroadcastCh=null; }
+  _ensBroadcastCh=supabase.channel('ens-pub').subscribe();
   _adminChannels.forEach(ch=>supabase.removeChannel(ch));
   _adminChannels=[
     supabase.channel('admin-school-rt')
@@ -130,24 +134,19 @@ async function loadAll(){
       .subscribe(),
     supabase.channel('admin-ens-rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},async()=>{
-        await loadEnsemble();
-        renderEnsemble();
+        await ensUpdated();
       })
       .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},async()=>{
-        await loadEnsemble();
-        renderEnsemble();
+        await ensUpdated();
       })
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},async()=>{
-        await loadEnsemble();
-        renderEnsemble();
+        await ensUpdated();
       })
       .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_columns'},async()=>{
-        await loadEnsemble();
-        renderEnsemble();
+        await ensUpdated();
       })
       .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_responses'},async()=>{
-        await loadEnsemble();
-        renderEnsemble();
+        await ensUpdated();
       })
       .subscribe(),
     supabase.channel('admin-schedule-rt')
@@ -1960,7 +1959,7 @@ window.submitAddFixedTeam=async function(roundId,type){
     }));
     const {error:sessErr}=await supabase.from('session_applications').insert(sessInserts);
     if(sessErr) throw sessErr;
-    toast('완성 팀이 추가됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('완성 팀이 추가됐습니다','ok'); closeModal(); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -1970,7 +1969,7 @@ window.deleteFixedSong=async function(songId){
     await supabase.from('session_applications').delete().eq('song_id',songId);
     const {error}=await supabase.from('song_applications').delete().eq('id',songId);
     if(error) throw error;
-    toast('삭제됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('삭제됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1979,12 +1978,12 @@ window.addManualCol=async function(roundId,stageNum){
   const colOrder=(eManualStages[type]?.[stageNum]?.cols||[]).length;
   const {error}=await supabase.from('manual_stage_columns').insert({round_id:roundId,stage_num:stageNum,col_name:'새 열',is_question:true,col_order:colOrder});
   if(error){toast(errMsg(error),'err');return;}
-  await loadEnsemble(); renderEnsemble();
+  await ensUpdated();
 };
 window.deleteManualCol=async function(colId){
   const {error}=await supabase.from('manual_stage_columns').delete().eq('id',colId);
   if(error){toast(errMsg(error),'err');return;}
-  await loadEnsemble(); renderEnsemble();
+  await ensUpdated();
 };
 window.updateManualCol=async function(colId,name){
   if(!name.trim()) return;
@@ -1996,12 +1995,12 @@ window.toggleManualColQuestion=async function(colId,isQ){
 window.startManualUserInput=async function(roundId){
   const {error}=await supabase.from('ensemble_rounds').update({manual_stage_phase:'user_input'}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');return;}
-  toast('유저 입력이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
+  toast('유저 입력이 열렸습니다','ok'); await ensUpdated();
 };
 window.endManualUserInput=async function(roundId){
   const {error}=await supabase.from('ensemble_rounds').update({manual_stage_phase:'review'}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');return;}
-  toast('입력이 마감됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  toast('입력이 마감됐습니다','ok'); await ensUpdated();
 };
 window.toggleManualSheetPublic=async function(roundId,stageNum,isPublic){
   const r=eRounds.regular?.id===roundId?eRounds.regular:eRounds.busking;
@@ -2012,7 +2011,7 @@ window.toggleManualSheetPublic=async function(roundId,stageNum,isPublic){
     :stages.filter(s=>s!==stageNum);
   const {error}=await supabase.from('ensemble_rounds').update({manual_public_stages:newStages}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');}
-  else{toast(isPublic?'시트가 공개됐습니다':'시트가 비공개됐습니다','ok'); await loadEnsemble(); renderEnsemble();}
+  else{toast(isPublic?'시트가 공개됐습니다':'시트가 비공개됐습니다','ok'); await ensUpdated();}
 };
 window.addManualStage=async function(roundId){
   const r=eRounds.regular?.id===roundId?eRounds.regular:eRounds.busking;
@@ -2021,13 +2020,13 @@ window.addManualStage=async function(roundId){
   const {error}=await supabase.from('ensemble_rounds').update({manual_cur_stage:nextStage,manual_stage_phase:'admin_config'}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');return;}
   eManualViewStage[r.type]=nextStage;
-  toast(`${nextStage}단계가 시작됐습니다`,'ok'); await loadEnsemble(); renderEnsemble();
+  toast(`${nextStage}단계가 시작됐습니다`,'ok'); await ensUpdated();
 };
 window.closeManualRound=async function(roundId){
   if(!confirm('이 회차를 종료하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
   const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');return;}
-  toast('회차가 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+  toast('회차가 종료됐습니다','ok'); await ensUpdated();
 };
 window.updateManualCell=async function(respId,colName,value){
   const {data:resp}=await supabase.from('manual_stage_responses').select('data').eq('id',respId).single();
@@ -2039,7 +2038,7 @@ window.deleteManualResp=async function(respId){
   if(!confirm('이 응답을 삭제하시겠습니까?')) return;
   const {error}=await supabase.from('manual_stage_responses').delete().eq('id',respId);
   if(error){toast(errMsg(error),'err');return;}
-  await loadEnsemble(); renderEnsemble();
+  await ensUpdated();
 };
 
 window.switchManualStageTab=function(type,stageNum){
@@ -2455,7 +2454,7 @@ window.confirmEnsembleTeams=async function(){
     localStorage.removeItem(eDndSt.savedKey);
     toast(`${eDndSt.songs.filter(s=>s.slots.length).length}개 팀이 확정됐습니다`,'ok');
     closeEnsDndModal();
-    await loadEnsemble();renderEnsemble();
+    await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2495,6 +2494,12 @@ async function loadEnsemble(){
       }
     }
   }
+}
+
+async function ensUpdated(){
+  await loadEnsemble();
+  renderEnsemble();
+  _ensBroadcastCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
 }
 
 // 회차 생성
@@ -2594,7 +2599,7 @@ window.createManualRound=async function(type){
       max_songs:9999,max_songs_per_person:9999,max_sessions_per_person:9999
     });
     if(error) throw error;
-    toast('수동 회차가 생성됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('수동 회차가 생성됐습니다','ok'); closeModal(); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -2639,7 +2644,7 @@ window.createEnsembleRound=async function(type){
       ...(hasSess2?{session2_mode:sess2Mode,session2_scheduled_at:new Date(sess2OpenVal).toISOString(),session2_close_at:new Date(sess2CloseVal).toISOString()}:{})
     });
     if(error) throw error;
-    toast('회차가 생성됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('회차가 생성됐습니다','ok'); closeModal(); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -2669,7 +2674,7 @@ window.saveRoundSettings=async function(id){
       max_sessions_per_person:parseInt(document.getElementById('eMaxSess').value),
     }).eq('id',id);
     if(error) throw error;
-    toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('저장되었습니다','ok'); closeModal(); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
@@ -2680,7 +2685,7 @@ window.startSongPhaseNow=async function(id){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',id);
     if(error) throw error;
-    toast('곡 신청이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('곡 신청이 열렸습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.startSongEndNow=async function(id){
@@ -2688,14 +2693,14 @@ window.startSongEndNow=async function(id){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'song_end'}).eq('id',id);
     if(error) throw error;
-    toast('곡 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('곡 신청이 종료됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.startSessionPhaseNow=async function(id){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',id);
     if(error) throw error;
-    toast('세션 신청이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('세션 신청이 열렸습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.startSessionEndNow=async function(id){
@@ -2703,7 +2708,7 @@ window.startSessionEndNow=async function(id){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'session_end'}).eq('id',id);
     if(error) throw error;
-    toast('세션 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('세션 신청이 종료됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2722,7 +2727,7 @@ window.revertPhase=async function(type,roundId){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:prev,...(clearOnRevert[prev]||{})}).eq('id',roundId);
     if(error) throw error;
-    toast('이전 단계로 이동했습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('이전 단계로 이동했습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2745,7 +2750,7 @@ window.advanceFromSessionEnd=async function(type,roundId){
     }
     const {error}=await supabase.from('ensemble_rounds').update({phase:next}).eq('id',roundId);
     if(error) throw error;
-    toast(`${label}로 이동했습니다`,'ok'); await loadEnsemble(); renderEnsemble();
+    toast(`${label}로 이동했습니다`,'ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2753,7 +2758,7 @@ window.startSession2PhaseNow=async function(id){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',id);
     if(error) throw error;
-    toast('2차 세션 신청이 열렸습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('2차 세션 신청이 열렸습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2762,7 +2767,7 @@ window.startSession2EndNow=async function(id){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'session2_end'}).eq('id',id);
     if(error) throw error;
-    toast('2차 세션 신청이 종료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('2차 세션 신청이 종료됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2771,7 +2776,7 @@ window.completeRound=async function(id){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',id);
     if(error) throw error;
-    toast('합주 신청이 완료됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('합주 신청이 완료됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2785,7 +2790,7 @@ window.deleteRound=async function(id){
     await supabase.from('manual_stage_columns').delete().eq('round_id',id);
     await supabase.from('manual_stage_responses').delete().eq('round_id',id);
     await supabase.from('ensemble_rounds').delete().eq('id',id);
-    toast('삭제되었습니다'); await loadEnsemble(); renderEnsemble();
+    toast('삭제되었습니다'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2808,7 +2813,7 @@ window.saveEnsSchedule=async function(roundId,field){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({[field]:isoVal}).eq('id',roundId);
     if(error) throw error;
-    toast('저장되었습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+    toast('저장되었습니다','ok'); closeModal(); await ensUpdated();
   }catch(e){toast(errMsg(e),'err'); btn.disabled=false;}
 };
 
@@ -2822,7 +2827,7 @@ window.closeRound=async function(id){
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',id);
     if(error) throw error;
-    toast('닫혔습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('닫혔습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2831,7 +2836,7 @@ window.rejectSong=async function(id){
   try{
     await supabase.from('session_applications').delete().eq('song_id',id);
     await supabase.from('song_applications').delete().eq('id',id);
-    toast('삭제되었습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('삭제되었습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2865,7 +2870,7 @@ window.eDropToSong=async function(event,songId){
   if(app.status==='confirmed') return;
   try{
     await supabase.from('session_applications').update({status:'confirmed'}).eq('id',app.id);
-    toast('배정됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('배정됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 window.eDropToPool=async function(event,el){
@@ -2877,7 +2882,7 @@ window.eDropToPool=async function(event,el){
   if(!app||app.status==='pending') return;
   try{
     await supabase.from('session_applications').update({status:'pending'}).eq('id',app.id);
-    toast('배정이 취소됐습니다','ok'); await loadEnsemble(); renderEnsemble();
+    toast('배정이 취소됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -2893,7 +2898,7 @@ window.confirmAllTeams=async function(type,roundId){
       if(e1) throw e1;
     }
     toast(`${confirmedSongs.length}개 팀이 확정됐습니다`,'ok');
-    await loadEnsemble(); renderEnsemble();
+    await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
