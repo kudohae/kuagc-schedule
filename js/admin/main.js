@@ -1754,7 +1754,9 @@ function renderManualAdminBody(r,type,bodyEl){
     <div class="ens-action-side">
       <button class="btn btn-s btn-xs" onclick="exportManualXlsx('${type}')">📥 XLSX</button>
       <button class="btn btn-s btn-xs" onclick="exportManualPng('${type}')">🖼️ PNG</button>
-      ${!isPublished?`<button class="btn btn-d btn-xs" onclick="closeAndPublishManual(${r.id})">회차 종료 및 팀 공개</button>`:''}
+      ${!isPublished
+        ?`<button class="btn btn-d btn-xs" onclick="closeAndPublishManual(${r.id})">회차 종료 및 팀 공개</button>`
+        :`<button class="btn btn-p btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>`}
     </div>
   </div>`;
 
