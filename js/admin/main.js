@@ -1882,7 +1882,7 @@ window.submitAddFixedTeam=async function(roundId,type){
     }).select().single();
     if(songErr) throw songErr;
     const sessInserts=participants.map(p=>({
-      song_id:songData.id,applicant_name:p.name,student_id:p.sid,
+      song_id:songData.id,round_id:roundId,applicant_name:p.name,student_id:p.sid,
       sessions:p.sessions,status:'confirmed',session_round:1
     }));
     const {error:sessErr}=await supabase.from('session_applications').insert(sessInserts);
