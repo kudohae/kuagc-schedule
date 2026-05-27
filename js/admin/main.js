@@ -2369,36 +2369,100 @@ async function loadEnsemble(){
 window.openCreateRoundModal=function(type){
   const typeName=type==='regular'?'일반 합주':'버스킹 합주';
   const nowPlus=h=>{const d=new Date(Date.now()+h*3600000),pad=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;};
+  const tabStyle=(active)=>`padding:8px 16px;border:none;background:${active?'var(--surface)':'transparent'};color:${active?'var(--text)':'var(--text2)'};font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:${active?'700':'500'};cursor:pointer;border-bottom:2px solid ${active?'var(--accent)':'transparent'};margin-bottom:-1px`;
   showModal(`${typeName} 회차 생성`,
-    `<div><div class="fl">회차 이름</div><input class="fi" id="eName" value="${new Date().getFullYear()} ${typeName}" maxlength="50"/></div>
-     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-       <div><div class="fl">총 최대 곡수</div><input class="fi" id="eMaxS" type="number" value="20" min="1"/></div>
-       <div><div class="fl">인당 곡신청</div><input class="fi" id="eMaxSP" type="number" value="2" min="1"/></div>
-       <div><div class="fl">인당 세션참여</div><input class="fi" id="eMaxSess" type="number" value="3" min="1"/></div>
+    `<div style="display:flex;border-bottom:1px solid var(--border);margin:-4px -20px 16px -20px">
+       <button id="ctabSimple" style="${tabStyle(true)}" onclick="switchRoundCreateTab('simple')">⚡ 간편 진행</button>
+       <button id="ctabManual" style="${tabStyle(false)}" onclick="switchRoundCreateTab('manual')">⚙️ 수동 진행</button>
      </div>
-     <div><div class="fl">🎵 곡 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSongOpen" value="${nowPlus(1)}"/></div>
-     <div><div class="fl">🎵 곡 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSongClose" value="${nowPlus(25)}"/></div>
-     <div><div class="fl">👥 1차 세션 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSessOpen" value="${nowPlus(49)}"/></div>
-     <div><div class="fl">👥 1차 세션 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSessClose" value="${nowPlus(73)}"/></div>
-     <div style="margin-top:10px;border-top:1px solid var(--surface2);padding-top:10px">
-       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-         <input type="checkbox" id="eHasSess2" onchange="toggleSess2Fields()">
-         <span>2차 세션 신청 사용</span>
-       </label>
-     </div>
-     <div id="eSess2Fields" style="display:none">
-       <div style="margin-top:8px"><div class="fl">2차 세션 신청 대상</div>
-         <select class="fs" id="eSess2Mode">
-           <option value="any_song">모든 확정 곡 신청 가능 (1차와 동일)</option>
-           <option value="missing_only">빈 세션만 신청 가능</option>
-         </select>
+     <div id="ctabContentSimple">
+       <div style="background:var(--surface2);border-radius:6px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.8;color:var(--text2)">
+         <div style="font-weight:700;color:var(--text);margin-bottom:6px">현재 시스템의 합주 신청 방식</div>
+         <div><b>1단계 [준비]</b> — 관리자가 회차를 설정하고 곡·세션 신청 일정을 예약합니다. 완성 팀을 미리 추가해 총 곡수 한도에 포함시킬 수 있습니다.</div>
+         <div><b>2단계 [곡 신청]</b> — 학생들이 합주할 곡을 신청합니다. 총 N곡·인당 M곡 제한이 적용됩니다.</div>
+         <div><b>3단계 [대기]</b> — 곡 신청 마감 후 세션 신청 오픈을 기다립니다.</div>
+         <div><b>4단계 [세션 신청]</b> — 학생들이 신청된 곡에 세션으로 참여 신청을 합니다.</div>
+         <div><b>5단계 [팀 구성]</b> — 관리자가 드래그앤드롭으로 세션 신청자를 각 곡에 배정합니다.</div>
+         <div><b>6단계 [완료]</b> — 팀 구성이 완료됩니다.</div>
+         <div style="color:var(--text3);margin-top:4px">※ 2차 세션 신청 사용 시: 5단계 팀 구성 → 6단계 2차 세션 → 7단계 최종 팀 구성 → 8단계 완료</div>
        </div>
-       <div><div class="fl">👥 2차 세션 신청 오픈 일시</div><input class="fi" type="datetime-local" id="eSess2Open" value="${nowPlus(97)}"/></div>
-       <div><div class="fl">👥 2차 세션 신청 마감 일시</div><input class="fi" type="datetime-local" id="eSess2Close" value="${nowPlus(121)}"/></div>
+       <div><div class="fl">회차 이름</div><input class="fi" id="eName" value="${new Date().getFullYear()} ${typeName}" maxlength="50"/></div>
+       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+         <div><div class="fl">총 최대 곡수</div><input class="fi" id="eMaxS" type="number" value="20" min="1"/></div>
+         <div><div class="fl">인당 곡신청</div><input class="fi" id="eMaxSP" type="number" value="2" min="1"/></div>
+         <div><div class="fl">인당 세션참여</div><input class="fi" id="eMaxSess" type="number" value="3" min="1"/></div>
+       </div>
+       <div><div class="fl">🎵 곡 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSongOpen" value="${nowPlus(1)}"/></div>
+       <div><div class="fl">🎵 곡 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSongClose" value="${nowPlus(25)}"/></div>
+       <div><div class="fl">👥 1차 세션 신청 오픈 일시 *</div><input class="fi" type="datetime-local" id="eSessOpen" value="${nowPlus(49)}"/></div>
+       <div><div class="fl">👥 1차 세션 신청 마감 일시 *</div><input class="fi" type="datetime-local" id="eSessClose" value="${nowPlus(73)}"/></div>
+       <div style="margin-top:10px;border-top:1px solid var(--surface2);padding-top:10px">
+         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+           <input type="checkbox" id="eHasSess2" onchange="toggleSess2Fields()">
+           <span>2차 세션 신청 사용</span>
+         </label>
+       </div>
+       <div id="eSess2Fields" style="display:none">
+         <div style="margin-top:8px"><div class="fl">2차 세션 신청 대상</div>
+           <select class="fs" id="eSess2Mode">
+             <option value="any_song">모든 확정 곡 신청 가능 (1차와 동일)</option>
+             <option value="missing_only">빈 세션만 신청 가능</option>
+           </select>
+         </div>
+         <div><div class="fl">👥 2차 세션 신청 오픈 일시</div><input class="fi" type="datetime-local" id="eSess2Open" value="${nowPlus(97)}"/></div>
+         <div><div class="fl">👥 2차 세션 신청 마감 일시</div><input class="fi" type="datetime-local" id="eSess2Close" value="${nowPlus(121)}"/></div>
+       </div>
+     </div>
+     <div id="ctabContentManual" style="display:none">
+       <div style="background:var(--surface2);border-radius:6px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.8;color:var(--text2)">
+         <div style="font-weight:700;color:var(--text);margin-bottom:6px">수동 진행 방식</div>
+         <div>관리자가 각 단계에서 직접 스프레드시트 열(질문 항목)을 설정하고, 유저가 입력한 응답을 실시간으로 확인합니다.</div>
+         <div style="margin-top:6px"><b>1단계 [준비]</b> — 관리자가 스프레드시트 열을 추가하고, 유저에게 보여줄 질문 항목을 선택합니다.</div>
+         <div><b>2단계 [유저 입력]</b> — 유저가 질문에 답합니다. 응답이 실시간으로 스프레드시트에 반영됩니다.</div>
+         <div><b>3단계 [검토]</b> — 관리자가 스프레드시트를 수정하고, "이 시트 공개" 토글로 유저에게 공개할 수 있습니다.</div>
+         <div style="color:var(--text3);margin-top:4px">※ "단계 추가"로 준비→입력→검토 사이클을 무한 반복할 수 있습니다. 곡 수·세션 수 제한이 없습니다.</div>
+       </div>
+       <div><div class="fl">회차 이름</div><input class="fi" id="eManualName" value="${new Date().getFullYear()} ${typeName}" maxlength="50"/></div>
      </div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-p" id="ecBtn" onclick="createRound('${type}')">회차 생성</button>`
+     <button class="btn btn-p" id="ecBtn" onclick="submitRoundCreate('${type}')">회차 생성</button>`
   );
+};
+
+window.switchRoundCreateTab=function(tab){
+  const isSimple=tab==='simple';
+  document.getElementById('ctabSimple').style.fontWeight=isSimple?'700':'500';
+  document.getElementById('ctabSimple').style.color=isSimple?'var(--text)':'var(--text2)';
+  document.getElementById('ctabSimple').style.borderBottomColor=isSimple?'var(--accent)':'transparent';
+  document.getElementById('ctabManual').style.fontWeight=!isSimple?'700':'500';
+  document.getElementById('ctabManual').style.color=!isSimple?'var(--text)':'var(--text2)';
+  document.getElementById('ctabManual').style.borderBottomColor=!isSimple?'var(--accent)':'transparent';
+  document.getElementById('ctabContentSimple').style.display=isSimple?'':'none';
+  document.getElementById('ctabContentManual').style.display=isSimple?'none':'';
+};
+
+window.submitRoundCreate=function(type){
+  const manualTab=document.getElementById('ctabContentManual');
+  if(manualTab&&manualTab.style.display!=='none'){
+    createManualRound(type);
+  } else {
+    createRound(type);
+  }
+};
+
+window.createManualRound=async function(type){
+  const name=(document.getElementById('eManualName')?.value||'').trim();
+  if(!name){toast('이름을 입력해주세요','err');return;}
+  const btn=document.getElementById('ecBtn'); btn.disabled=true;
+  try{
+    const {error}=await supabase.from('ensemble_rounds').insert({
+      type,name,phase:'draft',mode:'manual',
+      manual_cur_stage:1,manual_stage_phase:'admin_config',is_sheet_public:false,
+      max_songs:9999,max_songs_per_person:9999,max_sessions_per_person:9999
+    });
+    if(error) throw error;
+    toast('수동 회차가 생성됐습니다','ok'); closeModal(); await loadEnsemble(); renderEnsemble();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
 
 window.createRound=async function(type){
