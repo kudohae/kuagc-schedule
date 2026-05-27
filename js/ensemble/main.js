@@ -271,14 +271,14 @@ function render(){
         </div>`;
         el.innerHTML=html;
         startCountdown(type,target,async()=>{
-          if(rounds[type]?.id===r.id){rounds[type].phase='song';rounds[type].song_scheduled_at=null;}
-          try{await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id);}catch(e){}
+          if(rounds[type]?.id===r.id&&rounds[type]?.phase==='draft'){rounds[type].phase='song';rounds[type].song_scheduled_at=null;}
+          try{await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id).eq('phase','draft');}catch(e){}
           render();
         });
         return;
       } else {
-        if(rounds[type]?.id===r.id){rounds[type].phase='song';rounds[type].song_scheduled_at=null;}
-        supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id).then(()=>{});
+        if(rounds[type]?.id===r.id&&rounds[type]?.phase==='draft'){rounds[type].phase='song';rounds[type].song_scheduled_at=null;}
+        supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id).eq('phase','draft').then(()=>{});
         render(); return;
       }
     }
@@ -294,8 +294,8 @@ function render(){
   else if(phase==='song'){
     const closeAt=r?.song_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
-      if(rounds[type]?.id===r.id){rounds[type].phase='song_end';rounds[type].song_close_at=null;}
-      supabase.from('ensemble_rounds').update({phase:'song_end',song_close_at:null}).eq('id',r.id).then(()=>{});
+      if(rounds[type]?.id===r.id&&rounds[type]?.phase==='song'){rounds[type].phase='song_end';rounds[type].song_close_at=null;}
+      supabase.from('ensemble_rounds').update({phase:'song_end',song_close_at:null}).eq('id',r.id).eq('phase','song').then(()=>{});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
@@ -310,8 +310,8 @@ function render(){
     </div>`;
     if(closeAt){
       startCountdown(type,closeAt,async()=>{
-        if(rounds[type]?.id===r.id){rounds[type].phase='song_end';rounds[type].song_close_at=null;}
-        const {error}=await supabase.from('ensemble_rounds').update({phase:'song_end',song_close_at:null}).eq('id',r.id);
+        if(rounds[type]?.id===r.id&&rounds[type]?.phase==='song'){rounds[type].phase='song_end';rounds[type].song_close_at=null;}
+        const {error}=await supabase.from('ensemble_rounds').update({phase:'song_end',song_close_at:null}).eq('id',r.id).eq('phase','song');
         if(error) console.error('song→song_end(timer):',error.message);
         render();
       });
@@ -348,8 +348,8 @@ function render(){
   else if(phase==='song_end'){
     const target=r?.session_scheduled_at;
     if(target&&new Date(target)<=new Date()){
-      if(rounds[type]?.id===r.id){rounds[type].phase='session';rounds[type].session_scheduled_at=null;}
-      supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).then(({error})=>{if(error)console.error('song_end→session:',error.message);});
+      if(rounds[type]?.id===r.id&&rounds[type]?.phase==='song_end'){rounds[type].phase='session';rounds[type].session_scheduled_at=null;}
+      supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).eq('phase','song_end').then(({error})=>{if(error)console.error('song_end→session:',error.message);});
       render(); return;
     }
     const diff=target?new Date(target)-Date.now():0;
@@ -363,8 +363,8 @@ function render(){
     </div>`;
     if(target){
       startCountdown(type,target,async()=>{
-        if(rounds[type]?.id===r.id){rounds[type].phase='session';rounds[type].session_scheduled_at=null;}
-        const {error}=await supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id);
+        if(rounds[type]?.id===r.id&&rounds[type]?.phase==='song_end'){rounds[type].phase='session';rounds[type].session_scheduled_at=null;}
+        const {error}=await supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).eq('phase','song_end');
         if(error) console.error('song_end→session(timer):',error.message);
         render();
       });
@@ -374,8 +374,8 @@ function render(){
   else if(phase==='session'){
     const closeAt=r?.session_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
-      if(rounds[type]?.id===r.id){rounds[type].phase='session_end';rounds[type].session_close_at=null;}
-      supabase.from('ensemble_rounds').update({phase:'session_end',session_close_at:null}).eq('id',r.id).then(()=>{});
+      if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session'){rounds[type].phase='session_end';rounds[type].session_close_at=null;}
+      supabase.from('ensemble_rounds').update({phase:'session_end',session_close_at:null}).eq('id',r.id).eq('phase','session').then(()=>{});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
@@ -390,8 +390,8 @@ function render(){
     </div>`;
     if(closeAt){
       startCountdown(type,closeAt,async()=>{
-        if(rounds[type]?.id===r.id){rounds[type].phase='session_end';rounds[type].session_close_at=null;}
-        const {error}=await supabase.from('ensemble_rounds').update({phase:'session_end',session_close_at:null}).eq('id',r.id);
+        if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session'){rounds[type].phase='session_end';rounds[type].session_close_at=null;}
+        const {error}=await supabase.from('ensemble_rounds').update({phase:'session_end',session_close_at:null}).eq('id',r.id).eq('phase','session');
         if(error) console.error('session→session_end(timer):',error.message);
         render();
       });
@@ -440,8 +440,8 @@ function render(){
         const diff=new Date(target)-Date.now();
         html+=`<div class="cd-num cd-open" id="cd-${type}">${diffToHMS(diff)}</div>`;
         startCountdown(type,target,async()=>{
-          if(rounds[type]?.id===r.id){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
-          const {error}=await supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id);
+          if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session_end'){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
+          const {error}=await supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id).eq('phase','session_end');
           if(error) console.error('session_end→session2(timer):',error.message);
           render();
         });
@@ -460,8 +460,8 @@ function render(){
   else if(phase==='session2'){
     const closeAt=r?.session2_close_at;
     if(closeAt&&new Date(closeAt)<=new Date()){
-      if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';rounds[type].session2_close_at=null;}
-      supabase.from('ensemble_rounds').update({phase:'session2_end',session2_close_at:null}).eq('id',r.id).then(()=>{});
+      if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session2'){rounds[type].phase='session2_end';rounds[type].session2_close_at=null;}
+      supabase.from('ensemble_rounds').update({phase:'session2_end',session2_close_at:null}).eq('id',r.id).eq('phase','session2').then(()=>{});
       render(); return;
     }
     const diff=closeAt?new Date(closeAt)-Date.now():0;
@@ -476,8 +476,8 @@ function render(){
     </div>`;
     if(closeAt){
       startCountdown(type,closeAt,async()=>{
-        if(rounds[type]?.id===r.id){rounds[type].phase='session2_end';rounds[type].session2_close_at=null;}
-        const {error}=await supabase.from('ensemble_rounds').update({phase:'session2_end',session2_close_at:null}).eq('id',r.id);
+        if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session2'){rounds[type].phase='session2_end';rounds[type].session2_close_at=null;}
+        const {error}=await supabase.from('ensemble_rounds').update({phase:'session2_end',session2_close_at:null}).eq('id',r.id).eq('phase','session2');
         if(error) console.error('session2→session2_end(timer):',error.message);
         render();
       });

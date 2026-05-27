@@ -34,6 +34,7 @@ let round=null, applications=[];
 let applyPrefs={}, applyTeamId=null, applyTeamName='';
 let taCountdownTimer=null;
 let _rtChannel=null;
+let _lastTaSubmitTs=0;
 
 // ── EXPORTED INIT ─────────────────────────────────────────────────────
 export async function init(outerContainer) {
@@ -92,11 +93,25 @@ export async function init(outerContainer) {
   };
 }
 
+// ── AUTO CLOSE ────────────────────────────────────────────────────────
+async function autoCloseRound(){
+  if(!round||round.status!=='open') return;
+  // Idempotent: only closes if DB row is still 'open'
+  await supabase.from('application_rounds').update({status:'closed'}).eq('id',round.id).eq('status','open');
+  round=await fetchActiveRound(season).catch(()=>round);
+  render();
+}
+
 // ── RENDER ────────────────────────────────────────────────────────────
 function render(){
   if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
   const contentEl=document.getElementById('applyContent');
   if(!contentEl) return;
+
+  // If close_at has passed while status is still 'open', auto-close immediately
+  if(round&&round.status==='open'&&round.close_at&&new Date(round.close_at)<=Date.now()){
+    autoCloseRound(); return;
+  }
 
   const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
   const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
@@ -150,7 +165,7 @@ function render(){
       const d2=new Date(closeTs)-Date.now();
       const el=document.getElementById('ta-close-cd');
       if(el) el.textContent=diffToHMS(d2);
-      if(d2<=0){ clearInterval(taCountdownTimer); taCountdownTimer=null; render(); }
+      if(d2<=0){ clearInterval(taCountdownTimer); taCountdownTimer=null; autoCloseRound(); }
     },1000);
   }
 
@@ -292,13 +307,17 @@ window.onApplyDayChange=function(n){
 
 window.submitApply=async function(){
   const _sched=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
-  if(!round||round.status!=='open'||_sched){window.toast('현재 신청 기간이 아닙니다','err');return;}
+  const _closed=round&&round.close_at&&new Date(round.close_at)<=Date.now();
+  if(!round||round.status!=='open'||_sched||_closed){window.toast('현재 신청 기간이 아닙니다','err');return;}
+  const _now=Date.now();
+  if(_now-_lastTaSubmitTs<3000){window.toast('잠시 후 다시 시도해주세요','err');return;}
   if(!applyTeamId){window.toast('팀을 선택해주세요','err');return;}
   const d1=document.getElementById('apD1')?.value;
   const h1=document.getElementById('apH1')?.value;
   if(!d1||!h1){window.toast('1지망 요일과 시간을 선택해주세요','err');return;}
   const d2=document.getElementById('apD2')?.value, h2=document.getElementById('apH2')?.value;
   const d3=document.getElementById('apD3')?.value, h3=document.getElementById('apH3')?.value;
+  _lastTaSubmitTs=Date.now();
   try{
     await submitApplication({round_id:round.id,team_id:applyTeamId,
       pref1_day:parseInt(d1),pref1_hour:parseInt(h1),
@@ -307,5 +326,5 @@ window.submitApply=async function(){
     applyPrefs={}; applyTeamId=null; applyTeamName='';
     window.toast('신청이 제출됐습니다','ok');
     render();
-  }catch(e){window.toast(errMsg(e),'err');}
+  }catch(e){_lastTaSubmitTs=0;window.toast(errMsg(e),'err');}
 };
