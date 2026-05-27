@@ -11,6 +11,7 @@ let sessionMap = {};
 let searchQ = '';
 let countdownTimers = {};
 let _rtChannel = null;
+let _pollTimer = null;
 let manualStages={regular:{},busking:{}};
 let manualViewStage={regular:null,busking:null};
 
@@ -57,6 +58,7 @@ export async function init(outerContainer) {
       .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_responses'},()=>{loadAll().then(()=>render());})
       .subscribe();
 
+    _pollTimer=setInterval(pollRoundState,5000);
     document.addEventListener('visibilitychange',onVisibilityChange);
 
     // sync type-toggle header buttons
@@ -73,12 +75,36 @@ export async function init(outerContainer) {
   return function destroy(){
     Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
+    if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; }
     document.removeEventListener('visibilitychange',onVisibilityChange);
   };
 }
 
 function onVisibilityChange(){
-  if(!document.hidden&&document.getElementById('mainContainer')) refreshList();
+  if(!document.hidden&&document.getElementById('mainContainer')) loadAll();
+}
+
+async function pollRoundState(){
+  if(document.hidden) return;
+  try{
+    const {data:rds}=await supabase
+      .from('ensemble_rounds')
+      .select('id,type,phase,manual_stage_phase,manual_cur_stage,manual_public_stages')
+      .order('created_at',{ascending:false});
+    if(!rds) return;
+    const newReg=rds.find(r=>r.type==='regular')||null;
+    const newBus=rds.find(r=>r.type==='busking')||null;
+    const changed=
+      newReg?.phase!==rounds.regular?.phase||
+      newReg?.manual_stage_phase!==rounds.regular?.manual_stage_phase||
+      newReg?.manual_cur_stage!==rounds.regular?.manual_cur_stage||
+      JSON.stringify(newReg?.manual_public_stages)!==JSON.stringify(rounds.regular?.manual_public_stages)||
+      newBus?.phase!==rounds.busking?.phase||
+      newBus?.manual_stage_phase!==rounds.busking?.manual_stage_phase||
+      newBus?.manual_cur_stage!==rounds.busking?.manual_cur_stage||
+      JSON.stringify(newBus?.manual_public_stages)!==JSON.stringify(rounds.busking?.manual_public_stages);
+    if(changed) await loadAll();
+  }catch(e){ /* silent — poll errors don't matter */ }
 }
 
 function syncTypeToggle(){
