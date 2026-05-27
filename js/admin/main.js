@@ -1721,7 +1721,7 @@ function _manualStageTableHtml(type,stageNum,cols,resps,isEditable,isDeletable){
       ${resps.length?resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:5px 10px;color:var(--text3);white-space:nowrap;font-size:11px">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
         ${cols.map(c=>`<td style="padding:4px 8px">${isEditable
-          ?`<input class="fi" style="padding:3px 7px;font-size:12px;margin:0;min-width:80px" value="${esc(resp.data[c.col_name]||'')}" onblur="updateManualCell(${resp.id},'${esc(c.col_name)}',this.value)"/>`
+          ?`<input class="fi" style="padding:3px 7px;font-size:12px;margin:0;min-width:80px" value="${esc(resp.data[c.col_name]||'')}" onblur="updateManualCell(${resp.id},${JSON.stringify(c.col_name)},this.value)"/>`
           :`<span>${esc(resp.data[c.col_name]||'')}</span>`
         }</td>`).join('')}
         ${isDeletable?`<td style="padding:4px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualResp(${resp.id})">✕</button></td>`:''}
@@ -2757,6 +2757,12 @@ window.completeRound=async function(id){
 window.deleteRound=async function(id){
   if(!confirm('이 회차(준비 중)를 삭제할까요?')) return;
   try{
+    const {data:songs}=await supabase.from('song_applications').select('id').eq('round_id',id);
+    const songIds=(songs||[]).map(s=>s.id);
+    if(songIds.length) await supabase.from('session_applications').delete().in('song_id',songIds);
+    await supabase.from('song_applications').delete().eq('round_id',id);
+    await supabase.from('manual_stage_columns').delete().eq('round_id',id);
+    await supabase.from('manual_stage_responses').delete().eq('round_id',id);
     await supabase.from('ensemble_rounds').delete().eq('id',id);
     toast('삭제되었습니다'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
@@ -2802,7 +2808,8 @@ window.closeRound=async function(id){
 window.rejectSong=async function(id){
   if(!confirm('이 곡을 삭제할까요?')) return;
   try{
-    await supabase.from('song_applications').update({status:'rejected'}).eq('id',id);
+    await supabase.from('session_applications').delete().eq('song_id',id);
+    await supabase.from('song_applications').delete().eq('id',id);
     toast('삭제되었습니다','ok'); await loadEnsemble(); renderEnsemble();
   }catch(e){toast(errMsg(e),'err');}
 };
