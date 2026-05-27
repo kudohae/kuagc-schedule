@@ -119,6 +119,8 @@ function syncTypeToggle(){
 }
 
 let _refreshGen = 0;
+const _pendingSongs = new Map();    // id → songData (expires 5s after insert)
+const _pendingSessApps = new Map(); // `${songId}_${sid}_${round}` → sessAppData
 
 async function refreshList(){
   const gen = ++_refreshGen;
@@ -128,6 +130,10 @@ async function refreshList(){
     const {data:s}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
     if(gen!==_refreshGen) return;
     songs[type]=s||[];
+    // Keep any locally-inserted songs that DB hasn't replicated yet
+    for(const [id,pending] of _pendingSongs){
+      if(pending.round_id===r.id&&!songs[type].find(x=>x.id===id)) songs[type].push(pending);
+    }
   }
   const allIds=[...songs.regular,...songs.busking].map(s=>s.id);
   const newMap={};
@@ -138,6 +144,12 @@ async function refreshList(){
   }
   if(gen!==_refreshGen) return;
   sessionMap=newMap;
+  // Keep any locally-inserted session apps that DB hasn't replicated yet
+  for(const [,pending] of _pendingSessApps){
+    if(!sessionMap[pending.song_id]) sessionMap[pending.song_id]=[];
+    if(!sessionMap[pending.song_id].find(x=>x.student_id===pending.student_id&&(x.session_round||1)===(pending.session_round||1)))
+      sessionMap[pending.song_id].push(pending);
+  }
   renderList();
 }
 
@@ -707,10 +719,16 @@ window.submitSong=async function(){
       song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1
     });
     if(sessErr) console.error('신청자 세션 등록 실패:',sessErr.message);
+    _pendingSongs.set(songData.id, songData);
+    setTimeout(()=>_pendingSongs.delete(songData.id), 5000);
     songs[currentType]=[...songs[currentType],songData];
     if(!sessErr){
+      const sk=`${songData.id}_${sid}_1`;
+      const sa={song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1,created_at:songData.created_at||new Date().toISOString()};
+      _pendingSessApps.set(sk,sa);
+      setTimeout(()=>_pendingSessApps.delete(sk),5000);
       if(!sessionMap[songData.id]) sessionMap[songData.id]=[];
-      sessionMap[songData.id].push({song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1,created_at:songData.created_at||new Date().toISOString()});
+      sessionMap[songData.id].push(sa);
     }
     window.toast('곡 신청이 완료됐습니다','ok');
     _bcChannel?.send({type:'broadcast',event:'songUpdate',payload:{}}).catch(()=>{});
@@ -817,8 +835,12 @@ async function doSubmitSession(songId,r,name,sid,sessions,sessionRound=1){
       song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending',session_round:sessionRound
     });
     if(insErr) throw insErr;
+    const sk=`${songId}_${sid}_${sessionRound}`;
+    const sa={song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending',session_round:sessionRound,created_at:new Date().toISOString()};
+    _pendingSessApps.set(sk,sa);
+    setTimeout(()=>_pendingSessApps.delete(sk),5000);
     if(!sessionMap[songId]) sessionMap[songId]=[];
-    sessionMap[songId].push({song_id:songId,round_id:r.id,applicant_name:name,student_id:sid,sessions,status:'pending',session_round:sessionRound,created_at:new Date().toISOString()});
+    sessionMap[songId].push(sa);
     window.toast('세션 신청이 완료됐습니다','ok');
     _bcChannel?.send({type:'broadcast',event:'songUpdate',payload:{}}).catch(()=>{});
     window.closeModal?.(); render(); return true;
