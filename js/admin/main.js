@@ -107,7 +107,9 @@ async function loadAll(){
   await loadSchoolData();
   bugReports=await fetchBugReports().catch(()=>[]);
   if(_ensBroadcastCh){ supabase.removeChannel(_ensBroadcastCh); _ensBroadcastCh=null; }
-  _ensBroadcastCh=supabase.channel('ens-pub').subscribe();
+  _ensBroadcastCh=supabase.channel('ens-pub')
+    .on('broadcast',{event:'songUpdate'},async()=>{ await loadEnsemble(); renderEnsemble(); })
+    .subscribe();
   _adminChannels.forEach(ch=>supabase.removeChannel(ch));
   _adminChannels=[
     supabase.channel('admin-school-rt')
