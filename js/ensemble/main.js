@@ -709,7 +709,7 @@ window.submitSong=async function(){
     if(sessErr) console.error('신청자 세션 등록 실패:',sessErr.message);
     window.toast('곡 신청이 완료됐습니다','ok');
     _bcChannel?.send({type:'broadcast',event:'songUpdate',payload:{}}).catch(()=>{});
-    await loadAll();
+    await loadAll(true);
   }catch(e){window.toast(errMsg(e),'err');}
 };
 
@@ -813,7 +813,7 @@ async function doSubmitSession(songId,r,name,sid,sessions,sessionRound=1){
     });
     window.toast('세션 신청이 완료됐습니다','ok');
     _bcChannel?.send({type:'broadcast',event:'songUpdate',payload:{}}).catch(()=>{});
-    window.closeModal?.(); await loadAll(); return true;
+    window.closeModal?.(); await loadAll(true); return true;
   }catch(e){window.toast(errMsg(e),'err');return false;}
 }
 
