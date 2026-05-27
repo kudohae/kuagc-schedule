@@ -11,6 +11,8 @@ let sessionMap = {};
 let searchQ = '';
 let countdownTimers = {};
 let _rtChannel = null;
+let manualCols={regular:[],busking:[]};
+let manualResps={regular:[],busking:[]};
 
 function fmtTime(ts){
   if(!ts) return '';
@@ -51,6 +53,8 @@ export async function init(outerContainer) {
       .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},loadAll)
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_columns'},loadAll)
+      .on('postgres_changes',{event:'*',schema:'public',table:'manual_stage_responses'},()=>{loadAll().then(()=>render());})
       .subscribe();
 
     document.addEventListener('visibilitychange',onVisibilityChange);
@@ -112,6 +116,18 @@ async function loadAll(){
     rounds.busking=rds.find(r=>r.type==='busking')||null;
   }
   await refreshList();
+  for(const type of ['regular','busking']){
+    const r=rounds[type];
+    if(r?.mode==='manual'&&r.phase!=='closed'){
+      const stageNum=r.manual_cur_stage||1;
+      const {data:cols}=await supabase.from('manual_stage_columns').select('*').eq('round_id',r.id).eq('stage_num',stageNum).order('col_order');
+      manualCols[type]=cols||[];
+      if(r.manual_stage_phase==='review'&&r.is_sheet_public){
+        const {data:resps}=await supabase.from('manual_stage_responses').select('*').eq('round_id',r.id).eq('stage_num',stageNum).order('created_at');
+        manualResps[type]=resps||[];
+      }else{manualResps[type]=[];}
+    }else{manualCols[type]=[];manualResps[type]=[];}
+  }
   render();
 }
 
@@ -164,6 +180,13 @@ function render(){
     <input class="search-input" id="searchInput" placeholder="곡 제목 또는 세션으로 검색..." value="${searchQ}" oninput="onSearchInput(this.value)"/>
     <button class="search-clear" onclick="clearSearch()" style="${searchQ?'':'display:none'}">×</button>
   </div>`;
+
+  if(r?.mode==='manual'){
+    html+=renderManualPublicHtml(r,type);
+    html+=`<div id="songListEl"></div>`;
+    el.innerHTML=html;
+    return;
+  }
 
   if(phase==='draft'){
     const target=r?.song_scheduled_at;
@@ -762,3 +785,71 @@ function showModal(title,body,foot){
     modal.addEventListener('touchend',onEnd);
   }
 }
+
+function renderManualPublicHtml(r,type){
+  const phase=r.manual_stage_phase||'admin_config';
+  const stageNum=r.manual_cur_stage||1;
+  const typeName=type==='regular'?'일반 합주':'버스킹 합주';
+  if(r.phase==='closed'){
+    return `<div class="status-card closed"><div class="status-icon">✅</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — 완료됐습니다</div></div></div>`;
+  }
+  if(phase==='admin_config'){
+    return `<div class="status-card closed"><div class="status-icon">⏳</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)}</div><div class="status-sub">${stageNum}단계 준비 중입니다. 잠시 기다려주세요.</div></div></div>`;
+  }
+  if(phase==='user_input'){
+    const cols=manualCols[type]||[];
+    const qCols=cols.filter(c=>c.is_question);
+    if(!qCols.length){
+      return `<div class="status-card session"><div class="status-icon">📝</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — ${stageNum}단계 입력 중</div><div class="status-sub">관리자가 입력 항목을 준비하고 있습니다.</div></div></div>`;
+    }
+    return `<div class="status-card session"><div class="status-icon">📝</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — ${stageNum}단계 입력</div><div class="status-sub">아래 폼을 작성해 제출해주세요.</div></div></div>
+    <div class="form-card">
+      <div class="form-title">${stageNum}단계 입력 폼</div>
+      ${qCols.map(c=>`<div style="margin-bottom:10px"><div class="fl">${esc(c.col_name)} *</div><input class="fi" id="mf_${c.id}" placeholder="${esc(c.col_name)}"/></div>`).join('')}
+      <div class="form-footer"><button class="btn btn-p" onclick="submitManualForm(${r.id},${stageNum})">제출</button></div>
+    </div>`;
+  }
+  if(phase==='review'){
+    if(!r.is_sheet_public){
+      return `<div class="status-card closed"><div class="status-icon">⏸️</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)}</div><div class="status-sub">${stageNum}단계가 마감됐습니다. 관리자가 검토 중입니다.</div></div></div>`;
+    }
+    const cols=manualCols[type]||[];
+    const resps=manualResps[type]||[];
+    return `<div class="status-card closed"><div class="status-icon">📋</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — ${stageNum}단계 결과</div></div></div>
+    <div class="list-card" style="overflow-x:auto">
+      <div class="list-card-hdr"><div class="list-card-title">${stageNum}단계 입력 결과</div><div class="list-card-count">${resps.length}건</div></div>
+      ${resps.length?`<table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="border-bottom:1px solid var(--border);background:var(--surface2)">
+          <th style="padding:7px 12px;text-align:left;font-size:11px;color:var(--text3)">타임스탬프</th>
+          ${cols.map(c=>`<th style="padding:7px 12px;text-align:left;font-weight:700">${esc(c.col_name)}</th>`).join('')}
+        </tr></thead>
+        <tbody>
+          ${resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:7px 12px;font-size:11px;color:var(--text3);white-space:nowrap">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
+            ${cols.map(c=>`<td style="padding:7px 12px">${esc(resp.data[c.col_name]||'')}</td>`).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table>`:`<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">아직 제출된 내용이 없습니다</div>`}
+    </div>`;
+  }
+  return '';
+}
+
+window.submitManualForm=async function(roundId,stageNum){
+  const r=rounds[currentType];
+  if(!r||r.id!==roundId){window.toast('잘못된 회차입니다','err');return;}
+  const cols=manualCols[currentType]||[];
+  const qCols=cols.filter(c=>c.is_question);
+  const data={};
+  for(const c of qCols){
+    const val=(document.getElementById('mf_'+c.id)?.value||'').trim();
+    data[c.col_name]=val;
+  }
+  if(qCols.some(c=>!data[c.col_name])){window.toast('모든 항목을 입력해주세요','err');return;}
+  try{
+    const {error}=await supabase.from('manual_stage_responses').insert({round_id:roundId,stage_num:stageNum,data});
+    if(error) throw error;
+    window.toast('제출됐습니다','ok');
+    await loadAll(); render();
+  }catch(e){window.toast(errMsg(e),'err');}
+};
