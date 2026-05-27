@@ -1,4 +1,3 @@
-import { isAdmin } from '../auth.js';
 import { initRouter } from '../router.js';
 import {
   getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
@@ -34,6 +33,7 @@ let merged=[];
 let activeRound=null, activeEnsemble=null, activeSchoolRound=null;
 let collapsed=new Set();
 let mobileDayIdx=(new Date().getDay()+6)%7; // 모바일 선택 요일 (기본=오늘)
+let _lastClaimTs=0, _lastAbsenceTs=0, _lastVacancyTs=0;
 const isMobile=()=>window.innerWidth<=700;
 
 async function init(){
@@ -342,6 +342,9 @@ window.openAbsenceModal=function(slotId,day,hour,teamId,label){
 window.submitAbsence=async function(teamId,day,hour){
   const reason=document.getElementById('absReason').value.trim();
   if(!reason){toast('사유를 입력해주세요','err');return;}
+  const _now=Date.now();
+  if(_now-_lastAbsenceTs<3000){toast('잠시 후 다시 시도해주세요','err');return;}
+  _lastAbsenceTs=_now;
   const btn=document.getElementById('absBtn'); btn.disabled=true; btn.textContent='제출 중...';
   const t=teams.find(t=>t.id===teamId);
   try{
@@ -443,6 +446,9 @@ window.openVacancyReportModal=function(){
   );
 };
 window.submitVacancyReport=async function(){
+  const _now=Date.now();
+  if(_now-_lastVacancyTs<5000){toast('잠시 후 다시 시도해주세요','err');return;}
+  _lastVacancyTs=_now;
   const mo=parseInt(document.getElementById('vrMonth').value);
   const d=parseInt(document.getElementById('vrDay').value);
   const hh=parseInt(document.getElementById('vrHour').value);
@@ -473,7 +479,8 @@ window.cancelRequest=async function(reqId){
   const btn=document.getElementById('cancelBtn'); btn.disabled=true; btn.textContent='취소 중...';
   try{
     const {supabase}=await import('../supabase.js');
-    await supabase.from('requests').delete().eq('id',reqId);
+    // Only delete if still pending — prevents TOCTOU race on approved requests
+    await supabase.from('requests').delete().eq('id',reqId).eq('status','pending');
     requests=requests.filter(r=>r.id!==reqId);
     closeModal(); toast('신청이 취소됐습니다'); renderStats(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 취소';}
@@ -481,6 +488,9 @@ window.cancelRequest=async function(reqId){
 window.submitClaim=async function(day,hour){
   const reason=document.getElementById('clReason').value.trim();
   if(!reason){toast('사유를 입력해주세요','err');return;}
+  const _now=Date.now();
+  if(_now-_lastClaimTs<3000){toast('잠시 후 다시 시도해주세요','err');return;}
+  _lastClaimTs=_now;
   const btn=document.getElementById('clBtn'); btn.disabled=true; btn.textContent='제출 중...';
   try{
     await createRequest({type:'extra',team_id:parseInt(document.getElementById('clTeam').value),day,hour,week_offset:weekOff,reason,requester_name:document.getElementById('clName').value.trim()});

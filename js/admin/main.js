@@ -577,7 +577,29 @@ async function adminSchoolClose(id){
     const instrColor=Object.fromEntries(uniqueInstrs.map((k,i)=>[k,COLORS[i%COLORS.length]]));
     let added=0;
     for(const cls of closeClasses){
-      if(teams.find(t=>t.name===cls.name&&t.type==='스쿨')) continue;
+      const existingTeam=teams.find(t=>t.name===cls.name&&t.type==='스쿨');
+      if(existingTeam){
+        // Sync teacher name to info field if changed
+        if((existingTeam.info||'')!==(cls.teacher_name||'')){
+          await updateTeam(existingTeam.id,{info:cls.teacher_name||''}).catch(()=>{});
+          existingTeam.info=cls.teacher_name||'';
+        }
+        // Sync schedule slot for this season
+        if(cls.schedule_day&&cls.schedule_hour!=null){
+          const dayIdx=dayMap[cls.schedule_day];
+          if(dayIdx!==undefined){
+            const existingSlot=baseSlots.find(s=>s.team_id===existingTeam.id&&s.season===season);
+            if(!existingSlot){
+              const newSlot=await createBaseSlot({team_id:existingTeam.id,day:dayIdx,hour:cls.schedule_hour,season}).catch(()=>null);
+              if(newSlot) baseSlots.push(newSlot);
+            } else if(existingSlot.day!==dayIdx||existingSlot.hour!==cls.schedule_hour){
+              await updateBaseSlot(existingSlot.id,{day:dayIdx,hour:cls.schedule_hour}).catch(()=>{});
+              existingSlot.day=dayIdx; existingSlot.hour=cls.schedule_hour;
+            }
+          }
+        }
+        continue;
+      }
       const color=instrColor[schoolInstrKey(cls.name)];
       const newTeam=await createTeam({name:cls.name,type:'스쿨',color,info:cls.teacher_name||'',members:[]});
       teams.push(newTeam);

@@ -348,85 +348,10 @@ export async function deleteContact(id) {
   if (error) throw error;
 }
 
-// ─── SCHOOL ROUNDS ───────────────────────────────────────────────────
-export async function fetchSchoolRounds() {
-  const { data, error } = await supabase.from('school_rounds')
-    .select('*').order('created_at', { ascending: false });
-  if (error) throw error;
-  return data;
-}
-export async function createSchoolRound(fields = {}) {
-  const { data, error } = await supabase.from('school_rounds')
-    .insert({ status: 'draft', ...fields }).select().single();
-  if (error) throw error;
-  return data;
-}
-export async function updateSchoolRound(id, fields) {
-  const { data, error } = await supabase.from('school_rounds')
-    .update(fields).eq('id', id).select().single();
-  if (error) throw error;
-  return data;
-}
-export async function fetchActiveSchoolRound() {
-  const { data } = await supabase.from('school_rounds')
-    .select('*').eq('status', 'open')
-    .order('created_at', { ascending: false })
-    .limit(1).maybeSingle();
-  return data;
-}
-
-// ─── SCHOOLS ─────────────────────────────────────────────────────────
-export async function fetchSchools(roundId = null) {
-  let q = supabase.from('schools').select('*').order('created_at');
-  if (roundId != null) q = q.eq('round_id', roundId);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data;
-}
-export async function createSchool({ name, teacher_name, capacity, description = '', round_id }) {
-  const { data, error } = await supabase.from('schools')
-    .insert({ name, teacher_name, capacity, description, round_id })
-    .select().single();
-  if (error) throw error;
-  return data;
-}
-export async function updateSchool(id, fields) {
-  const { data, error } = await supabase.from('schools').update(fields).eq('id', id).select().single();
-  if (error) throw error;
-  return data;
-}
-export async function deleteSchool(id) {
-  const { error } = await supabase.from('schools').delete().eq('id', id);
-  if (error) throw error;
-}
-
-// ─── SCHOOL APPLICATIONS ─────────────────────────────────────────────
-export async function fetchSchoolApplications(schoolId) {
-  const { data, error } = await supabase.from('school_applications')
-    .select('*').eq('school_id', schoolId).order('created_at');
-  if (error) throw error;
-  return data;
-}
-export async function fetchAllSchoolApplications() {
-  const { data, error } = await supabase.from('school_applications')
-    .select('*').order('created_at');
-  if (error) throw error;
-  return data;
-}
-export async function adminDeleteSchoolApp(id) {
-  const { data: app, error: fe } = await supabase.from('school_applications')
-    .select('*').eq('id', id).single();
-  if (fe) throw fe;
-  const wasNormal = app.status === 'normal';
-  const { error } = await supabase.from('school_applications').delete().eq('id', id);
-  if (error) throw error;
-  if (wasNormal) {
-    const { data: first } = await supabase.from('school_applications')
-      .select('*').eq('school_id', app.school_id).eq('status', 'waitlist')
-      .order('created_at').limit(1).maybeSingle();
-    if (first) await supabase.from('school_applications').update({ status: 'normal' }).eq('id', first.id);
-  }
-}
+// ─── SCHOOL ───────────────────────────────────────────────────────────
+// All school operations (school_rounds, schools, school_applications)
+// are handled via direct supabase queries in js/school/main.js and
+// js/admin/main.js. No schedule.js wrappers are needed or imported.
 
 // ─── VACANCY REPORTS ─────────────────────────────────────────────────
 export async function fetchVacancyReports() {

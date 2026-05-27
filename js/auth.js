@@ -1,7 +1,7 @@
 // js/auth.js
-// ── 관리자 인증 ──────────────────────────────────────────────────────
-// Supabase Auth를 쓰지 않고, app_config 테이블의 admin_password와 비교.
-// 세션은 sessionStorage에 저장 (탭 닫으면 로그아웃).
+// ── 레거시 관리자 인증 (현재 미사용) ─────────────────────────────────
+// admin.html은 Supabase Auth(이메일 로그인)로 전환됐으므로 이 파일은
+// 더 이상 임포트되지 않습니다. 삭제 전 참조용으로 보존합니다.
 
 import { supabase } from './supabase.js';
 
