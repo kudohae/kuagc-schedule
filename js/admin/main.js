@@ -1532,8 +1532,9 @@ function renderEnsemble(){
     if(r?.mode==='manual'){
       if(r.phase==='closed'){
         if(badge){badge.textContent='완료';badge.className='ensemble-phase closed';}
-        bodyEl.innerHTML=`<div class="ensemble-col-ctrl">
-          <button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
+        bodyEl.innerHTML=`<div class="ens-empty">
+          <div class="ens-empty-txt">회차가 종료됐습니다</div>
+          <button class="btn btn-p" onclick="openCreateRoundModal('${type}')">+ 새 회차 생성</button>
         </div>`;
         return;
       }
@@ -1546,79 +1547,93 @@ function renderEnsemble(){
       return;
     }
 
-    let ctrl='';
+    // ── No round: empty state ──────────────────────────────────────────
     if(!r){
-      ctrl=`<button class="btn btn-p btn-xs" onclick="openCreateRoundModal('${type}')">회차 생성</button>`;
-    } else if(phase==='draft'){
-      ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
-            <button class="btn btn-p btn-xs" onclick="startSongPhaseNow(${r.id})">곡 신청 즉시 열기</button>
-            <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">삭제</button>`;
+      bodyEl.innerHTML=`<div class="ens-empty">
+        <div class="ens-empty-txt">진행 중인 회차가 없습니다</div>
+        <button class="btn btn-p" onclick="openCreateRoundModal('${type}')">+ 새 회차 생성</button>
+      </div>`;
+      return;
+    }
+
+    // ── Build action bar (primary left / danger right) ─────────────────
+    const fS=ts=>ts?fmtScheduled(ts):'—';
+    const now2=Date.now();
+    const schedFieldMap={
+      draft:       [{field:'song_scheduled_at',     label:'곡 신청 오픈',  icon:'🕐'}],
+      song:        [{field:'song_close_at',          label:'곡 신청 마감',  icon:'⏰'}],
+      song_end:    [{field:'session_scheduled_at',  label:'세션 신청 오픈',icon:'🕐'}],
+      session:     [{field:'session_close_at',       label:'세션 신청 마감',icon:'⏰'}],
+      session_end: hasSess2?[{field:'session2_scheduled_at',label:'2차 세션 오픈',icon:'🕐'}]:[],
+      session2:    [{field:'session2_close_at',      label:'2차 세션 마감', icon:'⏰'}],
+    };
+
+    let mainBtns='',sideBtns='';
+    if(phase==='draft'){
+      mainBtns=`<button class="btn btn-p btn-xs" onclick="startSongPhaseNow(${r.id})">곡 신청 열기</button>
+                <button class="btn btn-s btn-xs" onclick="openAddFixedTeamModal(${r.id},'${type}')">+ 완성 팀 추가</button>`;
+      sideBtns=`<button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>`;
     } else if(phase==='song'){
-      ctrl=`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>
-            <button class="btn btn-p btn-xs" onclick="startSongEndNow(${r.id})">곡 신청 종료</button>
-            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
-            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+      mainBtns=`<button class="btn btn-p btn-xs" onclick="startSongEndNow(${r.id})">곡 신청 종료</button>`;
+      sideBtns=`<button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
+                <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='song_end'){
-      ctrl=`<button class="btn btn-p btn-xs" onclick="startSessionPhaseNow(${r.id})">세션 신청 즉시 열기</button>
-            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
-            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+      mainBtns=`<button class="btn btn-p btn-xs" onclick="startSessionPhaseNow(${r.id})">세션 신청 열기</button>`;
+      sideBtns=`<button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
+                <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session'){
-      ctrl=`<button class="btn btn-p btn-xs" onclick="startSessionEndNow(${r.id})">세션 신청 종료</button>
-            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
-            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+      mainBtns=`<button class="btn btn-p btn-xs" onclick="startSessionEndNow(${r.id})">세션 신청 종료</button>`;
+      sideBtns=`<button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
+                <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session_end'){
       const allSessApps=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
       const sess1DndDone=allSessApps.length===0||allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
       const advLabel=r.has_session2?'2차 세션 신청으로':'완료';
-      ctrl=`${sess1DndDone?`<button class="btn btn-p btn-xs" onclick="advanceFromSessionEnd('${type}',${r.id})">${advLabel}</button>`:''}
-            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
-            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+      mainBtns=sess1DndDone?`<button class="btn btn-p btn-xs" onclick="advanceFromSessionEnd('${type}',${r.id})">${advLabel}</button>`:'';
+      sideBtns=`<button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
+                <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session2'){
-      ctrl=`<button class="btn btn-p btn-xs" onclick="startSession2EndNow(${r.id})">2차 세션 신청 종료</button>
-            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
-            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+      mainBtns=`<button class="btn btn-p btn-xs" onclick="startSession2EndNow(${r.id})">2차 세션 신청 종료</button>`;
+      sideBtns=`<button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
+                <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='session2_end'){
       const allSessApps2=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
       const sess2Apps=allSessApps2.filter(a=>(a.session_round||1)===2);
       const sess2DndDone=sess2Apps.length===0||sess2Apps.some(a=>a.status==='confirmed'||a.status==='rejected');
-      ctrl=`${sess2DndDone?`<button class="btn btn-p btn-xs" onclick="completeRound(${r.id})">완료</button>`:''}
-            <button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
-            <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
+      mainBtns=sess2DndDone?`<button class="btn btn-p btn-xs" onclick="completeRound(${r.id})">완료</button>`:'';
+      sideBtns=`<button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
+                <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='closed'){
-      ctrl=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
-            <button class="btn btn-s btn-xs" onclick="exportEnsembleXlsx('${type}')">📥 엑셀로 내보내기</button>`;
+      mainBtns=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
+                <button class="btn btn-s btn-xs" onclick="exportEnsembleXlsx('${type}')">📥 엑셀로 내보내기</button>`;
     }
 
-    const fS=ts=>ts?fmtScheduled(ts):'—';
-    const now2=Date.now();
-    const schedFieldMap={
-      draft:       [{field:'song_scheduled_at',     label:'곡 신청 오픈',     icon:'🕐'}],
-      song:        [{field:'song_close_at',          label:'곡 신청 마감',     icon:'⏰'}],
-      song_end:    [{field:'session_scheduled_at',  label:'1차 세션 신청 오픈',icon:'🕐'}],
-      session:     [{field:'session_close_at',       label:'1차 세션 신청 마감',icon:'⏰'}],
-      session_end: hasSess2?[{field:'session2_scheduled_at',label:'2차 세션 신청 오픈',icon:'🕐'}]:[],
-      session2:    [{field:'session2_close_at',      label:'2차 세션 신청 마감',icon:'⏰'}],
-    };
-    const schedRows=(r&&schedFieldMap[phase]||[]).map(({field,label,icon})=>{
+    // Schedule chip (inline in action bar; only show if not yet passed)
+    let schedChip='';
+    const sFields=schedFieldMap[phase]||[];
+    if(sFields.length){
+      const {field,label,icon}=sFields[0];
       const ts=r[field];
       const isFuture=ts&&new Date(ts)>now2;
-      const addFixedBtn=(phase==='draft'&&field==='song_scheduled_at')
-        ?`<button class="btn btn-s" style="padding:1px 7px;font-size:10px;line-height:1.6" onclick="openAddFixedTeamModal(${r.id},'${type}')">완성 팀 추가</button>`
-        :'';
-      if(ts&&!isFuture){
-        if(addFixedBtn) return `<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${addFixedBtn}</div>`;
-        return '';
+      if(!ts||isFuture){
+        const tsArg=ts?`'${ts}'`:'null';
+        schedChip=`<span class="ens-sched-chip">${icon} ${label}: ${isFuture?`<b style="color:var(--accent2)">${fS(ts)}</b>`:'<span style="opacity:.55">미설정</span>'}<button class="btn btn-s" style="padding:0 5px;font-size:10px;line-height:1.7;margin-left:3px" onclick="openSetScheduleModal(${r.id},'${field}','${label}',${tsArg})">변경</button></span>`;
       }
-      const tsArg=ts?`'${ts}'`:'null';
-      return `<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-        <span>${icon} ${label}:</span>
-        ${isFuture?`<span style="color:var(--accent2)">${fS(ts)}</span>`:`<span style="color:var(--text3)">미설정</span>`}
-        <button class="btn btn-s" style="padding:1px 7px;font-size:10px;line-height:1.6" onclick="openSetScheduleModal(${r.id},'${field}','${label}',${tsArg})">변경</button>
-        ${addFixedBtn}
-      </div>`;
-    }).join('');
-    const meta=r?`<div class="ensemble-col-meta">총 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡 · 세션 ${r.max_sessions_per_person}곡</div>${schedRows}`:'';
-    const ctrlHtml=`<div class="ensemble-col-ctrl">${ctrl}</div>`;
+    }
+
+    // Round header: name + limits + settings
+    const settingsBtn=phase!=='closed'?`<button class="btn btn-s btn-xs" onclick="openEditRoundModal(${r.id})">설정</button>`:'';
+    const roundHdr=`<div class="ens-round-hdr">
+      <span class="ens-round-name">${esc(r.name)}</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="ens-round-limits">총 ${r.max_songs}곡 · 인당 ${r.max_songs_per_person}곡</span>
+        ${settingsBtn}
+      </div>
+    </div>`;
+    const actionBar=`<div class="ens-action-bar">
+      <div class="ens-action-main">${mainBtns}${schedChip}</div>
+      ${sideBtns?`<div class="ens-action-side">${sideBtns}</div>`:''}
+    </div>`;
 
     const mkConfirmedSongHtml=(songList2,showDndBtn,dndBtnLabel='팀 구성 시작')=>{
       const confSongs=songList2.filter(s=>s.status!=='rejected');
@@ -1682,11 +1697,11 @@ function renderEnsemble(){
           }
           const fixedBadge=s.is_fixed?`<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;background:rgba(0,119,204,.12);color:var(--accent2);margin-left:4px">FIXED</span>`:'';
           const canDeleteFixed=(phase==='draft'||phase==='song')&&s.is_fixed;
-          const actions=canDeleteFixed?`<div class="e-song-actions">
-            <button class="btn btn-d btn-xs" onclick="deleteFixedSong(${s.id})">삭제</button>
-          </div>`:phase==='song'&&!s.is_fixed?`<div class="e-song-actions">
-            <button class="btn btn-d btn-xs" onclick="rejectSong(${s.id})">삭제</button>
-          </div>`:'';
+          const deleteBtn=canDeleteFixed
+            ?`<button class="btn btn-d btn-xs" style="flex-shrink:0;margin-left:4px" onclick="deleteFixedSong(${s.id})">삭제</button>`
+            :phase==='song'&&!s.is_fixed
+              ?`<button class="btn btn-d btn-xs" style="flex-shrink:0;margin-left:4px" onclick="rejectSong(${s.id})">삭제</button>`
+              :'';
           return `<div class="e-song-item">
             <div class="e-song-hdr">
               <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
@@ -1694,18 +1709,19 @@ function renderEnsemble(){
                 <div class="e-song-title">${esc(s.title)}${fixedBadge}</div>
                 <div class="e-song-artist">${esc(s.artist)}</div>
               </div>
+              ${deleteBtn}
             </div>
             <div class="e-song-meta">
               <span>${esc(s.applicant_name)} <span style="color:var(--text3)">${esc(s.student_id)}</span></span>
               <span style="color:var(--text3)">${esc(s.sessions.join(' · '))}</span>
             </div>
-            ${sessHtml}${actions}
+            ${sessHtml}
           </div>`;
         }).join('');
       }
     }
 
-    bodyEl.innerHTML=ctrlHtml+meta+songsHtml;
+    bodyEl.innerHTML=roundHdr+actionBar+songsHtml;
   });
 }
 
@@ -1751,38 +1767,45 @@ function renderManualAdminBody(r,type,bodyEl){
   const isPast=viewStage<curStage;
   let h='';
 
+  // Round name header (danger delete only in admin_config of stage 1)
+  const showDelete=!isPast&&curPhase==='admin_config';
+  h+=`<div class="ens-round-hdr">
+    <span class="ens-round-name">${esc(r.name)}</span>
+    ${showDelete?`<button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>`:''}
+  </div>`;
+
   // Stage tab bar (show when more than one stage)
   if(curStage>1){
-    h+=`<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:10px;overflow-x:auto">`;
+    h+=`<div style="display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto">`;
     for(let s=1;s<=curStage;s++){
       const isV=s===viewStage;
       const label=s===curStage?`${s}단계 (현재)`:`${s}단계`;
-      h+=`<button onclick="switchManualStageTab('${type}',${s})" style="padding:6px 14px;border:none;background:${isV?'var(--surface)':'transparent'};color:${isV?'var(--text)':'var(--text2)'};font-weight:${isV?'700':'500'};font-size:12px;cursor:pointer;border-bottom:2px solid ${isV?'var(--accent)':'transparent'};white-space:nowrap;font-family:'Noto Sans KR',sans-serif">${label}</button>`;
+      h+=`<button onclick="switchManualStageTab('${type}',${s})" style="padding:7px 16px;border:none;background:${isV?'var(--surface)':'transparent'};color:${isV?'var(--text)':'var(--text2)'};font-weight:${isV?'700':'500'};font-size:12px;cursor:pointer;border-bottom:2px solid ${isV?'var(--accent)':'transparent'};white-space:nowrap;font-family:'Noto Sans KR',sans-serif">${label}</button>`;
     }
     h+=`</div>`;
   }
 
   if(isPast){
-    // Past stage: read-only view + per-stage public toggle + export
-    h+=`<div class="ensemble-col-ctrl">
-      <span style="font-size:12px;font-weight:700">${viewStage}단계 — 완료</span>
-    </div>
-    <div class="ensemble-col-meta" style="display:flex;align-items:center;gap:8px;margin:6px 0">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-        <input type="checkbox" ${isPublic?'checked':''} onchange="toggleManualSheetPublic(${r.id},${viewStage},this.checked)"/>
-        <span>이 단계 시트 공개</span>
-      </label>
+    // Past stage: read-only + public toggle + export
+    h+=`<div class="ens-action-bar">
+      <div class="ens-action-main">
+        <span style="font-size:11px;font-weight:600;color:var(--text2)">${viewStage}단계 — 완료</span>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-left:4px">
+          <input type="checkbox" ${isPublic?'checked':''} onchange="toggleManualSheetPublic(${r.id},${viewStage},this.checked)"/>
+          <span>공개</span>
+        </label>
+      </div>
+      <div class="ens-action-side">
+        <button class="btn btn-s btn-xs" onclick="exportManualStageXlsx('${type}',${viewStage})">📥 XLSX</button>
+        <button class="btn btn-s btn-xs" onclick="exportManualStagePdf('${type}',${viewStage})">🖨️ PDF</button>
+        <button class="btn btn-s btn-xs" onclick="exportManualStagePng('${type}',${viewStage})">🖼️ PNG</button>
+      </div>
     </div>`;
     h+=_manualStageTableHtml(type,viewStage,cols,resps,false,false);
-    h+=_manualExportBtns(type,viewStage);
   } else {
-    // Current stage
     if(curPhase==='admin_config'){
-      h+=`<div class="ensemble-col-ctrl">
-        <span style="font-size:12px;font-weight:700">${curStage}단계 — 스프레드시트 열 설정</span>
-        <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>
-      </div>
-      <div style="margin:10px 0;overflow-x:auto">
+      h+=`<div style="padding:10px 13px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;letter-spacing:.3px">${curStage}단계 — 열 설정</div>
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead><tr style="border-bottom:1px solid var(--border)">
             <th style="padding:5px 8px;text-align:left;color:var(--text3)">#</th>
@@ -1807,31 +1830,29 @@ function renderManualAdminBody(r,type,bodyEl){
         </table>
         <button class="btn btn-s" style="width:100%;margin-top:8px;font-size:12px" onclick="addManualCol(${r.id},${curStage})">+ 열 추가</button>
       </div>
-      <div class="ensemble-col-ctrl">
-        <button class="btn btn-p btn-xs" onclick="startManualUserInput(${r.id})">유저 입력 열기</button>
+      <div class="ens-action-bar">
+        <div class="ens-action-main">
+          <button class="btn btn-p btn-xs" onclick="startManualUserInput(${r.id})">유저 입력 열기</button>
+        </div>
       </div>`;
     } else if(curPhase==='user_input'||curPhase==='review'){
       const isReview=curPhase==='review';
-      h+=`<div class="ensemble-col-ctrl">
-        <span style="font-size:12px;font-weight:700">${curStage}단계 — ${isReview?'검토':'유저 입력 중'}</span>
-        ${!isReview?`<button class="btn btn-p btn-xs" onclick="endManualUserInput(${r.id})">입력 마감</button>`:''}
-      </div>`;
-      if(isReview){
-        h+=`<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:8px;margin:6px 0">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+      h+=`<div class="ens-action-bar">
+        <div class="ens-action-main">
+          <span style="font-size:11px;font-weight:600;color:var(--text2)">${curStage}단계 — ${isReview?'검토':'입력 중'}</span>
+          ${!isReview?`<button class="btn btn-p btn-xs" onclick="endManualUserInput(${r.id})">입력 마감</button>`:''}
+          ${isReview?`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-left:4px">
             <input type="checkbox" ${isPublic?'checked':''} onchange="toggleManualSheetPublic(${r.id},${curStage},this.checked)"/>
-            <span>이 단계 시트 공개 (유저에게 공개)</span>
-          </label>
-        </div>`;
-      }
+            <span>공개</span>
+          </label>`:''}
+        </div>
+        ${isReview?`<div class="ens-action-side">
+          <button class="btn btn-p btn-xs" onclick="addManualStage(${r.id})">+ 단계 추가</button>
+          <button class="btn btn-d btn-xs" onclick="closeManualRound(${r.id})">회차 종료</button>
+        </div>`:''}
+      </div>`;
       h+=_manualStageTableHtml(type,curStage,cols,resps,isReview,isReview);
-      if(isReview){
-        h+=_manualExportBtns(type,curStage);
-        h+=`<div class="ensemble-col-ctrl" style="margin-top:4px">
-          <button class="btn btn-p btn-xs" onclick="addManualStage(${r.id})">단계 추가</button>
-          <button class="btn btn-d btn-xs" onclick="closeManualRound(${r.id})">이 회차 종료</button>
-        </div>`;
-      }
+      if(isReview) h+=_manualExportBtns(type,curStage);
     }
   }
   bodyEl.innerHTML=h;

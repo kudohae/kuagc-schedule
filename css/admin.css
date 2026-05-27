@@ -189,6 +189,16 @@ body.dark .tcard.tcard-sel{background:rgba(71,197,255,.05);}
 .e-form-btn{margin-top:6px;display:flex;justify-content:flex-end;}
 .e-song-item.unformed{border-left:3px solid var(--warn);}
 .e-unformed-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(200,118,10,.15);color:var(--warn);}
+/* Ensemble action layout */
+.ens-round-hdr{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface2);}
+.ens-round-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ens-round-limits{font-size:10px;color:var(--text3);white-space:nowrap;}
+.ens-action-bar{padding:8px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.ens-action-main{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+.ens-action-side{display:flex;gap:5px;align-items:center;flex-shrink:0;}
+.ens-sched-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 7px;white-space:nowrap;}
+.ens-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:36px 16px;text-align:center;}
+.ens-empty-txt{font-size:13px;color:var(--text3);}
 /* DnD team builder */
 .dnd-builder{display:grid;grid-template-columns:190px 1fr;gap:8px;padding:8px;}
 .dnd-pool{border:2px dashed var(--border);border-radius:var(--radius);padding:7px;display:flex;flex-direction:column;gap:4px;min-height:60px;transition:border-color .12s,background .12s;}
