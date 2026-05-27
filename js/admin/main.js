@@ -1503,8 +1503,8 @@ let eSongs={regular:[],busking:[]};
 let eSessionMap={};
 let eDraggingId=null;
 let _ftRowIdx=0;
-let eManualCols={regular:[],busking:[]};
-let eManualResps={regular:[],busking:[]};
+let eManualStages={regular:{},busking:{}};
+let eManualViewStage={regular:null,busking:null};
 
 function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
@@ -1709,84 +1709,129 @@ function renderEnsemble(){
   });
 }
 
+function _manualStageTableHtml(type,stageNum,cols,resps,isEditable,isDeletable){
+  const tableId=`mst_${type}_${stageNum}`;
+  return `<div style="overflow-x:auto;margin:8px 0"><table id="${tableId}" style="min-width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="border-bottom:2px solid var(--border);background:var(--surface2)">
+      <th style="padding:6px 10px;text-align:left;white-space:nowrap;color:var(--text3)">타임스탬프</th>
+      ${cols.map(c=>`<th style="padding:6px 10px;text-align:left;white-space:nowrap">${esc(c.col_name)}</th>`).join('')}
+      ${isDeletable?`<th style="padding:6px 10px"></th>`:''}
+    </tr></thead>
+    <tbody>
+      ${resps.length?resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:5px 10px;color:var(--text3);white-space:nowrap;font-size:11px">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
+        ${cols.map(c=>`<td style="padding:4px 8px">${isEditable
+          ?`<input class="fi" style="padding:3px 7px;font-size:12px;margin:0;min-width:80px" value="${esc(resp.data[c.col_name]||'')}" onblur="updateManualCell(${resp.id},'${esc(c.col_name)}',this.value)"/>`
+          :`<span>${esc(resp.data[c.col_name]||'')}</span>`
+        }</td>`).join('')}
+        ${isDeletable?`<td style="padding:4px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualResp(${resp.id})">✕</button></td>`:''}
+      </tr>`).join('')
+      :`<tr><td colspan="${cols.length+(isDeletable?2:1)}" style="text-align:center;color:var(--text3);padding:20px;font-size:12px">응답이 없습니다</td></tr>`}
+    </tbody>
+  </table></div>`;
+}
+
+function _manualExportBtns(type,stageNum){
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">
+    <button class="btn btn-s btn-xs" onclick="exportManualStageXlsx('${type}',${stageNum})">📥 XLSX</button>
+    <button class="btn btn-s btn-xs" onclick="exportManualStagePdf('${type}',${stageNum})">🖨️ PDF</button>
+    <button class="btn btn-s btn-xs" onclick="exportManualStagePng('${type}',${stageNum})">🖼️ PNG</button>
+  </div>`;
+}
+
 function renderManualAdminBody(r,type,bodyEl){
-  const phase=r.manual_stage_phase||'admin_config';
-  const stageNum=r.manual_cur_stage||1;
-  const cols=eManualCols[type]||[];
-  const resps=eManualResps[type]||[];
+  const curPhase=r.manual_stage_phase||'admin_config';
+  const curStage=r.manual_cur_stage||1;
+  const viewStage=eManualViewStage[type]||curStage;
+  const stagesMap=eManualStages[type]||{};
+  const sd=stagesMap[viewStage]||{cols:[],resps:[],isPublic:false};
+  const cols=sd.cols||[];
+  const resps=sd.resps||[];
+  const isPublic=!!sd.isPublic;
+  const isPast=viewStage<curStage;
   let h='';
-  if(phase==='admin_config'){
-    h+=`<div class="ensemble-col-ctrl">
-      <span style="font-size:12px;font-weight:700">${stageNum}단계 — 스프레드시트 열 설정</span>
-      <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>
-    </div>
-    <div style="margin:10px 0;overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr style="border-bottom:1px solid var(--border)">
-          <th style="padding:5px 8px;text-align:left;color:var(--text3)">#</th>
-          <th style="padding:5px 8px;text-align:left">열 이름</th>
-          <th style="padding:5px 8px;text-align:center;color:var(--text3)">질문 사용</th>
-          <th style="padding:5px 8px"></th>
-        </tr></thead>
-        <tbody>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:5px 8px;color:var(--text3)">1</td>
-            <td style="padding:5px 8px;color:var(--text3);font-size:11px">타임스탬프 (자동)</td>
-            <td style="padding:5px 8px;text-align:center;color:var(--text3)">—</td>
-            <td></td>
-          </tr>
-          ${cols.map((c,i)=>`<tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:5px 8px;color:var(--text3)">${i+2}</td>
-            <td style="padding:4px 8px"><input class="fi" style="padding:4px 8px;font-size:12px;margin:0" value="${esc(c.col_name)}" onblur="updateManualCol(${c.id},this.value)"/></td>
-            <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${c.is_question?'checked':''} onchange="toggleManualColQuestion(${c.id},this.checked)"/></td>
-            <td style="padding:5px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualCol(${c.id})">✕</button></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-      <button class="btn btn-s" style="width:100%;margin-top:8px;font-size:12px" onclick="addManualCol(${r.id},${stageNum})">+ 열 추가</button>
-    </div>
-    <div class="ensemble-col-ctrl">
-      <button class="btn btn-p btn-xs" onclick="startManualUserInput(${r.id})">유저 입력 열기</button>
-    </div>`;
-  } else if(phase==='user_input'||phase==='review'){
-    const isReview=phase==='review';
-    h+=`<div class="ensemble-col-ctrl">
-      <span style="font-size:12px;font-weight:700">${stageNum}단계 — ${isReview?'검토':'유저 입력 중'}</span>
-      ${!isReview?`<button class="btn btn-p btn-xs" onclick="endManualUserInput(${r.id})">입력 마감</button>`:''}
-    </div>`;
-    if(isReview){
-      h+=`<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:8px;margin:6px 0">
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-          <input type="checkbox" ${r.is_sheet_public?'checked':''} onchange="toggleManualSheetPublic(${r.id},this.checked)"/>
-          <span>이 시트 공개 (유저에게 공개)</span>
-        </label>
-      </div>`;
+
+  // Stage tab bar (show when more than one stage)
+  if(curStage>1){
+    h+=`<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:10px;overflow-x:auto">`;
+    for(let s=1;s<=curStage;s++){
+      const isV=s===viewStage;
+      const label=s===curStage?`${s}단계 (현재)`:`${s}단계`;
+      h+=`<button onclick="switchManualStageTab('${type}',${s})" style="padding:6px 14px;border:none;background:${isV?'var(--surface)':'transparent'};color:${isV?'var(--text)':'var(--text2)'};font-weight:${isV?'700':'500'};font-size:12px;cursor:pointer;border-bottom:2px solid ${isV?'var(--accent)':'transparent'};white-space:nowrap;font-family:'Noto Sans KR',sans-serif">${label}</button>`;
     }
-    h+=`<div style="overflow-x:auto;margin:8px 0">
-      <table style="min-width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr style="border-bottom:2px solid var(--border);background:var(--surface2)">
-          <th style="padding:6px 10px;text-align:left;white-space:nowrap;color:var(--text3)">타임스탬프</th>
-          ${cols.map(c=>`<th style="padding:6px 10px;text-align:left;white-space:nowrap">${esc(c.col_name)}</th>`).join('')}
-          ${isReview?`<th style="padding:6px 10px"></th>`:''}
-        </tr></thead>
-        <tbody>
-          ${resps.length?resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:5px 10px;color:var(--text3);white-space:nowrap;font-size:11px">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
-            ${cols.map(c=>`<td style="padding:4px 8px">${isReview
-              ?`<input class="fi" style="padding:3px 7px;font-size:12px;margin:0;min-width:80px" value="${esc(resp.data[c.col_name]||'')}" onblur="updateManualCell(${resp.id},'${esc(c.col_name)}',this.value)"/>`
-              :`<span>${esc(resp.data[c.col_name]||'')}</span>`
-            }</td>`).join('')}
-            ${isReview?`<td style="padding:4px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualResp(${resp.id})">✕</button></td>`:''}
-          </tr>`).join('')
-          :`<tr><td colspan="${cols.length+(isReview?2:1)}" style="text-align:center;color:var(--text3);padding:20px;font-size:12px">응답이 없습니다</td></tr>`}
-        </tbody>
-      </table>
+    h+=`</div>`;
+  }
+
+  if(isPast){
+    // Past stage: read-only view + per-stage public toggle + export
+    h+=`<div class="ensemble-col-ctrl">
+      <span style="font-size:12px;font-weight:700">${viewStage}단계 — 완료</span>
+    </div>
+    <div class="ensemble-col-meta" style="display:flex;align-items:center;gap:8px;margin:6px 0">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+        <input type="checkbox" ${isPublic?'checked':''} onchange="toggleManualSheetPublic(${r.id},${viewStage},this.checked)"/>
+        <span>이 단계 시트 공개</span>
+      </label>
     </div>`;
-    if(isReview){
-      h+=`<div class="ensemble-col-ctrl" style="margin-top:4px">
-        <button class="btn btn-p btn-xs" onclick="addManualStage(${r.id})">단계 추가</button>
-        <button class="btn btn-d btn-xs" onclick="closeManualRound(${r.id})">이 회차 종료</button>
+    h+=_manualStageTableHtml(type,viewStage,cols,resps,false,false);
+    h+=_manualExportBtns(type,viewStage);
+  } else {
+    // Current stage
+    if(curPhase==='admin_config'){
+      h+=`<div class="ensemble-col-ctrl">
+        <span style="font-size:12px;font-weight:700">${curStage}단계 — 스프레드시트 열 설정</span>
+        <button class="btn btn-d btn-xs" onclick="deleteRound(${r.id})">회차 삭제</button>
+      </div>
+      <div style="margin:10px 0;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:5px 8px;text-align:left;color:var(--text3)">#</th>
+            <th style="padding:5px 8px;text-align:left">열 이름</th>
+            <th style="padding:5px 8px;text-align:center;color:var(--text3)">질문 사용</th>
+            <th style="padding:5px 8px"></th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:5px 8px;color:var(--text3)">1</td>
+              <td style="padding:5px 8px;color:var(--text3);font-size:11px">타임스탬프 (자동)</td>
+              <td style="padding:5px 8px;text-align:center;color:var(--text3)">—</td>
+              <td></td>
+            </tr>
+            ${cols.map((c,i)=>`<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:5px 8px;color:var(--text3)">${i+2}</td>
+              <td style="padding:4px 8px"><input class="fi" style="padding:4px 8px;font-size:12px;margin:0" value="${esc(c.col_name)}" onblur="updateManualCol(${c.id},this.value)"/></td>
+              <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${c.is_question?'checked':''} onchange="toggleManualColQuestion(${c.id},this.checked)"/></td>
+              <td style="padding:5px 8px"><button class="btn btn-d btn-xs" style="padding:1px 7px;font-size:11px" onclick="deleteManualCol(${c.id})">✕</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <button class="btn btn-s" style="width:100%;margin-top:8px;font-size:12px" onclick="addManualCol(${r.id},${curStage})">+ 열 추가</button>
+      </div>
+      <div class="ensemble-col-ctrl">
+        <button class="btn btn-p btn-xs" onclick="startManualUserInput(${r.id})">유저 입력 열기</button>
       </div>`;
+    } else if(curPhase==='user_input'||curPhase==='review'){
+      const isReview=curPhase==='review';
+      h+=`<div class="ensemble-col-ctrl">
+        <span style="font-size:12px;font-weight:700">${curStage}단계 — ${isReview?'검토':'유저 입력 중'}</span>
+        ${!isReview?`<button class="btn btn-p btn-xs" onclick="endManualUserInput(${r.id})">입력 마감</button>`:''}
+      </div>`;
+      if(isReview){
+        h+=`<div class="ensemble-col-meta" style="display:flex;align-items:center;gap:8px;margin:6px 0">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="checkbox" ${isPublic?'checked':''} onchange="toggleManualSheetPublic(${r.id},${curStage},this.checked)"/>
+            <span>이 단계 시트 공개 (유저에게 공개)</span>
+          </label>
+        </div>`;
+      }
+      h+=_manualStageTableHtml(type,curStage,cols,resps,isReview,isReview);
+      if(isReview){
+        h+=_manualExportBtns(type,curStage);
+        h+=`<div class="ensemble-col-ctrl" style="margin-top:4px">
+          <button class="btn btn-p btn-xs" onclick="addManualStage(${r.id})">단계 추가</button>
+          <button class="btn btn-d btn-xs" onclick="closeManualRound(${r.id})">이 회차 종료</button>
+        </div>`;
+      }
     }
   }
   bodyEl.innerHTML=h;
@@ -1909,7 +1954,8 @@ window.deleteFixedSong=async function(songId){
 };
 
 window.addManualCol=async function(roundId,stageNum){
-  const colOrder=(eManualCols.regular.concat(eManualCols.busking).filter(c=>c.round_id===roundId&&c.stage_num===stageNum).length);
+  const type=eRounds.regular?.id===roundId?'regular':'busking';
+  const colOrder=(eManualStages[type]?.[stageNum]?.cols||[]).length;
   const {error}=await supabase.from('manual_stage_columns').insert({round_id:roundId,stage_num:stageNum,col_name:'새 열',is_question:true,col_order:colOrder});
   if(error){toast(errMsg(error),'err');return;}
   await loadEnsemble(); renderEnsemble();
@@ -1936,8 +1982,14 @@ window.endManualUserInput=async function(roundId){
   if(error){toast(errMsg(error),'err');return;}
   toast('입력이 마감됐습니다','ok'); await loadEnsemble(); renderEnsemble();
 };
-window.toggleManualSheetPublic=async function(roundId,isPublic){
-  const {error}=await supabase.from('ensemble_rounds').update({is_sheet_public:isPublic}).eq('id',roundId);
+window.toggleManualSheetPublic=async function(roundId,stageNum,isPublic){
+  const r=eRounds.regular?.id===roundId?eRounds.regular:eRounds.busking;
+  if(!r) return;
+  const stages=Array.isArray(r.manual_public_stages)?[...r.manual_public_stages]:[];
+  const newStages=isPublic
+    ?(stages.includes(stageNum)?stages:[...stages,stageNum])
+    :stages.filter(s=>s!==stageNum);
+  const {error}=await supabase.from('ensemble_rounds').update({manual_public_stages:newStages}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');}
   else{toast(isPublic?'시트가 공개됐습니다':'시트가 비공개됐습니다','ok'); await loadEnsemble(); renderEnsemble();}
 };
@@ -1945,8 +1997,9 @@ window.addManualStage=async function(roundId){
   const r=eRounds.regular?.id===roundId?eRounds.regular:eRounds.busking;
   if(!r) return;
   const nextStage=(r.manual_cur_stage||1)+1;
-  const {error}=await supabase.from('ensemble_rounds').update({manual_cur_stage:nextStage,manual_stage_phase:'admin_config',is_sheet_public:false}).eq('id',roundId);
+  const {error}=await supabase.from('ensemble_rounds').update({manual_cur_stage:nextStage,manual_stage_phase:'admin_config'}).eq('id',roundId);
   if(error){toast(errMsg(error),'err');return;}
+  eManualViewStage[r.type]=nextStage;
   toast(`${nextStage}단계가 시작됐습니다`,'ok'); await loadEnsemble(); renderEnsemble();
 };
 window.closeManualRound=async function(roundId){
@@ -1966,6 +2019,47 @@ window.deleteManualResp=async function(respId){
   const {error}=await supabase.from('manual_stage_responses').delete().eq('id',respId);
   if(error){toast(errMsg(error),'err');return;}
   await loadEnsemble(); renderEnsemble();
+};
+
+window.switchManualStageTab=function(type,stageNum){
+  eManualViewStage[type]=stageNum;
+  renderEnsemble();
+};
+
+window.exportManualStageXlsx=function(type,stageNum){
+  const sd=eManualStages[type]?.[stageNum]; if(!sd) return;
+  const {cols,resps}=sd; const r=eRounds[type];
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['타임스탬프',...cols.map(c=>c.col_name)],
+    ...resps.map(resp=>[new Date(resp.created_at).toLocaleString('ko-KR'),...cols.map(c=>resp.data[c.col_name]||'')])
+  ]);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,`${stageNum}단계`);
+  XLSX.writeFile(wb,`${r?.name||'합주'}_${stageNum}단계.xlsx`);
+};
+
+window.exportManualStagePdf=function(type,stageNum){
+  const sd=eManualStages[type]?.[stageNum]; if(!sd) return;
+  const {cols,resps}=sd; const r=eRounds[type];
+  const win=window.open('','_blank');
+  const rows=resps.map(resp=>`<tr><td style="border:1px solid #ccc;padding:5px 8px;white-space:nowrap;font-size:11px">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>${cols.map(c=>`<td style="border:1px solid #ccc;padding:5px 8px">${(resp.data[c.col_name]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</td>`).join('')}</tr>`).join('');
+  const ths=cols.map(c=>`<th style="border:1px solid #ccc;padding:6px 8px;background:#eee">${c.col_name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</th>`).join('');
+  win.document.write(`<html><head><meta charset="utf-8"><title>${r?.name||'합주'} ${stageNum}단계</title><style>body{font-family:sans-serif;padding:20px}table{border-collapse:collapse;width:100%}h2{margin-bottom:12px}</style></head><body><h2>${r?.name||'합주'} — ${stageNum}단계 (${resps.length}건)</h2><table><thead><tr><th style="border:1px solid #ccc;padding:6px 8px;background:#eee">타임스탬프</th>${ths}</tr></thead><tbody>${rows||'<tr><td colspan="'+(cols.length+1)+'" style="text-align:center;padding:20px;color:#999">응답 없음</td></tr>'}</tbody></table><script>window.onload=function(){window.print();}<\/script></body></html>`);
+  win.document.close();
+};
+
+window.exportManualStagePng=async function(type,stageNum){
+  const tableEl=document.getElementById(`mst_${type}_${stageNum}`);
+  if(!tableEl){toast('테이블 요소를 찾을 수 없습니다','err');return;}
+  if(typeof html2canvas==='undefined'){toast('html2canvas 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요','err');return;}
+  try{
+    const canvas=await html2canvas(tableEl,{backgroundColor:'#ffffff',scale:2});
+    const link=document.createElement('a');
+    const r=eRounds[type];
+    link.download=`${r?.name||'합주'}_${stageNum}단계.png`;
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }catch(e){toast('PNG 내보내기 실패: '+e.message,'err');}
 };
 
 // ── ENSEMBLE DnD MODAL ───────────────────────────────────────────────
@@ -2362,13 +2456,23 @@ async function loadEnsemble(){
   eSessionMap=newMap;
   for(const type of ['regular','busking']){
     const r=eRounds[type];
+    eManualStages[type]={};
     if(r?.mode==='manual'&&r.phase!=='closed'){
-      const stageNum=r.manual_cur_stage||1;
-      const {data:cols}=await supabase.from('manual_stage_columns').select('*').eq('round_id',r.id).eq('stage_num',stageNum).order('col_order');
-      eManualCols[type]=cols||[];
-      const {data:resps}=await supabase.from('manual_stage_responses').select('*').eq('round_id',r.id).eq('stage_num',stageNum).order('created_at');
-      eManualResps[type]=resps||[];
-    }else{eManualCols[type]=[];eManualResps[type]=[];}
+      const maxStage=r.manual_cur_stage||1;
+      const publicStages=Array.isArray(r.manual_public_stages)?r.manual_public_stages:[];
+      const {data:allCols}=await supabase.from('manual_stage_columns').select('*').eq('round_id',r.id).order('stage_num').order('col_order');
+      const {data:allResps}=await supabase.from('manual_stage_responses').select('*').eq('round_id',r.id).order('created_at');
+      for(let stage=1;stage<=maxStage;stage++){
+        eManualStages[type][stage]={
+          cols:(allCols||[]).filter(c=>c.stage_num===stage),
+          resps:(allResps||[]).filter(rp=>rp.stage_num===stage),
+          isPublic:publicStages.includes(stage)
+        };
+      }
+      if(eManualViewStage[type]===null||eManualStages[type][eManualViewStage[type]]===undefined){
+        eManualViewStage[type]=maxStage;
+      }
+    }
   }
 }
 
@@ -2465,6 +2569,7 @@ window.createManualRound=async function(type){
     const {error}=await supabase.from('ensemble_rounds').insert({
       type,name,phase:'draft',mode:'manual',
       manual_cur_stage:1,manual_stage_phase:'admin_config',is_sheet_public:false,
+      manual_public_stages:[],
       max_songs:9999,max_songs_per_person:9999,max_sessions_per_person:9999
     });
     if(error) throw error;

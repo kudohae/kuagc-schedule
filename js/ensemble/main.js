@@ -11,8 +11,8 @@ let sessionMap = {};
 let searchQ = '';
 let countdownTimers = {};
 let _rtChannel = null;
-let manualCols={regular:[],busking:[]};
-let manualResps={regular:[],busking:[]};
+let manualStages={regular:{},busking:{}};
+let manualViewStage={regular:null,busking:null};
 
 function fmtTime(ts){
   if(!ts) return '';
@@ -118,15 +118,25 @@ async function loadAll(){
   await refreshList();
   for(const type of ['regular','busking']){
     const r=rounds[type];
+    manualStages[type]={};
     if(r?.mode==='manual'&&r.phase!=='closed'){
-      const stageNum=r.manual_cur_stage||1;
-      const {data:cols}=await supabase.from('manual_stage_columns').select('*').eq('round_id',r.id).eq('stage_num',stageNum).order('col_order');
-      manualCols[type]=cols||[];
-      if(r.manual_stage_phase==='review'&&r.is_sheet_public){
-        const {data:resps}=await supabase.from('manual_stage_responses').select('*').eq('round_id',r.id).eq('stage_num',stageNum).order('created_at');
-        manualResps[type]=resps||[];
-      }else{manualResps[type]=[];}
-    }else{manualCols[type]=[];manualResps[type]=[];}
+      const maxStage=r.manual_cur_stage||1;
+      const publicStages=Array.isArray(r.manual_public_stages)?r.manual_public_stages:[];
+      const {data:allCols}=await supabase.from('manual_stage_columns').select('*').eq('round_id',r.id).order('stage_num').order('col_order');
+      const {data:allResps}=await supabase.from('manual_stage_responses').select('*').eq('round_id',r.id).order('created_at');
+      for(let stage=1;stage<=maxStage;stage++){
+        const isPublic=publicStages.includes(stage);
+        manualStages[type][stage]={
+          cols:(allCols||[]).filter(c=>c.stage_num===stage),
+          resps:isPublic?(allResps||[]).filter(rp=>rp.stage_num===stage):[],
+          isPublic
+        };
+      }
+      if(manualViewStage[type]===null||manualStages[type][manualViewStage[type]]===undefined){
+        const firstPublic=publicStages.length?Math.min(...publicStages):null;
+        manualViewStage[type]=firstPublic||maxStage;
+      }
+    }
   }
   render();
 }
@@ -786,59 +796,119 @@ function showModal(title,body,foot){
   }
 }
 
-function renderManualPublicHtml(r,type){
-  const phase=r.manual_stage_phase||'admin_config';
-  const stageNum=r.manual_cur_stage||1;
-  const typeName=type==='regular'?'일반 합주':'버스킹 합주';
-  if(r.phase==='closed'){
-    return `<div class="status-card closed"><div class="status-icon">✅</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — 완료됐습니다</div></div></div>`;
-  }
-  if(phase==='admin_config'){
-    return `<div class="status-card closed"><div class="status-icon">⏳</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)}</div><div class="status-sub">${stageNum}단계 준비 중입니다. 잠시 기다려주세요.</div></div></div>`;
-  }
-  if(phase==='user_input'){
-    const cols=manualCols[type]||[];
-    const qCols=cols.filter(c=>c.is_question);
-    if(!qCols.length){
-      return `<div class="status-card session"><div class="status-icon">📝</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — ${stageNum}단계 입력 중</div><div class="status-sub">관리자가 입력 항목을 준비하고 있습니다.</div></div></div>`;
-    }
-    return `<div class="status-card session"><div class="status-icon">📝</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — ${stageNum}단계 입력</div><div class="status-sub">아래 폼을 작성해 제출해주세요.</div></div></div>
-    <div class="form-card">
-      <div class="form-title">${stageNum}단계 입력 폼</div>
-      ${qCols.map(c=>`<div style="margin-bottom:10px"><div class="fl">${esc(c.col_name)} *</div><input class="fi" id="mf_${c.id}" placeholder="${esc(c.col_name)}"/></div>`).join('')}
-      <div class="form-footer"><button class="btn btn-p" onclick="submitManualForm(${r.id},${stageNum})">제출</button></div>
-    </div>`;
-  }
-  if(phase==='review'){
-    if(!r.is_sheet_public){
-      return `<div class="status-card closed"><div class="status-icon">⏸️</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)}</div><div class="status-sub">${stageNum}단계가 마감됐습니다. 관리자가 검토 중입니다.</div></div></div>`;
-    }
-    const cols=manualCols[type]||[];
-    const resps=manualResps[type]||[];
-    return `<div class="status-card closed"><div class="status-icon">📋</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — ${stageNum}단계 결과</div></div></div>
-    <div class="list-card" style="overflow-x:auto">
-      <div class="list-card-hdr"><div class="list-card-title">${stageNum}단계 입력 결과</div><div class="list-card-count">${resps.length}건</div></div>
-      ${resps.length?`<table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="border-bottom:1px solid var(--border);background:var(--surface2)">
-          <th style="padding:7px 12px;text-align:left;font-size:11px;color:var(--text3)">타임스탬프</th>
-          ${cols.map(c=>`<th style="padding:7px 12px;text-align:left;font-weight:700">${esc(c.col_name)}</th>`).join('')}
-        </tr></thead>
-        <tbody>
-          ${resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:7px 12px;font-size:11px;color:var(--text3);white-space:nowrap">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
-            ${cols.map(c=>`<td style="padding:7px 12px">${esc(resp.data[c.col_name]||'')}</td>`).join('')}
-          </tr>`).join('')}
-        </tbody>
-      </table>`:`<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">아직 제출된 내용이 없습니다</div>`}
-    </div>`;
-  }
-  return '';
+function _pubStageTableHtml(cols,resps,stageNum){
+  return `<div class="list-card" style="overflow-x:auto">
+    <div class="list-card-hdr"><div class="list-card-title">${stageNum}단계 결과</div><div class="list-card-count">${resps.length}건</div></div>
+    ${resps.length?`<table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="border-bottom:1px solid var(--border);background:var(--surface2)">
+        <th style="padding:7px 12px;text-align:left;font-size:11px;color:var(--text3)">타임스탬프</th>
+        ${cols.map(c=>`<th style="padding:7px 12px;text-align:left;font-weight:700">${esc(c.col_name)}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${resps.map(resp=>`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 12px;font-size:11px;color:var(--text3);white-space:nowrap">${new Date(resp.created_at).toLocaleString('ko-KR')}</td>
+          ${cols.map(c=>`<td style="padding:7px 12px">${esc(resp.data[c.col_name]||'')}</td>`).join('')}
+        </tr>`).join('')}
+      </tbody>
+    </table>`:`<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">아직 제출된 내용이 없습니다</div>`}
+  </div>`;
 }
+
+function renderManualPublicHtml(r,type){
+  const curPhase=r.manual_stage_phase||'admin_config';
+  const curStage=r.manual_cur_stage||1;
+  const typeName=type==='regular'?'일반 합주':'버스킹 합주';
+  const stagesMap=manualStages[type]||{};
+  const publicStages=Array.isArray(r.manual_public_stages)?r.manual_public_stages:[];
+
+  if(r.phase==='closed'){
+    const closedPublic=publicStages.slice().sort((a,b)=>a-b);
+    let h=`<div class="status-card closed"><div class="status-icon">✅</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — 완료됐습니다</div></div></div>`;
+    if(closedPublic.length){
+      const vStage=manualViewStage[type]&&closedPublic.includes(manualViewStage[type])?manualViewStage[type]:closedPublic[0];
+      if(closedPublic.length>1){
+        h+=`<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:10px;overflow-x:auto">`;
+        for(const s of closedPublic){
+          const isV=s===vStage;
+          h+=`<button onclick="switchManualPublicTab('${type}',${s})" style="padding:6px 14px;border:none;background:${isV?'var(--surface)':'transparent'};color:${isV?'var(--text)':'var(--text2)'};font-weight:${isV?'700':'500'};font-size:12px;cursor:pointer;border-bottom:2px solid ${isV?'var(--accent)':'transparent'};white-space:nowrap;font-family:'Noto Sans KR',sans-serif">${s}단계</button>`;
+        }
+        h+=`</div>`;
+      }
+      const sd=stagesMap[vStage]||{cols:[],resps:[]};
+      h+=_pubStageTableHtml(sd.cols,sd.resps,vStage);
+    }
+    return h;
+  }
+
+  // Determine which tabs to show: public past stages + current stage
+  const pastPublic=publicStages.filter(s=>s<curStage).sort((a,b)=>a-b);
+  const tabStages=[...pastPublic,curStage];
+  const viewStage=manualViewStage[type]&&tabStages.includes(manualViewStage[type])?manualViewStage[type]:curStage;
+
+  let statusHtml='';
+  if(curPhase==='admin_config'){
+    statusHtml=`<div class="status-card closed"><div class="status-icon">⏳</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)}</div><div class="status-sub">${curStage}단계 준비 중입니다. 잠시 기다려주세요.</div></div></div>`;
+  } else if(curPhase==='user_input'){
+    statusHtml=`<div class="status-card session"><div class="status-icon">📝</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)} — ${curStage}단계 입력</div><div class="status-sub">아래 폼을 작성해 제출해주세요.</div></div></div>`;
+  } else {
+    statusHtml=`<div class="status-card closed"><div class="status-icon">📋</div><div class="status-texts"><div class="status-title">${esc(r.name||typeName)}</div><div class="status-sub">${curStage}단계가 마감됐습니다. 관리자가 검토 중입니다.</div></div></div>`;
+  }
+
+  let h=statusHtml;
+
+  // Tab bar (only if there are past public stages to show alongside current)
+  if(tabStages.length>1){
+    h+=`<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:10px;overflow-x:auto">`;
+    for(const s of tabStages){
+      const isV=s===viewStage;
+      const label=s===curStage?`${s}단계 (현재)`:`${s}단계`;
+      h+=`<button onclick="switchManualPublicTab('${type}',${s})" style="padding:6px 14px;border:none;background:${isV?'var(--surface)':'transparent'};color:${isV?'var(--text)':'var(--text2)'};font-weight:${isV?'700':'500'};font-size:12px;cursor:pointer;border-bottom:2px solid ${isV?'var(--accent)':'transparent'};white-space:nowrap;font-family:'Noto Sans KR',sans-serif">${label}</button>`;
+    }
+    h+=`</div>`;
+  }
+
+  // Content for viewed stage
+  if(viewStage<curStage){
+    // Past public stage
+    const sd=stagesMap[viewStage]||{cols:[],resps:[]};
+    h+=_pubStageTableHtml(sd.cols,sd.resps,viewStage);
+  } else {
+    // Current stage
+    const sd=stagesMap[curStage]||{cols:[],resps:[],isPublic:false};
+    const cols=sd.cols||[];
+    if(curPhase==='admin_config'){
+      // no additional content
+    } else if(curPhase==='user_input'){
+      const qCols=cols.filter(c=>c.is_question);
+      if(!qCols.length){
+        h+=`<div class="status-card closed"><div class="status-icon">⏳</div><div class="status-texts"><div class="status-sub">관리자가 입력 항목을 준비하고 있습니다.</div></div></div>`;
+      } else {
+        h+=`<div class="form-card">
+          <div class="form-title">${curStage}단계 입력 폼</div>
+          ${qCols.map(c=>`<div style="margin-bottom:10px"><div class="fl">${esc(c.col_name)} *</div><input class="fi" id="mf_${c.id}" placeholder="${esc(c.col_name)}"/></div>`).join('')}
+          <div class="form-footer"><button class="btn btn-p" onclick="submitManualForm(${r.id},${curStage})">제출</button></div>
+        </div>`;
+      }
+    } else if(curPhase==='review'){
+      if(sd.isPublic){
+        h+=_pubStageTableHtml(cols,sd.resps,curStage);
+      }
+      // else: status card already shows "검토 중"
+    }
+  }
+
+  return h;
+}
+
+window.switchManualPublicTab=function(type,stageNum){
+  manualViewStage[type]=stageNum;
+  render();
+};
 
 window.submitManualForm=async function(roundId,stageNum){
   const r=rounds[currentType];
   if(!r||r.id!==roundId){window.toast('잘못된 회차입니다','err');return;}
-  const cols=manualCols[currentType]||[];
+  const cols=(manualStages[currentType]?.[stageNum]?.cols)||[];
   const qCols=cols.filter(c=>c.is_question);
   const data={};
   for(const c of qCols){
