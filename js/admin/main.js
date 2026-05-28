@@ -1761,7 +1761,7 @@ function renderEnsemble(){
         const allSessDisp=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed'||a.status==='rejected');
         let sh='';
         if(allSessDisp.length) sh=`<div class="e-sess-list">${allSessDisp.map(a=>{const rej=a.status==='rejected';const isApp=a.student_id===s.student_id;const appBadge=isApp?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';return `<div class="e-sess-row" style="${rej?'opacity:.45':''}"><span class="e-sess-dot ${rej?'rejected':'confirmed'}"></span><span class="e-sess-name" style="${rej?'text-decoration:line-through;color:var(--text3)':''}${isApp?';font-weight:900':''}">${esc(a.applicant_name)}${appBadge}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${rej?'':'confirmed'}">${esc(x)}</span>`).join('')}</div></div>`;}).join('')}</div>`;
-        return `<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1;min-width:0"><div class="e-song-title">${esc(s.title)}</div><div class="e-song-artist">${esc(s.artist)}</div></div></div>${sh}</div>`;
+        return `<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1;min-width:0"><div class="e-song-title">${esc(s.title)}${s.is_fixed?ENS_FIXED_BADGE:''}</div><div class="e-song-artist">${esc(s.artist)}</div></div></div>${sh}</div>`;
       }).join('');
       if(showDndBtn) h+=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">${dndBtnLabel}</button></div>`;
       return h;
@@ -2127,6 +2127,7 @@ window.exportManualPng=async function(type){
 };
 
 // ── ENSEMBLE DnD MODAL ───────────────────────────────────────────────
+const ENS_FIXED_BADGE=`<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;background:rgba(0,119,204,.12);color:var(--accent2);margin-left:4px">FIXED</span>`;
 let eDndSt=null;
 let eDndDrag=null;
 let eDndFilter=null;
@@ -2291,7 +2292,7 @@ function renderEnsDndSongs(){
       ondragleave="ensDndDragLeaveSong(event)"
       ondrop="ensDndDropToSong(event,${song.id})">
       <div class="ens-song-card-hdr">
-        <div class="ens-song-card-title">${esc(song.title)}</div>
+        <div class="ens-song-card-title">${esc(song.title)}${song.is_fixed?ENS_FIXED_BADGE:''}</div>
         <div class="ens-song-card-meta">${esc(song.artist)} · ${(song.sessions||[]).map(x=>`<span style="${filledSess.has(x)?'':'color:#c0392b'}">${esc(x)}</span>`).join(' · ')}</div>
       </div>
       <div class="ens-song-members">
@@ -2375,7 +2376,7 @@ function renderEnsDndMobile(){
     return `<div class="ens-song-card${hasSel?' mob-target':''}" data-song-id="${song.id}"${hasSel?` onclick="ensMobAssign(${song.id})"`:''}>
       <div class="ens-song-card-hdr">
         <div>
-          <div class="ens-song-card-title">${esc(song.title)}</div>
+          <div class="ens-song-card-title">${esc(song.title)}${song.is_fixed?ENS_FIXED_BADGE:''}</div>
           <div class="ens-song-card-meta">${esc(song.artist)} · ${(song.sessions||[]).map(x=>`<span style="${filledSess.has(x)?'':'color:#c0392b'}">${esc(x)}</span>`).join(' · ')}</div>
         </div>
       </div>

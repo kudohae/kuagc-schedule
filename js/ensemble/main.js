@@ -3,6 +3,7 @@ import { escapeHtml as esc } from '../utils/html.js';
 import { diffToHMS } from '../utils/time.js';
 
 const SESSIONS = ['보컬1','보컬2','기타1','기타2','베이스','키보드1','키보드2','드럼','이외 악기'];
+const FIXED_BADGE=`<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;background:rgba(0,119,204,.12);color:var(--accent2);margin-left:4px">FIXED</span>`;
 
 let currentType = 'regular';
 let rounds = {regular:null, busking:null};
@@ -582,7 +583,7 @@ function renderSongItem(s,num,phase){
     <div class="song-item-hdr">
       <span class="song-num">${String(num).padStart(2,'0')}</span>
       <div class="song-info">
-        <div class="song-title">${esc(s.title)}</div>
+        <div class="song-title">${esc(s.title)}${s.is_fixed?FIXED_BADGE:''}</div>
         <div class="song-artist">${esc(s.artist)}</div>
       </div>
     </div>
