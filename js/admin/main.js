@@ -31,6 +31,8 @@ let academicDates={summerStart:null,summerEnd:null,winterStart:null,winterEnd:nu
 let seasonMode='auto';
 let _adminInited=false, _adminChannels=[];
 let _ensBroadcastCh=null, _taBcCh=null, _schoolBcCh=null;
+let _applySchedTimer=null;
+let _ensSchedTimers={regular:null,busking:null};
 let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let pendingAll=[];
@@ -86,6 +88,8 @@ supabase.auth.onAuthStateChange((_event,session)=>{
     showAdminUI();
   } else {
     _adminInited=false;
+    if(_applySchedTimer){clearTimeout(_applySchedTimer);_applySchedTimer=null;}
+    ['regular','busking'].forEach(k=>{if(_ensSchedTimers[k]){clearTimeout(_ensSchedTimers[k]);_ensSchedTimers[k]=null;}});
     if(_ensBroadcastCh){ supabase.removeChannel(_ensBroadcastCh); _ensBroadcastCh=null; }
     if(_taBcCh){ supabase.removeChannel(_taBcCh); _taBcCh=null; }
     if(_schoolBcCh){ supabase.removeChannel(_schoolBcCh); _schoolBcCh=null; }
@@ -1381,6 +1385,29 @@ function renderApply(){
     </div>`;
   }
   document.getElementById('applyContent').innerHTML=html;
+
+  if(_applySchedTimer){clearTimeout(_applySchedTimer);_applySchedTimer=null;}
+  const _MAX_T=24*3600000;
+  if(isScheduled&&round?.open_at){
+    const d=new Date(round.open_at)-Date.now();
+    if(d>0&&d<_MAX_T) _applySchedTimer=setTimeout(async()=>{
+      round=await fetchActiveRound(season).catch(()=>round);
+      if(round)applications=await fetchApplications(round.id);
+      renderApply();
+    },d+500);
+  }else if(isOpen&&round?.close_at){
+    const d=new Date(round.close_at)-Date.now();
+    if(d>0&&d<_MAX_T) _applySchedTimer=setTimeout(async()=>{
+      const fresh=await fetchActiveRound(season).catch(()=>null);
+      if(!fresh||fresh.status!=='open'){round=fresh;renderApply();return;}
+      if(fresh.close_at&&new Date(fresh.close_at)>Date.now()){round=fresh;renderApply();return;}
+      await updateRound(round.id,{status:'closed'}).catch(()=>{});
+      _taBcCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
+      round=await fetchActiveRound(season).catch(()=>round);
+      if(round)applications=await fetchApplications(round.id);
+      renderApply();
+    },d+500);
+  }
 }
 
 window.openNewRoundModal=function(){
@@ -1855,6 +1882,28 @@ function renderEnsemble(){
     }
 
     bodyEl.innerHTML=roundHdr+actionBar+songsHtml;
+
+    if(_ensSchedTimers[type]){clearTimeout(_ensSchedTimers[type]);_ensSchedTimers[type]=null;}
+    if(r&&phase!=='closed'){
+      const schedMap={
+        draft:{field:'song_scheduled_at',update:{phase:'song',song_scheduled_at:null}},
+        song:{field:'song_close_at',update:{phase:'song_end',song_close_at:null}},
+        song_end:{field:'session_scheduled_at',update:{phase:'session',session_scheduled_at:null}},
+        session:{field:'session_close_at',update:{phase:'session_end',session_close_at:null}},
+        session_end:r.has_session2?{field:'session2_scheduled_at',update:{phase:'session2',session2_scheduled_at:null}}:null,
+        session2:{field:'session2_close_at',update:{phase:'session2_end',session2_close_at:null}},
+      };
+      const entry=schedMap[phase];
+      if(entry){
+        const ts=r[entry.field];
+        if(ts){
+          const d=new Date(ts)-Date.now();
+          const MAX_T=24*3600000;
+          if(d<=0) _ensSchedTimers[type]=setTimeout(()=>autoAdvanceEnsPhase(r.id,phase,entry.update),0);
+          else if(d<MAX_T) _ensSchedTimers[type]=setTimeout(()=>autoAdvanceEnsPhase(r.id,phase,entry.update),d+500);
+        }
+      }
+    }
   });
 }
 
@@ -2615,6 +2664,14 @@ async function loadEnsemble(){
 async function ensUpdated(){
   await loadEnsemble();
   renderEnsemble();
+  _ensBroadcastCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
+}
+
+async function autoAdvanceEnsPhase(roundId,expectedPhase,update){
+  const {data}=await supabase.from('ensemble_rounds').select('phase').eq('id',roundId).single().catch(()=>({data:null}));
+  if(!data||data.phase!==expectedPhase){await ensUpdated();return;}
+  await supabase.from('ensemble_rounds').update(update).eq('id',roundId).eq('phase',expectedPhase).catch(()=>{});
+  await ensUpdated();
   _ensBroadcastCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
 }
 
