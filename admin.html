@@ -204,7 +204,10 @@
            ondragover="ensDndDragOverPool(event)"
            ondragleave="ensDndDragLeavePool(event)"
            ondrop="ensDndDropToPool(event)">
-        <div class="ens-section-hdr">미배정 <span class="dnd-badge" id="ensDndPoolCount">0</span></div>
+        <div class="ens-section-hdr" style="display:flex;justify-content:space-between;align-items:center">
+          <span>미배정 <span class="dnd-badge" id="ensDndPoolCount">0</span></span>
+          <button class="btn btn-xs btn-s" style="font-size:11px;padding:2px 8px" onclick="openAddManualParticipant()">참여자 추가</button>
+        </div>
         <div id="ensDndFilterRow" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
         <div id="ensMobHint"></div>
         <div id="ensDndPoolCards"></div>
