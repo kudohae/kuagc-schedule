@@ -29,6 +29,7 @@ function weekLabelWithThis(off){
 
 let weekOff=0, season='1학기';
 let academicDates={summerStart:null,summerEnd:null,winterStart:null,winterEnd:null};
+let seasonMode='auto';
 let _adminInited=false, _adminChannels=[];
 let _ensBroadcastCh=null;
 let mobileDayIdx=(new Date().getDay()+6)%7;
@@ -92,12 +93,13 @@ supabase.auth.getSession().then(({data:{session}})=>{
 
 // ── LOAD ──────────────────────────────────────────────────────────────
 async function loadAll(){
-  const [_season,_ss,_se,_ws,_we]=await Promise.allSettled([
+  const [_season,_ss,_se,_ws,_we,_mode]=await Promise.allSettled([
     getConfig('current_season'),
     getConfig('academic_summer_start'),
     getConfig('academic_summer_end'),
     getConfig('academic_winter_start'),
     getConfig('academic_winter_end'),
+    getConfig('season_mode'),
   ]);
   season=_season.status==='fulfilled'?_season.value:'1학기';
   academicDates={
@@ -106,6 +108,7 @@ async function loadAll(){
     winterStart:_ws.status==='fulfilled'?_ws.value:null,
     winterEnd:_we.status==='fulfilled'?_we.value:null,
   };
+  seasonMode=_mode.status==='fulfilled'?_mode.value:'auto';
   await autoUpdateSeason();
   const _r=await Promise.allSettled([
     fetchTeams(),fetchBaseSlots(season),fetchExceptions(weekOff),
@@ -795,6 +798,7 @@ window.goToThisWeek=async function(){
 };
 
 async function autoUpdateSeason(){
+  if(seasonMode!=='auto') return;
   const today=new Date().toISOString().slice(0,10);
   const {summerStart,summerEnd,winterStart,winterEnd}=academicDates;
   const transitions=[
@@ -810,6 +814,27 @@ async function autoUpdateSeason(){
     season=newSeason;
   }
 }
+
+window.setSeasonMode=async function(mode){
+  seasonMode=mode;
+  await setConfig('season_mode',mode).catch(()=>{});
+  if(mode==='auto'){
+    await autoUpdateSeason();
+    render();
+  } else {
+    renderAcademicCard();
+  }
+};
+
+window.setManualSeason=async function(s){
+  await setConfig('current_season',s).catch(()=>{});
+  season=s;
+  [baseSlots,exceptions]=await Promise.all([fetchBaseSlots(season),fetchExceptions(weekOff)]);
+  merged=mergeSchedule(baseSlots,exceptions);
+  round=await fetchActiveRound(season);
+  applications=round?await fetchApplications(round.id):[];
+  render(); toast(`${s}으로 전환되었습니다`,'ok');
+};
 
 
 window.goToAcademicCard=function(){
@@ -844,21 +869,31 @@ function renderAcademicCard(){
   const el=document.getElementById('academicCard');
   if(!el) return;
   const {summerStart,summerEnd,winterStart,winterEnd}=academicDates;
+  const isManual=seasonMode==='manual';
+  const dis=isManual?'disabled':'';
+  const seasons=['1학기','여름방학','2학기','겨울방학'];
   el.innerHTML=`
-    <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2)">학사일정</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--text2)">학사일정</div>
+      <div class="season-mode-toggle">
+        <button class="${isManual?'active':''}" onclick="setSeasonMode('manual')">수동</button>
+        <button class="${!isManual?'active':''}" onclick="setSeasonMode('auto')">자동</button>
+      </div>
+      ${isManual?`<select class="season-sel" onchange="setManualSeason(this.value)">${seasons.map(s=>`<option${s===season?' selected':''}>${s}</option>`).join('')}</select>`:''}
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <div><div class="fl">1학기 종강 (여름방학 시작)</div>
-        <input class="fi" type="date" id="acSummerStart" value="${summerStart||''}"/></div>
+        <input class="fi" type="date" id="acSummerStart" value="${summerStart||''}" ${dis}/></div>
       <div><div class="fl">2학기 개강 (여름방학 종료)</div>
-        <input class="fi" type="date" id="acSummerEnd" value="${summerEnd||''}"/></div>
+        <input class="fi" type="date" id="acSummerEnd" value="${summerEnd||''}" ${dis}/></div>
       <div><div class="fl">2학기 종강 (겨울방학 시작)</div>
-        <input class="fi" type="date" id="acWinterStart" value="${winterStart||''}"/></div>
+        <input class="fi" type="date" id="acWinterStart" value="${winterStart||''}" ${dis}/></div>
       <div><div class="fl">내년 1학기 개강 (겨울방학 종료)</div>
-        <input class="fi" type="date" id="acWinterEnd" value="${winterEnd||''}"/></div>
+        <input class="fi" type="date" id="acWinterEnd" value="${winterEnd||''}" ${dis}/></div>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
-      <button class="btn btn-p" onclick="saveAcademicDates()">저장</button>
-      <span style="font-size:12px;color:var(--text2)">현재 학기: <b>${season}</b></span>
+      <button class="btn btn-p" onclick="saveAcademicDates()" ${dis}>저장</button>
+      ${!isManual?`<span style="font-size:12px;color:var(--text2)">현재 학기: <b>${season}</b></span>`:''}
     </div>`;
 }
 
