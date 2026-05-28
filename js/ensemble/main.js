@@ -101,17 +101,13 @@ async function pollRoundState(){
   try{
     const {data:rds}=await supabase
       .from('ensemble_rounds')
-      .select('id,type,phase,is_sheet_public,mode')
+      .select('id,type,phase,is_sheet_public,mode,song_scheduled_at,song_close_at,session_scheduled_at,session_close_at,session2_scheduled_at,session2_close_at')
       .order('created_at',{ascending:false});
     if(!rds) return;
     const newReg=rds.find(r=>r.type==='regular')||null;
     const newBus=rds.find(r=>r.type==='busking')||null;
-    const changed=
-      newReg?.phase!==rounds.regular?.phase||
-      newReg?.is_sheet_public!==rounds.regular?.is_sheet_public||
-      newBus?.phase!==rounds.busking?.phase||
-      newBus?.is_sheet_public!==rounds.busking?.is_sheet_public;
-    if(changed) await loadAll();
+    const chk=(n,o)=>!n!==!o||n?.phase!==o?.phase||n?.is_sheet_public!==o?.is_sheet_public||n?.song_scheduled_at!==o?.song_scheduled_at||n?.song_close_at!==o?.song_close_at||n?.session_scheduled_at!==o?.session_scheduled_at||n?.session_close_at!==o?.session_close_at||n?.session2_scheduled_at!==o?.session2_scheduled_at||n?.session2_close_at!==o?.session2_close_at;
+    if(chk(newReg,rounds.regular)||chk(newBus,rounds.busking)) await loadAll();
   }catch(e){ /* silent — poll errors don't matter */ }
 }
 
