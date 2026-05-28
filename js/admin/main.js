@@ -841,7 +841,6 @@ window.goToAcademicCard=function(){
   window.showPage('data');
   const el=document.getElementById('academicCard');
   if(!el) return;
-  el.scrollIntoView({behavior:'smooth',block:'start'});
   el.classList.remove('academic-highlight');
   void el.offsetWidth;
   el.classList.add('academic-highlight');
