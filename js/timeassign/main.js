@@ -35,8 +35,11 @@ let round=null, applications=[];
 let applyPrefs={}, applyTeamId=null, applyTeamName='';
 let taCountdownTimer=null;
 let _rtChannel=null;
+let _bcChannel=null;
 let _lastTaSubmitTs=0;
 let _pollTimer=null;
+
+function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});}
 
 // ── EXPORTED INIT ─────────────────────────────────────────────────────
 export async function init(outerContainer) {
@@ -82,12 +85,21 @@ export async function init(outerContainer) {
       })
       .subscribe();
 
+    _bcChannel=supabase.channel('ta-pub')
+      .on('broadcast',{event:'update'},async()=>{
+        if(!document.getElementById('applyContent')) return;
+        round=await fetchActiveRound(season).catch(()=>round);
+        if(round) applications=await fetchApplications(round.id);
+        render();
+      })
+      .subscribe();
+
     _pollTimer=setInterval(async()=>{
       if(!document.getElementById('applyContent')) return;
       const fresh=await fetchActiveRound(season).catch(()=>null);
       const chg=fresh?.id!==round?.id||fresh?.status!==round?.status||fresh?.open_at!==round?.open_at||fresh?.close_at!==round?.close_at;
       if(chg){round=fresh;if(round)applications=await fetchApplications(round.id);render();}
-    },8000);
+    },3000);
   } catch(e) {
     outerContainer.innerHTML=`
       <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px">
@@ -101,6 +113,7 @@ export async function init(outerContainer) {
     if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
     if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
+    if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
   };
 }
 
@@ -338,6 +351,7 @@ window.submitApply=async function(){
       pref3_day:d3&&h3?parseInt(d3):null,pref3_hour:d3&&h3?parseInt(h3):null});
     applyPrefs={}; applyTeamId=null; applyTeamName='';
     window.toast('신청이 제출됐습니다','ok');
+    broadcastRefresh();
     render();
   }catch(e){_lastTaSubmitTs=0;window.toast(errMsg(e),'err');}
 };
