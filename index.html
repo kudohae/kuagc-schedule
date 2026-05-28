@@ -6,7 +6,6 @@
 <title>동아리방 시간표 | 그루터기</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/index.css">
-<link rel="stylesheet" href="css/bug-report.css">
 </head>
 <body>
 <div class="ld" id="ld" role="status" aria-label="로딩 중"><div class="spin"></div><div class="ld-txt">Loading...</div></div>
@@ -27,7 +26,6 @@
   <div class="hdr-right">
     <div class="season-chip desktop-only" id="seasonChip">—</div>
     <button class="hdr-contacts-btn desktop-only" onclick="openContactsModal()">📞 연락처</button>
-    <button id="br-fab" aria-label="버그 신고">🐛</button>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="다크/라이트 모드 전환">🌙</button>
     <div class="week-nav" id="weekNavEl">
       <button onclick="changeWeek(-1)" aria-label="이전 주">‹</button>
@@ -118,6 +116,5 @@
 <div class="toast" id="toast" role="status" aria-live="polite" style="display:none"></div>
 
 <script type="module" src="js/index/main.js"></script>
-<script type="module" src="js/bug-report.js"></script>
 </body>
 </html>

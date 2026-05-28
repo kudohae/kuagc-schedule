@@ -9,8 +9,7 @@ import {
   fetchActiveRound, createRound, updateRound,
   fetchApplications, deleteApplication, runAssignment, approveDraft,
   fetchContacts, upsertContact, deleteContact,
-  fetchVacancyReports, deleteVacancyReport,
-  fetchBugReports, deleteBugReport
+  fetchVacancyReports, deleteVacancyReport
 } from '../schedule.js';
 
 import { initTheme, toggleTheme } from '../utils/theme.js';
@@ -39,7 +38,7 @@ let selectedTeams=new Set();
 let merged=[], round=null, applications=[];
 let adminSchools=[], adminSchoolApps=[], adminSchoolRounds=[];
 let schoolCdTimer=null;
-let bugReports=[];
+
 
 // ── LOGIN ─────────────────────────────────────────────────────────────
 function showAdminUI(){
@@ -132,7 +131,6 @@ async function loadAll(){
   pendingAll=await fetchAllPendingRequests();
   await loadEnsemble();
   await loadSchoolData();
-  bugReports=await fetchBugReports().catch(()=>[]);
   if(_ensBroadcastCh){ supabase.removeChannel(_ensBroadcastCh); _ensBroadcastCh=null; }
   _ensBroadcastCh=supabase.channel('ens-pub')
     .on('broadcast',{event:'songUpdate'},async()=>{ await loadEnsemble(); renderEnsemble(); })
@@ -203,12 +201,6 @@ async function loadAll(){
         await checkVacancyReports();
       })
       .subscribe(),
-    supabase.channel('admin-bugrpt-rt')
-      .on('postgres_changes',{event:'*',schema:'public',table:'bug_reports'},async()=>{
-        bugReports=await fetchBugReports().catch(()=>[]);
-        renderBugReports();
-      })
-      .subscribe()
   ];
   render();
   await checkVacancyReports();
@@ -781,7 +773,7 @@ function render(){
   document.getElementById('schTitle').innerHTML=`${wl} 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
   document.getElementById('seasonBadge').textContent=season;
-  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts(); renderEnsemble(); renderSchool(); renderBugReports(); renderAcademicCard();
+  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts(); renderEnsemble(); renderSchool(); renderAcademicCard();
 }
 
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
@@ -3010,37 +3002,6 @@ window.changeAdminPassword=async function(){
   document.getElementById('newPw1').value='';
   document.getElementById('newPw2').value='';
   toast('비밀번호가 변경되었습니다','ok');
-};
-
-// ── BUG REPORTS ───────────────────────────────────────────────────────
-function renderBugReports(){
-  const el=document.getElementById('bugReportsContent');
-  if(!el) return;
-  if(!bugReports.length){
-    el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px 0">접수된 버그 신고가 없습니다</div>';
-    return;
-  }
-  el.innerHTML=bugReports.map(r=>{
-    const d=new Date(r.created_at);
-    const dt=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;color:var(--text);white-space:pre-wrap;word-break:break-word">${esc(r.message)}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">${dt} · ${esc(r.page||'')}</div>
-      </div>
-      <button class="btn btn-d btn-xs" style="flex-shrink:0" onclick="doDeleteBugReport(${r.id})">삭제</button>
-    </div>`;
-  }).join('');
-}
-
-window.doDeleteBugReport=async function(id){
-  if(!confirm('이 신고를 삭제할까요?')) return;
-  try{
-    await deleteBugReport(id);
-    bugReports=bugReports.filter(r=>r.id!==id);
-    renderBugReports();
-    toast('삭제되었습니다','ok');
-  }catch(e){toast(errMsg(e),'err');}
 };
 
 // ── ENSEMBLE XLSX EXPORT ──────────────────────────────────────────────
