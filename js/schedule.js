@@ -306,18 +306,25 @@ export async function approveDraft(round, applications, season) {
       latestPerTeam.set(app.team_id, app);
     }
   }
-  await supabase.from('base_slots').delete().eq('season', season);
 
   const toInsert = [...latestPerTeam.values()]
     .filter(a => a.assigned_day != null)
-    .map(a => ({
-      team_id: a.team_id,
-      day: a.assigned_day,
-      hour: a.assigned_hour,
-      season,
-    }));
+    .map(a => ({ team_id: a.team_id, day: a.assigned_day, hour: a.assigned_hour, season }));
 
   if (toInsert.length) {
+    const assignedTeamIds = toInsert.map(s => s.team_id);
+    const assignedTimeKeys = new Set(toInsert.map(s => `${s.day}-${s.hour}`));
+
+    // 배정받은 팀의 기존 슬롯 제거
+    await supabase.from('base_slots').delete().eq('season', season).in('team_id', assignedTeamIds);
+
+    // 새 배정 시간과 겹치는 다른 팀 슬롯 제거
+    const { data: remaining } = await supabase.from('base_slots').select('id,day,hour').eq('season', season);
+    const conflictIds = (remaining || []).filter(s => assignedTimeKeys.has(`${s.day}-${s.hour}`)).map(s => s.id);
+    if (conflictIds.length) {
+      await supabase.from('base_slots').delete().in('id', conflictIds);
+    }
+
     const { error } = await supabase.from('base_slots').insert(toInsert);
     if (error) throw error;
   }
