@@ -51,6 +51,16 @@ function showAdminUI(){
   loadAll();
 }
 
+window.showForgotPwInfo=function(){
+  const sql=`UPDATE auth.users\nSET encrypted_password = crypt('NEW_PASSWORD', gen_salt('bf'))\nWHERE email = 'kuagcku@gmail.com';`;
+  showModal('비밀번호 재설정 안내',
+    `<div style="font-size:13px;margin-bottom:10px">백엔드 관리자에게 아래의 SQL 명령어 실행을 요청하세요.</div>
+     <div style="font-size:12px;color:var(--text2);margin-bottom:6px">현재 관리자: 영문 21 구도회 (010-3590-3730)</div>
+     <pre style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all">${sql}</pre>`,
+    `<button class="btn btn-s" onclick="closeModal()">닫기</button>`
+  );
+};
+
 window.doLogin=async function(){
   const email=document.getElementById('emailInput').value.trim();
   const pw=document.getElementById('pwInput').value;
