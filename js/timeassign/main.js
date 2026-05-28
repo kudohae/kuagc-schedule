@@ -4,6 +4,7 @@ import {
   fetchActiveRound, fetchApplications, submitApplication
 } from '../schedule.js';
 import { diffToHMS } from '../utils/time.js';
+import { syncServerTime, serverNow } from '../utils/serverTime.js';
 
 const DAYS  = ['월','화','수','목','금','토','일'];
 const HOURS = Array.from({length:18},(_,i)=>i+8);
@@ -47,6 +48,7 @@ export async function init(outerContainer) {
   outerContainer.innerHTML = '<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
 
   try {
+    await syncServerTime(supabase);
     season = await getConfig('current_season').catch(()=>'1학기');
     [teams, baseSlots, exceptions] = await Promise.all([
       fetchTeams(), fetchBaseSlots(season), fetchExceptions(0)
@@ -109,12 +111,12 @@ function render(){
   if(!contentEl) return;
 
   // If close_at has passed while status is still 'open', auto-close immediately
-  if(round&&round.status==='open'&&round.close_at&&new Date(round.close_at)<=Date.now()){
+  if(round&&round.status==='open'&&round.close_at&&new Date(round.close_at)<=serverNow()){
     autoCloseRound(); return;
   }
 
-  const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
-  const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
+  const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date(serverNow());
+  const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date(serverNow()));
   const isFin=round&&(round.status==='finished'||round.draft_approved);
   const occMap=new Map(merged.filter(s=>s.status!=='absent').map(s=>[`${s.day}-${s.hour}`,s.teams.name]));
 
@@ -126,7 +128,7 @@ function render(){
 
   if(isScheduled){
     const targetDate=round.open_at;
-    const diff=new Date(targetDate)-Date.now();
+    const diff=new Date(targetDate)-serverNow();
     html+=`<div class="apply-status closed">
       <div class="apply-status-icon">⏳</div>
       <div class="apply-status-texts">
@@ -138,7 +140,7 @@ function render(){
     contentEl.innerHTML=html;
     renderList();
     taCountdownTimer=setInterval(()=>{
-      const d2=new Date(targetDate)-Date.now();
+      const d2=new Date(targetDate)-serverNow();
       const el=document.getElementById('ta-cd');
       if(el) el.textContent=diffToHMS(d2);
       if(d2<=0){
@@ -149,8 +151,8 @@ function render(){
     return;
   }
 
-  const closeTs=isOpen&&round.close_at&&new Date(round.close_at)>new Date()?round.close_at:null;
-  const closeDiff=closeTs?new Date(closeTs)-Date.now():0;
+  const closeTs=isOpen&&round.close_at&&new Date(round.close_at)>new Date(serverNow())?round.close_at:null;
+  const closeDiff=closeTs?new Date(closeTs)-serverNow():0;
   html+=`<div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
       <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':'⭕'}</div>
       <div class="apply-status-texts">
@@ -162,7 +164,7 @@ function render(){
     </div>`;
   if(closeTs){
     taCountdownTimer=setInterval(()=>{
-      const d2=new Date(closeTs)-Date.now();
+      const d2=new Date(closeTs)-serverNow();
       const el=document.getElementById('ta-close-cd');
       if(el) el.textContent=diffToHMS(d2);
       if(d2<=0){ clearInterval(taCountdownTimer); taCountdownTimer=null; autoCloseRound(); }
@@ -306,8 +308,8 @@ window.onApplyDayChange=function(n){
 };
 
 window.submitApply=async function(){
-  const _sched=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
-  const _closed=round&&round.close_at&&new Date(round.close_at)<=Date.now();
+  const _sched=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date(serverNow());
+  const _closed=round&&round.close_at&&new Date(round.close_at)<=serverNow();
   if(!round||round.status!=='open'||_sched||_closed){window.toast('현재 신청 기간이 아닙니다','err');return;}
   const _now=Date.now();
   if(_now-_lastTaSubmitTs<3000){window.toast('잠시 후 다시 시도해주세요','err');return;}
