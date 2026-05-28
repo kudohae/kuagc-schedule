@@ -64,7 +64,7 @@ export async function init(outerContainer) {
 
     render();
 
-    _rtChannel = supabase.channel('ta-rt')
+    _rtChannel = supabase.channel('ta-rt-' + Date.now())
       .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},async()=>{
         if(round && document.getElementById('applyContent')){
           applications=await fetchApplications(round.id);

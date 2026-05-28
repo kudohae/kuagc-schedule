@@ -41,7 +41,7 @@ export async function init(outerContainer) {
 
   await load();
 
-  _rtChannel = supabase.channel('school-public-rt')
+  _rtChannel = supabase.channel('school-public-rt-' + Date.now())
     .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},()=>{
       if(document.getElementById('container')) load();
     })

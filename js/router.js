@@ -9,6 +9,7 @@ const VIEW_CSS = {
 let _currentView = null;
 let _currentDestroy = null;
 let _currentCssLink = null;
+let _navToken = 0;
 
 function setHeaderVisibility(view) {
   const weekNav    = document.getElementById('weekNavEl');
@@ -45,6 +46,8 @@ function updateActiveStates(view) {
 export async function navigate(view) {
   if (view === _currentView) return;
 
+  const token = ++_navToken;
+
   if (_currentDestroy) {
     try { _currentDestroy(); } catch(e) {}
     _currentDestroy = null;
@@ -78,13 +81,18 @@ export async function navigate(view) {
 
     try {
       const mod = await import(`./${view}/main.js`);
-      _currentDestroy = await mod.init(dynamicEl) || null;
+      if (token !== _navToken) return;
+      const destroy = await mod.init(dynamicEl) || null;
+      if (token !== _navToken) { try { destroy?.(); } catch(e) {} return; }
+      _currentDestroy = destroy;
     } catch(e) {
+      if (token !== _navToken) return;
       console.error('View load error:', e);
       dynamicEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">불러오기 실패: ${e.message}</div>`;
     }
   }
 
+  if (token !== _navToken) return;
   _currentView = view;
   setHeaderVisibility(view);
   updateActiveStates(view);
