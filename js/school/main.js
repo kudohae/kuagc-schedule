@@ -10,6 +10,7 @@ let _outerContainer=null;
 let _withdrawLookup=null;
 let _lastSchoolSubmitTs=0;
 let _lastLookupTs=0;
+let _pollTimer=null;
 
 function escHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -58,8 +59,16 @@ export async function init(outerContainer) {
     })
     .subscribe();
 
+  _pollTimer=setInterval(async()=>{
+    if(!document.getElementById('container')) return;
+    const{data}=await supabase.from('school_rounds').select('id,status,open_at,close_at').order('created_at',{ascending:false}).limit(1).maybeSingle();
+    const chg=(!data&&round)||(data&&(!round||data.status!==round.status||data.open_at!==round.open_at||data.close_at!==round.close_at));
+    if(chg) await load();
+  },8000);
+
   return function destroy() {
     stopCd();
+    if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     _outerContainer = null;
   };
@@ -202,10 +211,9 @@ function renderOpen(){
 }
 
 async function autoClose(){
-  // Re-fetch from DB to prevent duplicate processing if multiple tabs race
-  const {data:fresh}=await supabase.from('school_rounds').select('status').eq('id',round.id).single();
+  const {data:fresh}=await supabase.from('school_rounds').select('status,close_at').eq('id',round.id).single();
   if(!fresh||fresh.status!=='open'){ await load(); return; }
-  // Idempotent: only closes if DB row is still 'open'
+  if(fresh.close_at&&new Date(fresh.close_at)>new Date(serverNow())){round.close_at=fresh.close_at;render();return;}
   const {error}=await supabase.from('school_rounds').update({status:'closed'}).eq('id',round.id).eq('status','open');
   if(!error){
     round.status='closed';

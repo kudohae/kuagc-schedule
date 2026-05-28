@@ -36,6 +36,7 @@ let applyPrefs={}, applyTeamId=null, applyTeamName='';
 let taCountdownTimer=null;
 let _rtChannel=null;
 let _lastTaSubmitTs=0;
+let _pollTimer=null;
 
 // ── EXPORTED INIT ─────────────────────────────────────────────────────
 export async function init(outerContainer) {
@@ -80,6 +81,13 @@ export async function init(outerContainer) {
         render();
       })
       .subscribe();
+
+    _pollTimer=setInterval(async()=>{
+      if(!document.getElementById('applyContent')) return;
+      const fresh=await fetchActiveRound(season).catch(()=>null);
+      const chg=fresh?.id!==round?.id||fresh?.status!==round?.status||fresh?.open_at!==round?.open_at||fresh?.close_at!==round?.close_at;
+      if(chg){round=fresh;if(round)applications=await fetchApplications(round.id);render();}
+    },8000);
   } catch(e) {
     outerContainer.innerHTML=`
       <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px">
@@ -91,6 +99,7 @@ export async function init(outerContainer) {
 
   return function destroy() {
     if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
+    if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
   };
 }
@@ -98,7 +107,9 @@ export async function init(outerContainer) {
 // ── AUTO CLOSE ────────────────────────────────────────────────────────
 async function autoCloseRound(){
   if(!round||round.status!=='open') return;
-  // Idempotent: only closes if DB row is still 'open'
+  const fresh=await fetchActiveRound(season).catch(()=>null);
+  if(!fresh||fresh.status!=='open'){round=fresh;render();return;}
+  if(fresh.close_at&&new Date(fresh.close_at)>new Date(serverNow())){round=fresh;render();return;}
   await supabase.from('application_rounds').update({status:'closed'}).eq('id',round.id).eq('status','open');
   round=await fetchActiveRound(season).catch(()=>round);
   render();
