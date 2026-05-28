@@ -1634,6 +1634,7 @@ let eSessionMap={};
 let eDraggingId=null;
 let _ftRowIdx=0;
 let eManualEntries={regular:[],busking:[]};
+let eManualApps={regular:[],busking:[]};
 
 function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
@@ -2137,7 +2138,7 @@ const ENS_SESS_ORDER=SESSIONS;
 function sessOrder(s){const i=ENS_SESS_ORDER.indexOf(s);return i===-1?99:i;}
 function sortSongSlots(slots){slots.sort((a,b)=>sessOrder(a.overrideSession??a.session)-sessOrder(b.overrideSession??b.session)||new Date(a.createdAt)-new Date(b.createdAt));}
 function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;}
-function makeSlots(app,songTitle='',songApplicantSid=null){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle,sessionRound:app.session_round||1,isApplicant:!!(songApplicantSid&&app.student_id===songApplicantSid)}));}
+function makeSlots(app,songTitle='',songApplicantSid=null){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle,sessionRound:app.session_round||1,isApplicant:!!(songApplicantSid&&app.student_id===songApplicantSid),isManual:!!(app.is_manual)}));}
 
 function computeEnsDndInitial(type){
   const r=eRounds[type]; if(!r) return null;
@@ -2164,6 +2165,11 @@ function computeEnsDndInitial(type){
           if(songEntry) songEntry.slots.push(sl); else unassigned.push(sl);
         }
       }
+      for(const app of eManualApps[type]) for(const sl of makeSlots(app,'',null)){
+        if(osMap[sl.id]) sl.overrideSession=osMap[sl.id];
+        const songEntry=songs.find(s=>s.song.id===locMap[sl.id]);
+        if(songEntry) songEntry.slots.push(sl); else unassigned.push(sl);
+      }
       for(const s of songs) sortSongSlots(s.slots);
       return {type,roundId:r.id,savedKey,songs,unassigned};
     }catch{}
@@ -2179,6 +2185,7 @@ function computeEnsDndInitial(type){
       sortSongSlots(slots);
       songs.push({song,slots});
     }
+    for(const app of eManualApps[type]) unassigned.push(...makeSlots(app,'',null));
     return {type,roundId:r.id,savedKey,songs,unassigned};
   }
   for(const song of confirmedSongs){
@@ -2192,6 +2199,7 @@ function computeEnsDndInitial(type){
     sortSongSlots(slots);
     songs.push({song,slots});
   }
+  for(const app of eManualApps[type]) unassigned.push(...makeSlots(app,'',null));
   return {type,roundId:r.id,savedKey,songs,unassigned};
 }
 
@@ -2232,7 +2240,7 @@ function getConflictedSlotIds(slots){
   return new Set(slots.filter(sl=>cnt[sl.overrideSession??sl.session]>1).map(sl=>sl.id));
 }
 
-function ensSlotCardHtml(sl,conflicted){
+function ensSlotCardHtml(sl,conflicted,inPool=false){
   const sid=sl.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const pinned=sl.isApplicant;
   const dragAttrs=pinned?'draggable="false"':`draggable="true" ondragstart="ensDndDragStart(event,'${sid}')" ondragend="ensDndDragEnd(event)"`;
@@ -2242,8 +2250,11 @@ function ensSlotCardHtml(sl,conflicted){
   const sessTag=pinned
     ?`<span class="ens-member-tag">${effSess}</span>`
     :`<select class="ens-sess-sel${conflicted?' conflict':''}" onchange="setSlotSession('${sid}',this.value)" onclick="event.stopPropagation()" ondragstart="event.stopPropagation()">${SESSIONS.map(s=>`<option value="${s}"${s===effSess?' selected':''}>${s}${s===sl.session?' *':''}</option>`).join('')}</select>`;
+  const topLine=sl.isManual
+    ?`<div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:9px;background:#6c757d;color:#fff;border-radius:3px;padding:1px 4px">수동 추가</span>${inPool?`<button style="font-size:11px;padding:0 4px;line-height:1.4;background:none;border:none;color:var(--text3);cursor:pointer" onclick="deleteManualPoolEntry('${sid}')" ondragstart="event.stopPropagation()">✕</button>`:''}</div>`
+    :`<span style="font-size:10px;color:var(--text3);line-height:1.2">${fmtDndTime(sl.createdAt)}</span>`;
   return `<div class="ens-member-card${conflicted?' conflict':''}${pinned?' applicant':''}" ${dragAttrs} data-id="${sl.id}">
-    <span style="font-size:10px;color:var(--text3);line-height:1.2">${fmtDndTime(sl.createdAt)}</span>
+    ${topLine}
     <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${esc(sl.applicantName)}</span><span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${esc(sl.songTitle)}</span>`:''}${applicantBadge}${r2Badge}</div>
     <div class="ens-member-tags">${sessTag}</div>
   </div>`;
@@ -2277,7 +2288,7 @@ function renderEnsDndPool(){
   }
   const sorted=Object.values(groups).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
   document.getElementById('ensDndPoolCards').innerHTML=sorted.length
-    ?sorted.map(g=>g.slots.length===1?ensSlotCardHtml(g.slots[0],false):`<div class="ens-pool-group">${g.slots.map(sl=>ensSlotCardHtml(sl,false)).join('')}</div>`).join('')
+    ?sorted.map(g=>g.slots.length===1?ensSlotCardHtml(g.slots[0],false,true):`<div class="ens-pool-group">${g.slots.map(sl=>ensSlotCardHtml(sl,false,true)).join('')}</div>`).join('')
     :'<div class="ens-empty-hint">없음</div>';
 }
 
@@ -2314,6 +2325,7 @@ function ensMobPoolCardHtml(sl){
   const isSel=eMobileSelected===sl.id;
   const effSess=sl.overrideSession??sl.session;
   return `<div class="ens-member-card${isSel?' mob-sel':''}" onclick="ensMobSelectPool('${sid}')">
+    ${sl.isManual?`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="font-size:9px;background:#6c757d;color:#fff;border-radius:3px;padding:1px 4px">수동 추가</span><button style="font-size:11px;padding:1px 5px;background:none;border:1px solid var(--border);border-radius:3px;color:var(--text3);cursor:pointer" onclick="event.stopPropagation();deleteManualPoolEntry('${sid}')">✕</button></div>`:''}
     <div style="display:flex;align-items:center;gap:6px">
       <div style="flex:1;min-width:0">
         <span class="ens-member-name">${esc(sl.applicantName)}</span>
@@ -2468,20 +2480,74 @@ window.ensDndDropToPool=function(event){
   renderEnsDndModal();
 };
 
+window.openAddManualParticipant=function(){
+  if(!eDndSt) return;
+  const type=eDndSt.type;
+  showModal('참여자 추가',
+    `<div><div class="fl">이름</div><input class="fi" id="manualName" placeholder="성명" maxlength="20" onkeydown="if(event.key==='Enter')addManualParticipant('${type}')"/></div>
+     <div><div class="fl">세션</div><select class="fs" id="manualSession">${SESSIONS.map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>`,
+    `<button class="btn btn-p" onclick="addManualParticipant('${type}')">추가</button>`
+  );
+  setTimeout(()=>document.getElementById('manualName')?.focus(),50);
+};
+
+window.addManualParticipant=async function(type){
+  const name=document.getElementById('manualName')?.value?.trim();
+  const session=document.getElementById('manualSession')?.value;
+  if(!name){toast('이름을 입력하세요','err');return;}
+  const r=eRounds[type]; if(!r){toast('회차 없음','err');return;}
+  try{
+    const{data,error}=await supabase.from('session_applications').insert({
+      round_id:r.id,song_id:null,applicant_name:name,student_id:'',
+      sessions:[session],status:'pending',is_manual:true
+    }).select().single();
+    if(error) throw error;
+    eManualApps[type].push(data);
+    eDndSt.unassigned.push(...makeSlots(data,'',null));
+    ensDndSaveState();
+    closeModal();
+    renderEnsDndPool();
+    toast(`${esc(name)} 추가됐습니다`,'ok');
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.deleteManualPoolEntry=async function(slotId){
+  if(!eDndSt) return;
+  const idx=eDndSt.unassigned.findIndex(x=>x.id===slotId);
+  if(idx===-1) return;
+  const sl=eDndSt.unassigned[idx];
+  if(!sl.isManual) return;
+  if(!confirm(`${sl.applicantName}을(를) 삭제하시겠습니까?`)) return;
+  try{
+    const{error}=await supabase.from('session_applications').delete().eq('id',sl.appId).eq('is_manual',true);
+    if(error) throw error;
+    eDndSt.unassigned.splice(idx,1);
+    const type=eDndSt.type;
+    const mIdx=eManualApps[type].findIndex(a=>a.id===sl.appId);
+    if(mIdx!==-1) eManualApps[type].splice(mIdx,1);
+    ensDndSaveState();
+    renderEnsDndPool();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
 window.confirmEnsembleTeams=async function(){
   if(!eDndSt) return;
   const allSlots=[...eDndSt.songs.flatMap(s=>s.slots),...eDndSt.unassigned];
-  const allAppIds=[...new Set(allSlots.map(sl=>sl.appId))];
+  const appIdManual=new Map();
+  for(const sl of allSlots) if(!appIdManual.has(sl.appId)) appIdManual.set(sl.appId,sl.isManual);
   const placedAppIds=new Set(eDndSt.songs.flatMap(s=>s.slots.map(sl=>sl.appId)));
-  const rejCnt=allAppIds.filter(id=>!placedAppIds.has(id)).length;
-  const unslotCnt=eDndSt.unassigned.length;
+  const nonManualIds=[...appIdManual.entries()].filter(([,m])=>!m).map(([id])=>id);
+  const rejCnt=nonManualIds.filter(id=>!placedAppIds.has(id)).length;
+  const unslotCnt=eDndSt.unassigned.filter(sl=>!sl.isManual).length;
   const msg=(rejCnt||unslotCnt)?`완전 미배정 ${rejCnt}명 · 미배정 슬롯 ${unslotCnt}개.\n미배정자는 거절 처리됩니다. 팀 구성을 완료하시겠습니까?`:'팀 구성을 완료하시겠습니까?';
   if(!confirm(msg)) return;
   try{
-    const confirmedIds=allAppIds.filter(id=>placedAppIds.has(id));
-    const rejectedIds=allAppIds.filter(id=>!placedAppIds.has(id));
-    if(confirmedIds.length){const{error}=await supabase.from('session_applications').update({status:'confirmed'}).in('id',confirmedIds);if(error)throw error;}
+    const confirmedNonManualIds=nonManualIds.filter(id=>placedAppIds.has(id));
+    const rejectedIds=nonManualIds.filter(id=>!placedAppIds.has(id));
+    const placedManualIds=[...appIdManual.entries()].filter(([id,m])=>m&&placedAppIds.has(id)).map(([id])=>id);
+    if(confirmedNonManualIds.length){const{error}=await supabase.from('session_applications').update({status:'confirmed'}).in('id',confirmedNonManualIds);if(error)throw error;}
     if(rejectedIds.length){const{error}=await supabase.from('session_applications').update({status:'rejected'}).in('id',rejectedIds);if(error)throw error;}
+    if(placedManualIds.length){const{error}=await supabase.from('session_applications').update({status:'confirmed'}).in('id',placedManualIds);if(error)throw error;}
     const appAssign={};
     for(const {song,slots} of eDndSt.songs){
       for(const sl of slots){
@@ -2519,6 +2585,11 @@ async function loadEnsemble(){
     (sess||[]).forEach(s=>{ if(!newMap[s.song_id]) newMap[s.song_id]=[]; newMap[s.song_id].push(s); });
   }
   eSessionMap=newMap;
+  eManualApps={regular:[],busking:[]};
+  for(const type of ['regular','busking']){
+    const r=eRounds[type];
+    if(r){const{data:mApps}=await supabase.from('session_applications').select('*').eq('round_id',r.id).eq('is_manual',true).is('song_id',null);eManualApps[type]=mApps||[];}
+  }
   for(const type of ['regular','busking']){
     const r=eRounds[type];
     eManualEntries[type]=[];
