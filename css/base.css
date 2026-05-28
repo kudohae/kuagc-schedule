@@ -83,7 +83,7 @@ body.dark .hdr-apply-btn.active{background:rgba(71,197,255,.15);border-color:rgb
 .toast.err{border-color:var(--danger);color:var(--danger);}
 
 /* ── MODAL ── */
-.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(4px);animation:fi .15s;}
+.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:600;backdrop-filter:blur(4px);animation:fi .15s;}
 body.dark .modal-bd{background:rgba(0,0,0,.7);}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:420px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;animation:su .15s;box-shadow:0 8px 32px rgba(0,0,0,.1);}
 body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
