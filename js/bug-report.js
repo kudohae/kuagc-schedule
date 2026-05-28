@@ -6,10 +6,16 @@ const BOT_ERR      = '전송에 실패했습니다. 잠시 후 다시 시도해�
 const PAGE         = location.pathname.split('/').pop() || 'index.html';
 
 // ── DOM 생성 ──────────────────────────────────────────────────────────
-const fab = document.createElement('button');
-fab.id = 'br-fab';
-fab.setAttribute('aria-label', '버그 신고');
-fab.innerHTML = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+// Use existing fab if injected in HTML (admin.html), else create floating one
+let fab = document.getElementById('br-fab');
+if (!fab) {
+  fab = document.createElement('button');
+  fab.id = 'br-fab';
+  fab.className = 'br-fab-float';
+  fab.setAttribute('aria-label', '버그 신고');
+  document.body.appendChild(fab);
+}
+fab.innerHTML = '🐛';
 
 const win = document.createElement('div');
 win.id = 'br-window';
