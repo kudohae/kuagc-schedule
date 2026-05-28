@@ -1,6 +1,7 @@
 import { supabase } from '../supabase.js';
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { diffToHMS, fmtDate } from '../utils/time.js';
+import { syncServerTime, serverNow } from '../utils/serverTime.js';
 
 let round=null, prevRound=null, classes=[], apps=[], prevApps=[];
 let cdTimer=null;
@@ -17,7 +18,7 @@ function stopCd(){if(cdTimer){clearInterval(cdTimer);cdTimer=null;}}
 function startCd(targetTs,onExpired){
   stopCd();
   const update=()=>{
-    const diff=new Date(targetTs)-Date.now();
+    const diff=new Date(targetTs)-serverNow();
     const el=document.getElementById('cdEl');
     if(el) el.textContent=diffToHMS(diff);
     if(diff<=0){stopCd();onExpired();}
@@ -39,6 +40,7 @@ export async function init(outerContainer) {
   outerContainer.innerHTML = '';
   outerContainer.appendChild(inner);
 
+  await syncServerTime(supabase);
   await load();
 
   _rtChannel = supabase.channel('school-public-rt-' + Date.now())
@@ -142,7 +144,7 @@ function renderDraft(){
   </div>`;
   el.innerHTML=html;
   if(openAt){
-    if(new Date(openAt)<=Date.now()){autoOpen();}
+    if(new Date(openAt)<=serverNow()){autoOpen();}
     else startCd(openAt,autoOpen);
   }
 }
@@ -158,7 +160,7 @@ function renderOpen(){
   if(!el) return;
   const name=getRoundName();
   const closeAt=round.close_at;
-  if(closeAt&&new Date(closeAt)<=Date.now()){autoClose();return;}
+  if(closeAt&&new Date(closeAt)<=serverNow()){autoClose();return;}
 
   let html=`<div class="round-status open">
     <div class="rs-icon">📋</div>
@@ -396,7 +398,7 @@ window.confirmWithdraw=async function(){
 window.submitApply=async function(){
   if(!round||round.status!=='open'){window.toast('신청 기간이 아닙니다','err');return;}
   // Enforce close_at client-side even if DB status hasn't updated yet
-  if(round.close_at&&new Date(round.close_at)<=Date.now()){window.toast('신청 기간이 마감됐습니다','err');return;}
+  if(round.close_at&&new Date(round.close_at)<=serverNow()){window.toast('신청 기간이 마감됐습니다','err');return;}
   const _now=Date.now();
   if(_now-_lastSchoolSubmitTs<3000){window.toast('잠시 후 다시 시도해주세요','err');return;}
   const name=(document.getElementById('applyName')?.value||'').trim();

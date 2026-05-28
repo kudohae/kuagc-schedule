@@ -1,6 +1,7 @@
 import { supabase } from '../supabase.js';
 import { escapeHtml as esc } from '../utils/html.js';
 import { diffToHMS } from '../utils/time.js';
+import { syncServerTime, serverNow } from '../utils/serverTime.js';
 
 const SESSIONS = ['보컬1','보컬2','기타1','기타2','베이스','키보드1','키보드2','드럼','이외 악기'];
 const FIXED_BADGE=`<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;background:rgba(0,119,204,.12);color:var(--accent2);margin-left:4px">FIXED</span>`;
@@ -53,6 +54,7 @@ export async function init(outerContainer) {
   outerContainer.appendChild(inner);
 
   try{
+    await syncServerTime(supabase);
     await loadAll(true);
 
     _rtChannel=supabase.channel('ens-rt-'+Date.now())
@@ -198,7 +200,7 @@ window.clearSearch=function(){
 function startCountdown(type,targetDate,onExpired){
   if(countdownTimers[type]) clearInterval(countdownTimers[type]);
   countdownTimers[type]=setInterval(()=>{
-    const diff=new Date(targetDate)-Date.now();
+    const diff=new Date(targetDate)-serverNow();
     const el=document.getElementById(`cd-${type}`);
     if(el) el.textContent=diffToHMS(diff);
     if(diff<=0){
@@ -238,7 +240,7 @@ function render(){
   if(phase==='draft'){
     const target=r?.song_scheduled_at;
     if(target){
-      const diff=new Date(target)-Date.now();
+      const diff=new Date(target)-serverNow();
       if(diff>0){
         html+=`<div class="status-card closed">
           <div class="status-icon">⏳</div>
@@ -272,12 +274,12 @@ function render(){
 
   else if(phase==='song'){
     const closeAt=r?.song_close_at;
-    if(closeAt&&new Date(closeAt)<=new Date()){
+    if(closeAt&&new Date(closeAt)<=new Date(serverNow())){
       if(rounds[type]?.id===r.id&&rounds[type]?.phase==='song'){rounds[type].phase='song_end';rounds[type].song_close_at=null;}
       supabase.from('ensemble_rounds').update({phase:'song_end',song_close_at:null}).eq('id',r.id).eq('phase','song').then(()=>{});
       render(); return;
     }
-    const diff=closeAt?new Date(closeAt)-Date.now():0;
+    const diff=closeAt?new Date(closeAt)-serverNow():0;
     html+=`<div class="status-card song">
       <div class="status-icon">🎵</div>
       <div class="status-texts">
@@ -326,12 +328,12 @@ function render(){
 
   else if(phase==='song_end'){
     const target=r?.session_scheduled_at;
-    if(target&&new Date(target)<=new Date()){
+    if(target&&new Date(target)<=new Date(serverNow())){
       if(rounds[type]?.id===r.id&&rounds[type]?.phase==='song_end'){rounds[type].phase='session';rounds[type].session_scheduled_at=null;}
       supabase.from('ensemble_rounds').update({phase:'session',session_scheduled_at:null}).eq('id',r.id).eq('phase','song_end').then(({error})=>{if(error)console.error('song_end→session:',error.message);});
       render(); return;
     }
-    const diff=target?new Date(target)-Date.now():0;
+    const diff=target?new Date(target)-serverNow():0;
     html+=`<div class="status-card closed">
       <div class="status-icon">⏸️</div>
       <div class="status-texts">
@@ -352,12 +354,12 @@ function render(){
 
   else if(phase==='session'){
     const closeAt=r?.session_close_at;
-    if(closeAt&&new Date(closeAt)<=new Date()){
+    if(closeAt&&new Date(closeAt)<=new Date(serverNow())){
       if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session'){rounds[type].phase='session_end';rounds[type].session_close_at=null;}
       supabase.from('ensemble_rounds').update({phase:'session_end',session_close_at:null}).eq('id',r.id).eq('phase','session').then(()=>{});
       render(); return;
     }
-    const diff=closeAt?new Date(closeAt)-Date.now():0;
+    const diff=closeAt?new Date(closeAt)-serverNow():0;
     html+=`<div class="status-card session">
       <div class="status-icon">👥</div>
       <div class="status-texts">
@@ -403,7 +405,7 @@ function render(){
     const dndDone=allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
     if(dndDone){
       const target=r?.has_session2&&r?.session2_scheduled_at;
-      if(target&&new Date(target)<=new Date()){
+      if(target&&new Date(target)<=new Date(serverNow())){
         if(rounds[type]?.id===r.id){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
         supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id).then(({error})=>{if(error)console.error('session_end→session2:',error.message);});
         render(); return;
@@ -416,7 +418,7 @@ function render(){
         </div>
       </div>`;
       if(target){
-        const diff=new Date(target)-Date.now();
+        const diff=new Date(target)-serverNow();
         html+=`<div class="cd-num cd-open" id="cd-${type}">${diffToHMS(diff)}</div>`;
         startCountdown(type,target,async()=>{
           if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session_end'){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
@@ -438,12 +440,12 @@ function render(){
 
   else if(phase==='session2'){
     const closeAt=r?.session2_close_at;
-    if(closeAt&&new Date(closeAt)<=new Date()){
+    if(closeAt&&new Date(closeAt)<=new Date(serverNow())){
       if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session2'){rounds[type].phase='session2_end';rounds[type].session2_close_at=null;}
       supabase.from('ensemble_rounds').update({phase:'session2_end',session2_close_at:null}).eq('id',r.id).eq('phase','session2').then(()=>{});
       render(); return;
     }
-    const diff=closeAt?new Date(closeAt)-Date.now():0;
+    const diff=closeAt?new Date(closeAt)-serverNow():0;
     html+=`<div class="status-card session">
       <div class="status-icon">👥</div>
       <div class="status-texts">
@@ -668,7 +670,7 @@ function syncMySessionCheckboxes(){
 window.submitSong=async function(){
   const r=rounds[currentType];
   if(!r||r.phase!=='song'){window.toast('현재 곡 신청 기간이 아닙니다','err');return;}
-  if(r.song_close_at&&new Date(r.song_close_at)<=new Date()){window.toast('곡 신청이 마감됐습니다','err');return;}
+  if(r.song_close_at&&new Date(r.song_close_at)<=new Date(serverNow())){window.toast('곡 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('sName').value.trim();
   const sid=document.getElementById('sStudentId').value.trim();
   const title=document.getElementById('sTitle').value.trim();
@@ -723,7 +725,7 @@ window.submitSong=async function(){
 window.submitSession=async function(){
   const r=rounds[currentType];
   if(!r||r.phase!=='session'){window.toast('현재 세션 신청 기간이 아닙니다','err');return;}
-  if(r.session_close_at&&new Date(r.session_close_at)<=new Date()){window.toast('세션 신청이 마감됐습니다','err');return;}
+  if(r.session_close_at&&new Date(r.session_close_at)<=new Date(serverNow())){window.toast('세션 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('ssName').value.trim();
   const sid=document.getElementById('ssStudentId').value.trim();
   const songId=document.getElementById('ssSong').value;
@@ -736,7 +738,7 @@ window.submitSession=async function(){
 window.submitSession2=async function(){
   const r=rounds[currentType];
   if(!r||r.phase!=='session2'){window.toast('현재 2차 세션 신청 기간이 아닙니다','err');return;}
-  if(r.session2_close_at&&new Date(r.session2_close_at)<=new Date()){window.toast('2차 세션 신청이 마감됐습니다','err');return;}
+  if(r.session2_close_at&&new Date(r.session2_close_at)<=new Date(serverNow())){window.toast('2차 세션 신청이 마감됐습니다','err');return;}
   const name=document.getElementById('ssName').value.trim();
   const sid=document.getElementById('ssStudentId').value.trim();
   const songId=document.getElementById('ssSong').value;
