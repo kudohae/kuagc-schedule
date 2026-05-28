@@ -24,7 +24,6 @@
 .nb.active{background:var(--surface);color:var(--text);font-weight:700;}
 .nb:hover:not(.active){color:var(--text);}
 .hdr-r{display:flex;align-items:center;gap:7px;margin-left:auto;}
-.hdr-r #br-fab{order:-1;}
 .season-sel{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 9px;font-size:12px;font-weight:700;color:var(--accent2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;outline:none;}
 .logout-btn{background:transparent;border:1px solid var(--border);border-radius:4px;padding:4px 11px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s;}
 .logout-btn:hover{color:var(--danger);border-color:var(--danger);}
@@ -285,7 +284,6 @@ body.dark .ens-sess-sel.conflict{border-color:rgba(255,170,71,.35);background:rg
   .season-sel{font-size:11px;padding:4px 7px;}
   .theme-btn{padding:5px 8px;}
   .logout-btn{padding:5px 9px;font-size:11px;}
-  .hdr-r #br-fab{order:0;}
 
   /* 모바일 하단 탭바 */
   .mob-tab-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:var(--header-bg);border-top:1px solid var(--border);z-index:100;backdrop-filter:blur(8px);}
