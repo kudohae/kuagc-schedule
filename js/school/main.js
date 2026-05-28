@@ -6,11 +6,14 @@ import { syncServerTime, serverNow } from '../utils/serverTime.js';
 let round=null, prevRound=null, classes=[], apps=[], prevApps=[];
 let cdTimer=null;
 let _rtChannel=null;
+let _bcChannel=null;
 let _outerContainer=null;
 let _withdrawLookup=null;
 let _lastSchoolSubmitTs=0;
 let _lastLookupTs=0;
 let _pollTimer=null;
+
+function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});}
 
 function escHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -59,17 +62,24 @@ export async function init(outerContainer) {
     })
     .subscribe();
 
+  _bcChannel=supabase.channel('school-pub')
+    .on('broadcast',{event:'update'},()=>{
+      if(document.getElementById('container')) load();
+    })
+    .subscribe();
+
   _pollTimer=setInterval(async()=>{
     if(!document.getElementById('container')) return;
     const{data}=await supabase.from('school_rounds').select('id,status,open_at,close_at').order('created_at',{ascending:false}).limit(1).maybeSingle();
     const chg=(!data&&round)||(data&&(!round||data.status!==round.status||data.open_at!==round.open_at||data.close_at!==round.close_at));
     if(chg) await load();
-  },8000);
+  },3000);
 
   return function destroy() {
     stopCd();
     if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
+    if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
     _outerContainer = null;
   };
 }
@@ -451,6 +461,7 @@ window.submitApply=async function(){
     });
     if(error) throw error;
 
+    broadcastRefresh();
     if(returning){
       window.toast('신청 등록 완료. 이전 회차 수강자로, 마감 후 남은 자리에 배정될 예정입니다.','ok');
     } else if(assignedId){

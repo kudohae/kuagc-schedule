@@ -64,7 +64,7 @@ export async function init(outerContainer) {
       .on('postgres_changes',{event:'*',schema:'public',table:'manual_entries'},()=>loadAll(true))
       .subscribe();
 
-    _bcChannel=supabase.channel('ens-pub-'+Date.now())
+    _bcChannel=supabase.channel('ens-pub')
       .on('broadcast',{event:'update'},()=>loadAll(true))
       .on('broadcast',{event:'songUpdate'},()=>loadAll(true))
       .subscribe();

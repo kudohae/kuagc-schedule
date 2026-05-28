@@ -30,7 +30,7 @@ let weekOff=0, season='1학기';
 let academicDates={summerStart:null,summerEnd:null,winterStart:null,winterEnd:null};
 let seasonMode='auto';
 let _adminInited=false, _adminChannels=[];
-let _ensBroadcastCh=null;
+let _ensBroadcastCh=null, _taBcCh=null, _schoolBcCh=null;
 let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let pendingAll=[];
@@ -87,6 +87,8 @@ supabase.auth.onAuthStateChange((_event,session)=>{
   } else {
     _adminInited=false;
     if(_ensBroadcastCh){ supabase.removeChannel(_ensBroadcastCh); _ensBroadcastCh=null; }
+    if(_taBcCh){ supabase.removeChannel(_taBcCh); _taBcCh=null; }
+    if(_schoolBcCh){ supabase.removeChannel(_schoolBcCh); _schoolBcCh=null; }
     _adminChannels.forEach(ch=>supabase.removeChannel(ch));
     _adminChannels=[];
     document.getElementById('loginWrap').style.display='';
@@ -135,6 +137,10 @@ async function loadAll(){
   _ensBroadcastCh=supabase.channel('ens-pub')
     .on('broadcast',{event:'songUpdate'},async()=>{ await loadEnsemble(); renderEnsemble(); })
     .subscribe();
+  if(_taBcCh){ supabase.removeChannel(_taBcCh); _taBcCh=null; }
+  _taBcCh=supabase.channel('ta-pub').subscribe();
+  if(_schoolBcCh){ supabase.removeChannel(_schoolBcCh); _schoolBcCh=null; }
+  _schoolBcCh=supabase.channel('school-pub').subscribe();
   _adminChannels.forEach(ch=>supabase.removeChannel(ch));
   _adminChannels=[
     supabase.channel('admin-school-rt')
@@ -534,6 +540,7 @@ window.schoolOpen=async function(id){
   try{
     const {error}=await supabase.from('school_rounds').update({status:'open'}).eq('id',id);
     if(error) throw error;
+    _schoolBcCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
     toast('신청이 열렸습니다','ok'); await loadSchoolData(); renderSchool();
   }catch(e){toast(errMsg(e),'err');}
 };
@@ -634,6 +641,7 @@ async function adminSchoolClose(id){
       renderTeams(); renderSchedule();
       toast(`${added}개 반의 팀 및 시간표가 자동 생성됐습니다`,'ok');
     }
+    _schoolBcCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
   }catch(e){toast('팀/시간표 자동 생성 실패: '+errMsg(e),'err');}
 }
 
@@ -1394,7 +1402,9 @@ window.createNewRound=async function(){
     } else {
       round=await createRound({season,open_at:new Date(oa).toISOString(),close_at:ca?new Date(ca).toISOString():null});
     }
-    applications=[]; closeModal(); toast('신청이 설정되었습니다','ok'); renderApply();
+    applications=[]; closeModal();
+    _taBcCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
+    toast('신청이 설정되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
 
@@ -1402,6 +1412,7 @@ window.closeRoundNow=async function(){
   if(!confirm('신청을 마감할까요? 이후 배정을 실행할 수 있습니다.')) return;
   try{
     round=await updateRound(round.id,{status:'closed'});
+    _taBcCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
     toast('신청이 마감되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
@@ -1410,6 +1421,7 @@ window.reopenRound=async function(){
   if(!confirm('신청을 다시 열까요?')) return;
   try{
     round=await updateRound(round.id,{status:'open'});
+    _taBcCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
     toast('신청이 재오픈되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
 };
