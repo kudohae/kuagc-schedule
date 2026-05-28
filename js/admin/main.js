@@ -409,6 +409,7 @@ function renderSchool(){
         ${closeAt?`<span style="font-size:11px;color:var(--warn)">⏰ 마감: ${fS(closeAt)} — <span id="schoolCdEl" style="font-family:'Space Mono',monospace;font-weight:700">...</span></span>`:''}
         ${cur.prioritize_returning?'<span style="font-size:11px;color:var(--accent2)">이전 회차 대기 적용 중</span>':''}
         <div style="margin-left:auto;display:flex;gap:5px">
+          <button class="btn btn-s btn-xs" onclick="openSchoolCloseDeadlineModal(${cur.id})">마감 예약/변경</button>
           <button class="btn btn-s btn-xs" onclick="schoolClose(${cur.id})">마감하기</button>
         </div>
       </div>
@@ -552,6 +553,42 @@ window.schoolOpen=async function(id){
 window.schoolClose=async function(id){
   if(!confirm('신청을 마감하겠습니까?')) return;
   await adminSchoolClose(id);
+};
+
+window.openSchoolCloseDeadlineModal=function(id){
+  const pad=n=>String(n).padStart(2,'0');
+  const r=adminSchoolRounds.find(x=>x.id===id);
+  let curCA='';
+  if(r?.close_at){const d=new Date(r.close_at);curCA=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+  showModal('마감 예약/변경',
+    `<div><div class="fl">마감 일시</div><input class="fi" type="datetime-local" id="scCdCA" value="${curCA}"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     ${curCA?`<button class="btn btn-s" onclick="clearSchoolCloseDeadline(${id})">예약 해제</button>`:''}
+     <button class="btn btn-p" id="scCdBtn" onclick="saveSchoolCloseDeadline(${id})">저장</button>`
+  );
+};
+
+window.saveSchoolCloseDeadline=async function(id){
+  const ca=document.getElementById('scCdCA').value;
+  if(!ca){toast('마감 일시를 입력해주세요','err');return;}
+  const btn=document.getElementById('scCdBtn'); btn.disabled=true;
+  try{
+    const {error}=await supabase.from('school_rounds').update({close_at:new Date(ca).toISOString()}).eq('id',id);
+    if(error) throw error;
+    _schoolBcCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
+    closeModal(); toast('마감 일시가 저장되었습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
+};
+
+window.clearSchoolCloseDeadline=async function(id){
+  try{
+    const {error}=await supabase.from('school_rounds').update({close_at:null}).eq('id',id);
+    if(error) throw error;
+    _schoolBcCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
+    closeModal(); toast('마감 예약이 해제되었습니다','ok');
+    await loadSchoolData(); renderSchool();
+  }catch(e){toast(errMsg(e),'err');}
 };
 
 function schoolInstrKey(name){
