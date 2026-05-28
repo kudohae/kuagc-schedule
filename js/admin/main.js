@@ -767,6 +767,7 @@ function render(){
   document.getElementById('weekLbl').textContent=wl;
   document.getElementById('schTitle').innerHTML=`${wl} 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
+  document.getElementById('seasonBadge').textContent=season;
   renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts(); renderEnsemble(); renderSchool(); renderBugReports(); renderAcademicCard();
 }
 
@@ -810,6 +811,16 @@ async function autoUpdateSeason(){
   }
 }
 
+
+window.goToAcademicCard=function(){
+  window.showPage('data');
+  const el=document.getElementById('academicCard');
+  if(!el) return;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  el.classList.remove('academic-highlight');
+  void el.offsetWidth;
+  el.classList.add('academic-highlight');
+};
 
 window.saveAcademicDates=async function(){
   const ss=document.getElementById('acSummerStart').value||null;
