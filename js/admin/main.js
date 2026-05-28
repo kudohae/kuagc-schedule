@@ -199,7 +199,6 @@ async function loadAll(){
   ];
   render();
   await checkVacancyReports();
-  checkSeasonalPopup();
 }
 
 async function checkVacancyReports(){
@@ -811,24 +810,6 @@ async function autoUpdateSeason(){
   }
 }
 
-function checkSeasonalPopup(){
-  const {winterEnd}=academicDates;
-  if(!winterEnd) return;
-  const today=new Date().toISOString().slice(0,10);
-  if(today<winterEnd) return;
-  if(localStorage.getItem('academic_spring_notified')===winterEnd) return;
-  showModal('새 학기 시작 안내',
-    `<div style="font-size:13px;margin-bottom:4px">1학기가 시작되었습니다.</div>
-     <div style="font-size:12px;color:var(--text2)">'데이터 관리' 탭에서 올해의 학사일정을 입력해주세요.</div>`,
-    `<button class="btn btn-p" onclick="dismissSpringNotification()">확인</button>`
-  );
-}
-
-window.dismissSpringNotification=function(){
-  const {winterEnd}=academicDates;
-  if(winterEnd) localStorage.setItem('academic_spring_notified',winterEnd);
-  closeModal();
-};
 
 window.saveAcademicDates=async function(){
   const ss=document.getElementById('acSummerStart').value||null;
