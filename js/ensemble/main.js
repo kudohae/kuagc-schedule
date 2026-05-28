@@ -54,14 +54,14 @@ export async function init(outerContainer) {
   try{
     await loadAll(true);
 
-    _rtChannel=supabase.channel('ens-rt')
+    _rtChannel=supabase.channel('ens-rt-'+Date.now())
       .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},refreshList)
       .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},()=>loadAll(true))
       .on('postgres_changes',{event:'*',schema:'public',table:'manual_entries'},()=>loadAll(true))
       .subscribe();
 
-    _bcChannel=supabase.channel('ens-pub')
+    _bcChannel=supabase.channel('ens-pub-'+Date.now())
       .on('broadcast',{event:'update'},()=>loadAll(true))
       .on('broadcast',{event:'songUpdate'},()=>loadAll(true))
       .subscribe();
