@@ -28,6 +28,7 @@ function weekLabelWithThis(off){
 }
 
 let weekOff=0, season='1학기';
+let academicDates={summerStart:null,summerEnd:null,winterStart:null,winterEnd:null};
 let _adminInited=false, _adminChannels=[];
 let _ensBroadcastCh=null;
 let mobileDayIdx=(new Date().getDay()+6)%7;
@@ -91,8 +92,21 @@ supabase.auth.getSession().then(({data:{session}})=>{
 
 // ── LOAD ──────────────────────────────────────────────────────────────
 async function loadAll(){
-  season=await getConfig('current_season').catch(()=>'1학기');
-  document.getElementById('seasonSel').value=season;
+  const [_season,_ss,_se,_ws,_we]=await Promise.allSettled([
+    getConfig('current_season'),
+    getConfig('academic_summer_start'),
+    getConfig('academic_summer_end'),
+    getConfig('academic_winter_start'),
+    getConfig('academic_winter_end'),
+  ]);
+  season=_season.status==='fulfilled'?_season.value:'1학기';
+  academicDates={
+    summerStart:_ss.status==='fulfilled'?_ss.value:null,
+    summerEnd:_se.status==='fulfilled'?_se.value:null,
+    winterStart:_ws.status==='fulfilled'?_ws.value:null,
+    winterEnd:_we.status==='fulfilled'?_we.value:null,
+  };
+  await autoUpdateSeason();
   const _r=await Promise.allSettled([
     fetchTeams(),fetchBaseSlots(season),fetchExceptions(weekOff),
     fetchRequests(weekOff),fetchNotices(),fetchContacts()
@@ -185,6 +199,7 @@ async function loadAll(){
   ];
   render();
   await checkVacancyReports();
+  checkSeasonalPopup();
 }
 
 async function checkVacancyReports(){
@@ -753,7 +768,7 @@ function render(){
   document.getElementById('weekLbl').textContent=wl;
   document.getElementById('schTitle').innerHTML=`${wl} 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
-  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts(); renderEnsemble(); renderSchool(); renderBugReports();
+  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts(); renderEnsemble(); renderSchool(); renderBugReports(); renderAcademicCard();
 }
 
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
@@ -779,14 +794,117 @@ window.goToThisWeek=async function(){
   merged=mergeSchedule(baseSlots,exceptions); render();
 };
 
-window.changeSeason=async function(s){
-  await setConfig('current_season',s); season=s;
-  [baseSlots,exceptions]=await Promise.all([fetchBaseSlots(season),fetchExceptions(weekOff)]);
-  merged=mergeSchedule(baseSlots,exceptions);
-  round=await fetchActiveRound(season);
-  applications=round?await fetchApplications(round.id):[];
-  render(); toast(`${s}으로 전환되었습니다`,'ok');
+async function autoUpdateSeason(){
+  const today=new Date().toISOString().slice(0,10);
+  const {summerStart,summerEnd,winterStart,winterEnd}=academicDates;
+  const transitions=[
+    winterEnd   && {date:winterEnd,   s:'1학기'},
+    summerStart && {date:summerStart, s:'여름방학'},
+    summerEnd   && {date:summerEnd,   s:'2학기'},
+    winterStart && {date:winterStart, s:'겨울방학'},
+  ].filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
+  let newSeason=null;
+  for(const t of transitions) if(today>=t.date) newSeason=t.s;
+  if(newSeason && newSeason!==season){
+    await setConfig('current_season',newSeason).catch(()=>{});
+    season=newSeason;
+  }
+}
+
+function checkSeasonalPopup(){
+  const today=new Date();
+  const m=today.getMonth()+1, d=today.getDate();
+  if(m===6&&d===1) showSummerPopup();
+  else if(m===12&&d===1) showWinterPopup();
+}
+
+function showSummerPopup(){
+  showModal('여름방학 일정 입력',
+    `<div style="font-size:12px;color:var(--text2);margin-bottom:14px">올해 여름방학 일정을 입력해주세요.</div>
+     <div><div class="fl">1학기 종강 (여름방학 시작)</div>
+     <input class="fi" type="date" id="popSummerStart" value="${academicDates.summerStart||''}"/></div>
+     <div><div class="fl">2학기 개강 (여름방학 종료)</div>
+     <input class="fi" type="date" id="popSummerEnd" value="${academicDates.summerEnd||''}"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">나중에</button>
+     <button class="btn btn-p" onclick="saveSummerDatesFromPopup()">저장</button>`
+  );
+}
+
+function showWinterPopup(){
+  showModal('겨울방학 일정 입력',
+    `<div style="font-size:12px;color:var(--text2);margin-bottom:14px">올해/내년 겨울방학 일정을 입력해주세요.</div>
+     <div><div class="fl">2학기 종강 (겨울방학 시작)</div>
+     <input class="fi" type="date" id="popWinterStart" value="${academicDates.winterStart||''}"/></div>
+     <div><div class="fl">1학기 개강 (겨울방학 종료)</div>
+     <input class="fi" type="date" id="popWinterEnd" value="${academicDates.winterEnd||''}"/></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">나중에</button>
+     <button class="btn btn-p" onclick="saveWinterDatesFromPopup()">저장</button>`
+  );
+}
+
+window.saveSummerDatesFromPopup=async function(){
+  const ss=document.getElementById('popSummerStart').value;
+  const se=document.getElementById('popSummerEnd').value;
+  if(!ss||!se){toast('날짜를 모두 입력해주세요','err');return;}
+  try{
+    await Promise.all([setConfig('academic_summer_start',ss),setConfig('academic_summer_end',se)]);
+    academicDates.summerStart=ss; academicDates.summerEnd=se;
+    closeModal(); toast('여름방학 일정이 저장되었습니다','ok');
+    renderAcademicCard(); await autoUpdateSeason(); render();
+  }catch(e){toast(errMsg(e),'err');}
 };
+
+window.saveWinterDatesFromPopup=async function(){
+  const ws=document.getElementById('popWinterStart').value;
+  const we=document.getElementById('popWinterEnd').value;
+  if(!ws||!we){toast('날짜를 모두 입력해주세요','err');return;}
+  try{
+    await Promise.all([setConfig('academic_winter_start',ws),setConfig('academic_winter_end',we)]);
+    academicDates.winterStart=ws; academicDates.winterEnd=we;
+    closeModal(); toast('겨울방학 일정이 저장되었습니다','ok');
+    renderAcademicCard(); await autoUpdateSeason(); render();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+window.saveAcademicDates=async function(){
+  const ss=document.getElementById('acSummerStart').value||null;
+  const se=document.getElementById('acSummerEnd').value||null;
+  const ws=document.getElementById('acWinterStart').value||null;
+  const we=document.getElementById('acWinterEnd').value||null;
+  try{
+    await Promise.all([
+      ss?setConfig('academic_summer_start',ss):supabase.from('app_config').delete().eq('key','academic_summer_start'),
+      se?setConfig('academic_summer_end',se):supabase.from('app_config').delete().eq('key','academic_summer_end'),
+      ws?setConfig('academic_winter_start',ws):supabase.from('app_config').delete().eq('key','academic_winter_start'),
+      we?setConfig('academic_winter_end',we):supabase.from('app_config').delete().eq('key','academic_winter_end'),
+    ]);
+    academicDates={summerStart:ss,summerEnd:se,winterStart:ws,winterEnd:we};
+    toast('학사일정이 저장되었습니다','ok');
+    renderAcademicCard(); await autoUpdateSeason(); render();
+  }catch(e){toast(errMsg(e),'err');}
+};
+
+function renderAcademicCard(){
+  const el=document.getElementById('academicCard');
+  if(!el) return;
+  const {summerStart,summerEnd,winterStart,winterEnd}=academicDates;
+  el.innerHTML=`
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2)">학사일정</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div><div class="fl">1학기 종강 (여름방학 시작)</div>
+        <input class="fi" type="date" id="acSummerStart" value="${summerStart||''}"/></div>
+      <div><div class="fl">2학기 개강 (여름방학 종료)</div>
+        <input class="fi" type="date" id="acSummerEnd" value="${summerEnd||''}"/></div>
+      <div><div class="fl">2학기 종강 (겨울방학 시작)</div>
+        <input class="fi" type="date" id="acWinterStart" value="${winterStart||''}"/></div>
+      <div><div class="fl">1학기 개강 (겨울방학 종료)</div>
+        <input class="fi" type="date" id="acWinterEnd" value="${winterEnd||''}"/></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn btn-p" onclick="saveAcademicDates()">저장</button>
+      <span style="font-size:12px;color:var(--text2)">현재 학기: <b>${season}</b></span>
+    </div>`;
+}
 
 // ── SCHEDULE ──────────────────────────────────────────────────────────
 function renderSchedule(){
