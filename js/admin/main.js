@@ -883,13 +883,13 @@ function renderAcademicCard(){
       ${isManual?`<select class="season-sel" onchange="setManualSeason(this.value)">${seasons.map(s=>`<option${s===season?' selected':''}>${s}</option>`).join('')}</select>`:''}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div><div class="fl">1학기 종강 (여름방학 시작)</div>
+      <div><div class="fl">1학기 종강</div>
         <input class="fi" type="date" id="acSummerStart" value="${summerStart||''}" ${dis}/></div>
-      <div><div class="fl">2학기 개강 (여름방학 종료)</div>
+      <div><div class="fl">2학기 개강</div>
         <input class="fi" type="date" id="acSummerEnd" value="${summerEnd||''}" ${dis}/></div>
-      <div><div class="fl">2학기 종강 (겨울방학 시작)</div>
+      <div><div class="fl">2학기 종강</div>
         <input class="fi" type="date" id="acWinterStart" value="${winterStart||''}" ${dis}/></div>
-      <div><div class="fl">내년 1학기 개강 (겨울방학 종료)</div>
+      <div><div class="fl">내년 1학기 개강</div>
         <input class="fi" type="date" id="acWinterEnd" value="${winterEnd||''}" ${dis}/></div>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
