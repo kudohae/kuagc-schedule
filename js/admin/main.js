@@ -812,58 +812,22 @@ async function autoUpdateSeason(){
 }
 
 function checkSeasonalPopup(){
-  const today=new Date();
-  const m=today.getMonth()+1, d=today.getDate();
-  if(m===6&&d===1) showSummerPopup();
-  else if(m===12&&d===1) showWinterPopup();
-}
-
-function showSummerPopup(){
-  showModal('여름방학 일정 입력',
-    `<div style="font-size:12px;color:var(--text2);margin-bottom:14px">올해 여름방학 일정을 입력해주세요.</div>
-     <div><div class="fl">1학기 종강 (여름방학 시작)</div>
-     <input class="fi" type="date" id="popSummerStart" value="${academicDates.summerStart||''}"/></div>
-     <div><div class="fl">2학기 개강 (여름방학 종료)</div>
-     <input class="fi" type="date" id="popSummerEnd" value="${academicDates.summerEnd||''}"/></div>`,
-    `<button class="btn btn-s" onclick="closeModal()">나중에</button>
-     <button class="btn btn-p" onclick="saveSummerDatesFromPopup()">저장</button>`
+  const {winterEnd}=academicDates;
+  if(!winterEnd) return;
+  const today=new Date().toISOString().slice(0,10);
+  if(today<winterEnd) return;
+  if(localStorage.getItem('academic_spring_notified')===winterEnd) return;
+  showModal('새 학기 시작 안내',
+    `<div style="font-size:13px;margin-bottom:4px">1학기가 시작되었습니다.</div>
+     <div style="font-size:12px;color:var(--text2)">'데이터 관리' 탭에서 올해의 학사일정을 입력해주세요.</div>`,
+    `<button class="btn btn-p" onclick="dismissSpringNotification()">확인</button>`
   );
 }
 
-function showWinterPopup(){
-  showModal('겨울방학 일정 입력',
-    `<div style="font-size:12px;color:var(--text2);margin-bottom:14px">올해/내년 겨울방학 일정을 입력해주세요.</div>
-     <div><div class="fl">2학기 종강 (겨울방학 시작)</div>
-     <input class="fi" type="date" id="popWinterStart" value="${academicDates.winterStart||''}"/></div>
-     <div><div class="fl">1학기 개강 (겨울방학 종료)</div>
-     <input class="fi" type="date" id="popWinterEnd" value="${academicDates.winterEnd||''}"/></div>`,
-    `<button class="btn btn-s" onclick="closeModal()">나중에</button>
-     <button class="btn btn-p" onclick="saveWinterDatesFromPopup()">저장</button>`
-  );
-}
-
-window.saveSummerDatesFromPopup=async function(){
-  const ss=document.getElementById('popSummerStart').value;
-  const se=document.getElementById('popSummerEnd').value;
-  if(!ss||!se){toast('날짜를 모두 입력해주세요','err');return;}
-  try{
-    await Promise.all([setConfig('academic_summer_start',ss),setConfig('academic_summer_end',se)]);
-    academicDates.summerStart=ss; academicDates.summerEnd=se;
-    closeModal(); toast('여름방학 일정이 저장되었습니다','ok');
-    renderAcademicCard(); await autoUpdateSeason(); render();
-  }catch(e){toast(errMsg(e),'err');}
-};
-
-window.saveWinterDatesFromPopup=async function(){
-  const ws=document.getElementById('popWinterStart').value;
-  const we=document.getElementById('popWinterEnd').value;
-  if(!ws||!we){toast('날짜를 모두 입력해주세요','err');return;}
-  try{
-    await Promise.all([setConfig('academic_winter_start',ws),setConfig('academic_winter_end',we)]);
-    academicDates.winterStart=ws; academicDates.winterEnd=we;
-    closeModal(); toast('겨울방학 일정이 저장되었습니다','ok');
-    renderAcademicCard(); await autoUpdateSeason(); render();
-  }catch(e){toast(errMsg(e),'err');}
+window.dismissSpringNotification=function(){
+  const {winterEnd}=academicDates;
+  if(winterEnd) localStorage.setItem('academic_spring_notified',winterEnd);
+  closeModal();
 };
 
 window.saveAcademicDates=async function(){
@@ -897,7 +861,7 @@ function renderAcademicCard(){
         <input class="fi" type="date" id="acSummerEnd" value="${summerEnd||''}"/></div>
       <div><div class="fl">2학기 종강 (겨울방학 시작)</div>
         <input class="fi" type="date" id="acWinterStart" value="${winterStart||''}"/></div>
-      <div><div class="fl">1학기 개강 (겨울방학 종료)</div>
+      <div><div class="fl">내년 1학기 개강 (겨울방학 종료)</div>
         <input class="fi" type="date" id="acWinterEnd" value="${winterEnd||''}"/></div>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
