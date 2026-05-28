@@ -5,6 +5,13 @@
 .login-sub{font-size:13px;color:var(--text2);}
 .login-err{font-size:13px;color:var(--danger);display:none;}
 
+/* ── ACADEMIC CARD HIGHLIGHT ── */
+@keyframes academicHighlight{
+  0%{box-shadow:0 0 0 2px var(--accent2);outline:2px solid var(--accent2);}
+  100%{box-shadow:none;outline:2px solid transparent;}
+}
+.academic-highlight{animation:academicHighlight 2s ease-out forwards;}
+
 /* ── HEADER ── */
 .logo-sub{font-size:11px;color:var(--text3);margin-left:3px;font-family:'Noto Sans KR',sans-serif;font-weight:400;}
 /* admin nav uses .nb instead of .nav-btn */
