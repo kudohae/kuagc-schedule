@@ -2848,7 +2848,7 @@ function fmtScheduled(ts){
 }
 
 window.closeRound=async function(id){
-  if(!confirm('신청을 닫을까요?')) return;
+  if(!confirm('합주 신청을 완전히 마감할까요? 다음 신청은 첫 단계부터 다시 시작해야 합니다.')) return;
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',id);
     if(error) throw error;
