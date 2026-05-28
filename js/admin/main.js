@@ -1764,7 +1764,7 @@ function renderEnsemble(){
         if(allSessDisp.length) sh=`<div class="e-sess-list">${allSessDisp.map(a=>{const rej=a.status==='rejected';const isApp=a.student_id===s.student_id;const appBadge=isApp?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';return `<div class="e-sess-row" style="${rej?'opacity:.45':''}"><span class="e-sess-dot ${rej?'rejected':'confirmed'}"></span><span class="e-sess-name" style="${rej?'text-decoration:line-through;color:var(--text3)':''}${isApp?';font-weight:900':''}">${esc(a.applicant_name)}${appBadge}</span><div class="e-sess-tags">${a.sessions.map(x=>`<span class="e-sess-tag ${rej?'':'confirmed'}">${esc(x)}</span>`).join('')}</div></div>`;}).join('')}</div>`;
         return `<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1;min-width:0"><div class="e-song-title">${esc(s.title)}${s.is_fixed?ENS_FIXED_BADGE:''}</div><div class="e-song-artist">${esc(s.artist)}</div></div></div>${sh}</div>`;
       }).join('');
-      if(showDndBtn) h+=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">${dndBtnLabel}</button></div>`;
+      if(showDndBtn) h+=`<div style="padding:12px 13px"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">${dndBtnLabel}</button></div>`;
       return h;
     };
 
@@ -1775,7 +1775,7 @@ function renderEnsemble(){
       if(dndDone){
         songsHtml=mkConfirmedSongHtml(songList,true,'팀 구성 다시 하기');
       } else {
-        songsHtml=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
+        songsHtml=`<div style="padding:12px 13px"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
       }
     } else if(phase==='session2_end'){
       const allSessApps2=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
@@ -1784,7 +1784,7 @@ function renderEnsemble(){
       if(dndDone2){
         songsHtml=mkConfirmedSongHtml(songList,true,'팀 구성 다시 하기');
       } else {
-        songsHtml=`<div style="padding:12px 0"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
+        songsHtml=`<div style="padding:12px 13px"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
       }
     } else {
       const active=songList.filter(s=>s.status!=='rejected');
