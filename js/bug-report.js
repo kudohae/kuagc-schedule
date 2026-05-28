@@ -32,7 +32,6 @@ win.innerHTML = `
   </div>
 `;
 
-document.body.appendChild(fab);
 document.body.appendChild(win);
 
 const msgsEl = win.querySelector('#br-msgs');
