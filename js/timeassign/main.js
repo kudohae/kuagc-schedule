@@ -220,11 +220,12 @@ function render(){
     <div class="apply-card">
       <div class="apply-card-title">시간 신청</div>
       <div style="margin-bottom:14px">
-        <div class="fl">팀 선택 *</div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <input class="fi" type="text" id="apTeamInput" placeholder="팀명 입력"
+        <div class="fl">팀 번호 *</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="fi" type="number" min="1" id="apTeamInput" placeholder="번호"
             oninput="onApplyTeamInput(this.value)"
-            value="${applyTeamName}" style="width:160px;flex-shrink:0"/>
+            value="${applyTeamName.replace(/팀$/,'')}" style="width:80px;flex-shrink:0"/>
+          <span style="font-size:14px;font-weight:600">팀</span>
           <div id="apTeamInfo" style="font-size:12px;min-width:80px;flex-shrink:0">${(()=>{
             if(!applyTeamName) return '';
             const _t=teams.find(t=>normTeam(t.name)===normTeam(applyTeamName));
@@ -296,8 +297,9 @@ function renderList(){
 // ── INTERACTIONS ──────────────────────────────────────────────────────
 const normTeam=s=>s.replace(/\s/g,'');
 window.onApplyTeamInput=function(val){
-  applyTeamName=val;
-  const norm=normTeam(val);
+  const trimmed=val.trim();
+  applyTeamName=trimmed?trimmed+'팀':'';
+  const norm=normTeam(applyTeamName);
   const infoEl=document.getElementById('apTeamInfo');
   if(!infoEl) return;
   if(!norm){ applyTeamId=null; infoEl.innerHTML=''; return; }
