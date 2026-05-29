@@ -1192,9 +1192,9 @@ function renderTeams(){
             <div class="tcard-name-static">${t.name}</div>
             <div class="tcard-type">${t.type}</div>
           </div>
-          <div class="tcard-row">
+          ${g.k!=='합주'?`<div class="tcard-row">
             <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.name}" id="tname-${t.id}" placeholder="팀명"/>
-          </div>
+          </div>`:''}
           <div class="tcard-row">
             <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.info||''}" id="tinfo-${t.id}"
               placeholder="${g.k==='스쿨'?'선생님':g.k==='합주'?'합주곡':'추가정보'}"/>
@@ -1218,7 +1218,9 @@ function renderTeams(){
   }).join('');
 }
 window.saveTeamAll=async function(id){
-  const name=document.getElementById('tname-'+id)?.value.trim();
+  const t0=teams.find(t=>t.id===id);
+  const nameEl=document.getElementById('tname-'+id);
+  const name=nameEl?nameEl.value.trim():t0?.name;
   if(!name){toast('팀명을 입력해주세요','err');return;}
   const info=document.getElementById('tinfo-'+id)?.value.trim()??'';
   const members=[];
