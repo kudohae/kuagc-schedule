@@ -608,10 +608,14 @@ function semLabel(s){
 }
 
 async function adminSchoolClose(id){
-  const closeClasses=adminSchools.filter(s=>s.round_id===id);
   try{
-    const {error}=await supabase.from('school_rounds').update({status:'closed'}).eq('id',id);
+    // B2/L2: .eq('status','open') 가드 — 이미 마감됐으면 무시
+    const {data:updated,error}=await supabase.from('school_rounds').update({status:'closed'}).eq('id',id).eq('status','open').select('id');
     if(error) throw error;
+    if(!updated?.length) return;
+    // L1: 마감 직전 신청 현황을 DB에서 새로 불러와 정확한 정원 계산
+    await loadSchoolData();
+    const closeClasses=adminSchools.filter(s=>s.round_id===id);
     // 이전 회차 수강자(pending) 처리
     const r=adminSchoolRounds.find(x=>x.id===id);
     if(r?.prioritize_returning){
@@ -690,8 +694,10 @@ window.deleteSchoolRound=async function(id){
   const schoolIds=adminSchools.filter(s=>s.round_id===id).map(s=>s.id);
   if(!confirm(`이 회차를 삭제하시겠습니까?\n반 ${schoolIds.length}개와 신청 데이터가 모두 삭제됩니다.`)) return;
   try{
-    await supabase.from('school_applications').delete().eq('round_id',id);
-    await supabase.from('schools').delete().eq('round_id',id);
+    const {error:e1}=await supabase.from('school_applications').delete().eq('round_id',id);
+    if(e1) throw e1;
+    const {error:e2}=await supabase.from('schools').delete().eq('round_id',id);
+    if(e2) throw e2;
     const {error}=await supabase.from('school_rounds').delete().eq('id',id);
     if(error) throw error;
     toast('삭제됐습니다','ok'); await loadSchoolData(); renderSchool();
@@ -807,7 +813,8 @@ window.deleteSchoolApp=async function(id){
             return ap!==bp?ap-bp:new Date(a.created_at)-new Date(b.created_at);
           })[0];
           if(candidate){
-            await supabase.from('school_applications').update({assigned_school_id:schoolId,status:'assigned'}).eq('id',candidate.id);
+            const {error:eRA}=await supabase.from('school_applications').update({assigned_school_id:schoolId,status:'assigned'}).eq('id',candidate.id);
+            if(eRA) toast('자동 재배정에 실패했습니다. 수동으로 확인해주세요.','err');
           }
         }
       }
@@ -2661,6 +2668,12 @@ window.confirmEnsembleTeams=async function(){
       const best=assignments.reduce((b,a)=>a.sessions.length>b.sessions.length?a:b,assignments[0]);
       const{error:eUp}=await supabase.from('session_applications').update({song_id:best.songId,sessions:best.sessions}).eq('id',appId);
       if(eUp) throw eUp;
+    }
+    // B6: 배정 멤버가 없는 곡은 자동으로 rejected 처리
+    const emptySongIds=eDndSt.songs.filter(s=>s.slots.length===0).map(s=>s.song.id);
+    if(emptySongIds.length){
+      const{error:eRej}=await supabase.from('song_applications').update({status:'rejected'}).in('id',emptySongIds);
+      if(eRej) throw eRej;
     }
     localStorage.removeItem(eDndSt.savedKey);
     toast(`${eDndSt.songs.filter(s=>s.slots.length).length}개 팀이 확정됐습니다`,'ok');
