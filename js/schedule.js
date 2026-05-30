@@ -316,13 +316,15 @@ export async function approveDraft(round, applications, season) {
     const assignedTimeKeys = new Set(toInsert.map(s => `${s.day}-${s.hour}`));
 
     // 배정받은 팀의 기존 슬롯 제거
-    await supabase.from('base_slots').delete().eq('season', season).in('team_id', assignedTeamIds);
+    const { error: e1 } = await supabase.from('base_slots').delete().eq('season', season).in('team_id', assignedTeamIds);
+    if (e1) throw e1;
 
     // 새 배정 시간과 겹치는 다른 팀 슬롯 제거
     const { data: remaining } = await supabase.from('base_slots').select('id,day,hour').eq('season', season);
     const conflictIds = (remaining || []).filter(s => assignedTimeKeys.has(`${s.day}-${s.hour}`)).map(s => s.id);
     if (conflictIds.length) {
-      await supabase.from('base_slots').delete().in('id', conflictIds);
+      const { error: e2 } = await supabase.from('base_slots').delete().in('id', conflictIds);
+      if (e2) throw e2;
     }
 
     const { error } = await supabase.from('base_slots').insert(toInsert);

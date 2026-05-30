@@ -120,16 +120,16 @@ function isReturning(sid){
   return prevApps.some(a=>a.student_id===sid);
 }
 
-function countAssigned(classId){
-  return apps.filter(a=>a.assigned_school_id===classId&&a.status==='assigned').length;
+function countAssigned(classId,excludeId=null){
+  return apps.filter(a=>a.id!==excludeId&&a.assigned_school_id===classId&&a.status==='assigned').length;
 }
 
-function pickClass(pref1,pref2){
+function pickClass(pref1,pref2,excludeId=null){
   const c1=classes.find(c=>c.id===pref1);
-  if(c1&&countAssigned(pref1)<(c1.capacity||0)) return pref1;
+  if(c1&&countAssigned(pref1,excludeId)<(c1.capacity||0)) return pref1;
   if(pref2){
     const c2=classes.find(c=>c.id===pref2);
-    if(c2&&countAssigned(pref2)<(c2.capacity||0)) return pref2;
+    if(c2&&countAssigned(pref2,excludeId)<(c2.capacity||0)) return pref2;
   }
   return null;
 }
@@ -439,27 +439,30 @@ window.submitApply=async function(){
   const btn=document.getElementById('applySubmitBtn');
   if(btn){btn.disabled=true;btn.textContent='처리 중...';}
   try{
-    if(existing){
-      const {error}=await supabase.from('school_applications').delete().eq('id',existing.id);
-      if(error) throw error;
-      apps=apps.filter(a=>a.id!==existing.id);
-    }
-
     const returning=isReturning(sid);
     let assignedId=null, status;
     if(returning){
       status='pending';
     } else {
-      assignedId=pickClass(pref1,pref2);
+      // B5: 기존 신청을 제외한 정원 계산으로 올바른 배정 결정
+      assignedId=pickClass(pref1,pref2,existing?.id);
       status=assignedId?'assigned':'unassigned';
     }
 
+    // B5: insert 먼저 — 실패해도 기존 신청이 그대로 남음
     const {error}=await supabase.from('school_applications').insert({
       round_id:round.id,applicant_name:name,student_id:sid,
       pref1_school_id:pref1,pref2_school_id:pref2||null,
       assigned_school_id:assignedId,is_returning:returning,status
     });
     if(error) throw error;
+
+    // insert 성공 후 기존 신청 삭제
+    if(existing){
+      const {error:eDel}=await supabase.from('school_applications').delete().eq('id',existing.id);
+      if(eDel) console.warn('기존 신청 삭제 실패(새 신청은 등록됨):', eDel);
+      apps=apps.filter(a=>a.id!==existing.id);
+    }
 
     broadcastRefresh();
     if(returning){
