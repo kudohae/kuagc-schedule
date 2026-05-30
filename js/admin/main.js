@@ -608,14 +608,15 @@ function semLabel(s){
 }
 
 async function adminSchoolClose(id){
+  let closeClasses=[];
   try{
-    // B2/L2: .eq('status','open') 가드 — 이미 마감됐으면 무시
+    // B2/L2: .eq('status','open') 가드 — 이미 마감됐으면 UI만 갱신하고 종료
     const {data:updated,error}=await supabase.from('school_rounds').update({status:'closed'}).eq('id',id).eq('status','open').select('id');
     if(error) throw error;
-    if(!updated?.length) return;
+    if(!updated?.length){await loadSchoolData();renderSchool();return;}
     // L1: 마감 직전 신청 현황을 DB에서 새로 불러와 정확한 정원 계산
     await loadSchoolData();
-    const closeClasses=adminSchools.filter(s=>s.round_id===id);
+    closeClasses=adminSchools.filter(s=>s.round_id===id);
     // 이전 회차 수강자(pending) 처리
     const r=adminSchoolRounds.find(x=>x.id===id);
     if(r?.prioritize_returning){
@@ -814,7 +815,7 @@ window.deleteSchoolApp=async function(id){
           })[0];
           if(candidate){
             const {error:eRA}=await supabase.from('school_applications').update({assigned_school_id:schoolId,status:'assigned'}).eq('id',candidate.id);
-            if(eRA) toast('자동 재배정에 실패했습니다. 수동으로 확인해주세요.','err');
+            if(eRA){toast('삭제됐습니다. 자동 재배정에 실패했으니 수동으로 확인해주세요.','err');await loadSchoolData();renderSchool();return;}
           }
         }
       }
