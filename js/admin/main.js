@@ -1296,11 +1296,22 @@ window.openAddTeamModal=function(){
   _nMIdx=0;
   const swatches=COLORS.map(c=>`<div class="swatch" id="sw-${c.replace('#','')}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
   showModal('팀 추가',
-    `<div><div class="fl">팀 이름</div><input class="fi" id="nName" placeholder="팀 이름"/></div>
-     <div><div class="fl">분류</div>
+    `<div><div class="fl">분류</div>
        <select class="fs" id="nType" onchange="onTypeChange()">
          <option>합주</option><option>스쿨</option><option>이외</option>
        </select></div>
+     <div id="ensNameArea">
+       <div class="fl">팀 이름</div>
+       <div style="font-size:13px;font-weight:700;padding:5px 0;color:var(--text)" id="ensAutoName">—</div>
+     </div>
+     <div id="plainNameArea" style="display:none">
+       <div class="fl">팀 이름</div>
+       <input class="fi" id="nName" placeholder="팀 이름"/>
+     </div>
+     <div id="ensInfoArea">
+       <div class="fl">곡 제목</div>
+       <input class="fi" id="nInfo" placeholder="곡 제목"/>
+     </div>
      <div id="colorArea" style="display:none">
        <div class="fl">컬러</div>
        <div class="swatch-row">${swatches}</div>
@@ -1318,6 +1329,7 @@ window.openAddTeamModal=function(){
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
      <button class="btn btn-p" id="nBtn" onclick="addTeam()">추가</button>`
   );
+  onTypeChange();
   pickColor(COLORS[0]);
 };
 window.addMemberRow=function(){
@@ -1331,19 +1343,29 @@ window.addMemberRow=function(){
     <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px" onclick="document.getElementById('nmrow-${i}').remove()">×</button>`;
   document.getElementById('nMemberRows').appendChild(row);
 };
+function nextEnsTeamNum(){
+  const nums=teams.filter(t=>t.type==='합주').map(t=>{const m=t.name.match(/^(\d+)팀$/);return m?parseInt(m[1]):0;});
+  let n=1; while(nums.includes(n)) n++; return n;
+}
 window.onTypeChange=function(){
-  const t=document.getElementById('nType').value,c=t!=='합주';
-  document.getElementById('colorArea').style.display=c?'block':'none';
-  document.getElementById('grayNote').style.display=c?'none':'block';
+  const t=document.getElementById('nType').value,isEns=t==='합주';
+  document.getElementById('ensNameArea').style.display=isEns?'block':'none';
+  document.getElementById('plainNameArea').style.display=isEns?'none':'block';
+  document.getElementById('ensInfoArea').style.display=isEns?'block':'none';
+  document.getElementById('colorArea').style.display=isEns?'none':'block';
+  document.getElementById('grayNote').style.display=isEns?'block':'none';
+  if(isEns) document.getElementById('ensAutoName').textContent=`${nextEnsTeamNum()}팀`;
 };
 window.pickColor=function(c){
   const inp=document.getElementById('nColor'); if(inp) inp.value=c;
   COLORS.forEach(x=>{const el=document.getElementById('sw-'+x.replace('#',''));if(el)el.style.borderColor=x===c?'#fff':'transparent';});
 };
 window.addTeam=async function(){
-  const name=document.getElementById('nName').value.trim();
   const type=document.getElementById('nType').value;
-  const color=type==='합주'?GRAY:(document.getElementById('nColor')?.value||COLORS[0]);
+  const isEns=type==='합주';
+  const name=isEns?`${nextEnsTeamNum()}팀`:(document.getElementById('nName')?.value.trim()||'');
+  const info=isEns?(document.getElementById('nInfo')?.value.trim()||''):'';
+  const color=isEns?GRAY:(document.getElementById('nColor')?.value||COLORS[0]);
   if(!name){toast('팀 이름을 입력해주세요','err');return;}
   const members=[];
   document.querySelectorAll('#nMemberRows [id^="nm-"]').forEach(el=>{
@@ -1356,7 +1378,7 @@ window.addTeam=async function(){
   });
   const btn=document.getElementById('nBtn'); btn.disabled=true;
   try{
-    const t=await createTeam({name,type,color,members}); teams.push(t); teams=korSort(teams,'name');
+    const t=await createTeam({name,type,color,info,members}); teams.push(t); teams=korSort(teams,'name');
     toast(`${name} 팀이 추가되었습니다`,'ok'); closeModal(); renderTeams();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
