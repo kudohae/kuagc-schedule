@@ -3068,12 +3068,22 @@ function fmtScheduled(ts){
   return `${String(d.getFullYear()).slice(2)}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-window.closeRound=async function(id){
-  if(!confirm('합주 신청을 완전히 마감할까요? 다음 신청은 첫 단계부터 다시 시작해야 합니다.')) return;
+window.closeRound=function(id){
+  showModal('합주 신청 닫기',
+    `<div style="color:var(--danger);font-weight:600;font-size:13px">합주 신청을 마감할까요? 다음 신청은 첫 단계부터 다시 시작해야 합니다.</div>
+     <div class="fl">진행하려면 하단에 <b>'처음부터 다시'</b>를 입력해주세요.</div>
+     <input class="fi" type="text" id="closeRoundInput" placeholder="처음부터 다시"/>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn" style="background:var(--danger);color:#fff" onclick="doCloseRound(${id})">닫기</button>`
+  );
+};
+window.doCloseRound=async function(id){
+  const val=document.getElementById('closeRoundInput').value;
+  if(val!=='처음부터 다시'){toast('"처음부터 다시"를 정확히 입력해주세요','err');return;}
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',id);
     if(error) throw error;
-    toast('닫혔습니다','ok'); await ensUpdated();
+    toast('닫혔습니다','ok'); closeModal(); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
 };
 
