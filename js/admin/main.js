@@ -2563,7 +2563,7 @@ window.ensDndDragLeavePool=function(event){
 window.ensDndDropToSong=function(event,songId){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
-  if(!eDndDrag) return;
+  if(!eDndDrag||!eDndSt) return;
   const id=eDndDrag.id;
   let sl=null;
   for(const s of eDndSt.songs){
@@ -2579,7 +2579,7 @@ window.ensDndDropToSong=function(event,songId){
 window.ensDndDropToPool=function(event){
   event.preventDefault();
   document.getElementById('ensDndPool').classList.remove('drag-over-pool');
-  if(!eDndDrag) return;
+  if(!eDndDrag||!eDndSt) return;
   const id=eDndDrag.id;
   if(eDndSt.unassigned.find(x=>x.id===id)) return;
   for(const s of eDndSt.songs){
