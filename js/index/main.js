@@ -592,8 +592,10 @@ function showStatus(){
   const notifs=[];
   if(activeRound){
     const isOpen=activeRound.status==='open'&&(!activeRound.open_at||new Date(activeRound.open_at)<=now);
-    if(isOpen){
-      notifs.push(`<div class="notif-item"><span class="notif-txt">⏱ 시간 신청 진행 중</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;white-space:nowrap;min-width:fit-content" onclick="closeStatus();navigate('timeassign')">이동</button></div>`);
+    const isSched=activeRound.status==='open'&&activeRound.open_at&&new Date(activeRound.open_at)>now;
+    if(isOpen||isSched){
+      const label=isSched?'시간 신청 예약됨':'시간 신청 진행 중';
+      notifs.push(`<div class="notif-item"><span class="notif-txt">⏱ ${label}</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;white-space:nowrap;min-width:fit-content" onclick="closeStatus();navigate('timeassign')">이동</button></div>`);
     }
   }
   if(activeSchoolRound){
