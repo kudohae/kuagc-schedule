@@ -98,12 +98,3 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-
-/* ── OVERSCROLL — prevent scroll chaining on all scroll containers ── */
-.modal-body,
-.panel-left,.panel-main,#pgApply,#mobileTeamPanel,#view-dynamic,
-.sch-main,.pend-sidebar,.pend-list,
-#pgTeams,#pgNotices,#pgContacts,#pgSchool,#pgData,.page-centered,
-.centered-card-body,.ensemble-cols,.ens-pool-col,.ens-songs-grid{
-  overscroll-behavior:contain;
-}
