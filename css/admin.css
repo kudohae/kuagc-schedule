@@ -31,7 +31,7 @@
 .btn{padding:7px 14px;}
 
 /* ── PAGES ── */
-.page{display:none;height:calc(100vh - var(--hh));}
+.page{display:none;height:calc(100vh - var(--hh));height:calc(100svh - var(--hh));}
 .page.active{display:flex;overflow:hidden;}
 
 /* ── SCHEDULE PAGE (left: schedule, right: pending sidebar) ── */
@@ -292,7 +292,7 @@ body.dark .ens-sess-sel.conflict{border-color:rgba(255,170,71,.35);background:rg
   .mob-tab svg{width:20px;height:20px;}
 
   /* 페이지 */
-  .page{height:calc(100vh - var(--hh) - var(--tab-h));}
+  .page{height:calc(100vh - var(--hh) - var(--tab-h));height:calc(100svh - var(--hh) - var(--tab-h));}
   .page.active{overflow:hidden;}
 
   /* 시간표 + 신청대기 → 세로 스태킹 */

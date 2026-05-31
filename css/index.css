@@ -7,7 +7,7 @@ header{gap:12px;}
 .nav{margin-right:4px;}
 
 /* LAYOUT */
-.page{display:none;height:calc(100vh - var(--hh));}
+.page{display:none;height:calc(100vh - var(--hh));height:calc(100svh - var(--hh));}
 .page.active{display:flex;overflow:hidden;}
 
 /* SCHEDULE PAGE — 2-col */
@@ -206,7 +206,7 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
   .nav{display:none;}
 
   /* 페이지 */
-  .page{height:calc(100vh - var(--hh) - var(--tab-h));}
+  .page{height:calc(100vh - var(--hh) - var(--tab-h));height:calc(100svh - var(--hh) - var(--tab-h));}
   #pgSchedule{flex-direction:column;overflow:hidden;}
   .page.active{flex-direction:column;overflow:hidden;}
   .panel-left{display:none;}
@@ -281,5 +281,5 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
 .type-btn.active{background:var(--surface);color:var(--text);font-weight:700;}
 
 /* SPA dynamic view container */
-#view-dynamic{display:none;height:calc(100vh - var(--hh));overflow-y:auto;}
-@media(max-width:700px){#view-dynamic{height:calc(100vh - var(--hh) - var(--tab-h));}}
+#view-dynamic{display:none;height:calc(100vh - var(--hh));height:calc(100svh - var(--hh));overflow-y:auto;}
+@media(max-width:700px){#view-dynamic{height:calc(100vh - var(--hh) - var(--tab-h));height:calc(100svh - var(--hh) - var(--tab-h));}}
