@@ -292,7 +292,7 @@ body.dark .ens-sess-sel.conflict{border-color:rgba(255,170,71,.35);background:rg
   .mob-tab svg{width:20px;height:20px;}
 
   /* 페이지 */
-  .page{height:calc(100vh - var(--hh));padding-bottom:var(--tab-h);}
+  .page{height:calc(100vh - var(--hh) - var(--tab-h));}
   .page.active{overflow:hidden;}
 
   /* 시간표 + 신청대기 → 세로 스태킹 */
@@ -337,14 +337,14 @@ body.dark .ens-sess-sel.conflict{border-color:rgba(255,170,71,.35);background:rg
   /* 공지/연락처 카드 */
   .centered-card{width:96%;}
 
-  /* 팀 탭 페이지 — 하단 탭바 높이 만큼 패딩 */
-  #pgTeams{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
-  #pgNotices{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
-  #pgContacts{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
-  #pgApply,#pgSchool{padding:8px;padding-bottom:calc(var(--tab-h)+8px);overflow-y:auto;}
+  /* 팀 탭 페이지 */
+  #pgTeams{padding:8px;overflow-y:auto;}
+  #pgNotices{padding:8px;overflow-y:auto;}
+  #pgContacts{padding:8px;overflow-y:auto;}
+  #pgApply,#pgSchool{padding:8px;overflow-y:auto;}
   .focused-inner{width:100%;max-width:100%;}
-  #pgEnsemble{padding:8px 0;padding-bottom:calc(var(--tab-h)+8px);}
-  #pgSch .sch-main{padding-bottom:calc(var(--tab-h)+8px);}
+  #pgEnsemble{padding:8px 0;}
+  #pgSch .sch-main{padding-bottom:8px;}
   .pend-sidebar{max-height:180px;}
   .toast{bottom:calc(var(--tab-h)+10px);}
 
