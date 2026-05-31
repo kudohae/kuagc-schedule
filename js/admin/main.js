@@ -2338,6 +2338,7 @@ window.closeEnsDndModal=function(){
   document.getElementById('ensDndModal').style.display='none';
   document.body.style.overflow='';
   if(window._ensDndResize){window.removeEventListener('resize',window._ensDndResize);window._ensDndResize=null;}
+  eDndSt=null;
 };
 window.ensDndSave=function(){ensDndSaveState();toast('임시저장됐습니다','ok');};
 window.ensDndSetFilter=function(session){eDndFilter=session;renderEnsDndPool();};
@@ -2715,6 +2716,11 @@ async function loadEnsemble(){
 }
 
 async function ensUpdated(){
+  if(eDndSt&&document.getElementById('ensDndModal')?.style.display!=='none'){
+    ensDndSaveState();
+    closeEnsDndModal();
+    toast('합주 단계가 변경됐습니다. 진행 중이던 팀 구성이 임시저장됐습니다.','');
+  }
   await loadEnsemble();
   renderEnsemble();
   _ensBroadcastCh?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
