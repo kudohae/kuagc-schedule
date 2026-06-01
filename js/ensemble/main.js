@@ -51,7 +51,8 @@ export async function init(outerContainer) {
 
   outerContainer.innerHTML='';
   const badgeEl=document.createElement('div');
-  badgeEl.style.cssText='display:flex;justify-content:flex-end;padding:4px 0 2px';
+  badgeEl.className='container';
+  badgeEl.style.cssText='padding-top:6px;padding-bottom:0;flex-direction:row;justify-content:flex-end;gap:0;';
   badgeEl.innerHTML='<span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span>';
   const inner=document.createElement('div');
   inner.className='container';
