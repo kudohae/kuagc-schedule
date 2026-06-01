@@ -15,11 +15,14 @@ let countdownTimers = {};
 let _rtChannel = null;
 let _pollTimer = null;
 let _bcChannel = null;
+let _presenceCh = null;
+let _presenceCount = 0;
 let manualEntries={regular:[],busking:[]};
 
 function broadcastRefresh(){
   _bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
 }
+function updatePresenceBadge(){const el=document.getElementById('presenceCount');if(el)el.textContent=`현재 접속자 ${_presenceCount}명`;}
 
 function fmtTime(ts){
   if(!ts) return '';
@@ -47,10 +50,14 @@ export async function init(outerContainer) {
   Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
 
   outerContainer.innerHTML='';
+  const badgeEl=document.createElement('div');
+  badgeEl.style.cssText='display:flex;justify-content:flex-end;padding:4px 0 2px';
+  badgeEl.innerHTML='<span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span>';
   const inner=document.createElement('div');
   inner.className='container';
   inner.id='mainContainer';
   inner.innerHTML='<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
+  outerContainer.appendChild(badgeEl);
   outerContainer.appendChild(inner);
 
   try{
@@ -68,6 +75,15 @@ export async function init(outerContainer) {
       .on('broadcast',{event:'update'},()=>loadAll(true))
       .on('broadcast',{event:'songUpdate'},()=>loadAll(true))
       .subscribe();
+
+    _presenceCh=supabase.channel('presence-ens')
+      .on('presence',{event:'sync'},()=>{
+        _presenceCount=Object.keys(_presenceCh.presenceState()).length;
+        updatePresenceBadge();
+      })
+      .subscribe(async status=>{
+        if(status==='SUBSCRIBED') await _presenceCh.track({t:Date.now()});
+      });
 
     _pollTimer=setInterval(pollRoundState,5000);
     document.addEventListener('visibilitychange',onVisibilityChange);
@@ -87,7 +103,9 @@ export async function init(outerContainer) {
     Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
+    if(_presenceCh){ supabase.removeChannel(_presenceCh); _presenceCh=null; }
     if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; }
+    _presenceCount=0;
     document.removeEventListener('visibilitychange',onVisibilityChange);
   };
 }

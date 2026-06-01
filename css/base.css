@@ -98,3 +98,9 @@ body.dark .modal{box-shadow:0 8px 32px rgba(0,0,0,.4);}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── REALTIME BADGE ── */
+.rt-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--accent);padding:2px 8px;background:rgba(92,158,0,.08);border:1px solid rgba(92,158,0,.2);border-radius:4px;}
+body.dark .rt-badge{background:rgba(232,255,71,.07);border-color:rgba(232,255,71,.2);}
+.rt-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:rtpulse 1.5s infinite;}
+@keyframes rtpulse{0%,100%{opacity:1}50%{opacity:.3}}

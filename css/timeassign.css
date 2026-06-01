@@ -46,11 +46,6 @@ body.dark .apply-status.finished{background:rgba(71,197,255,.05);border-color:rg
 .pbadge.p3{background:rgba(255,170,71,.15);color:var(--warn);}
 .pbadge.none{background:rgba(255,71,71,.1);color:var(--danger);}
 
-/* ── REALTIME BADGE ── */
-.rt-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--accent);padding:2px 8px;background:rgba(92,158,0,.08);border:1px solid rgba(92,158,0,.2);border-radius:4px;}
-body.dark .rt-badge{background:rgba(232,255,71,.07);border-color:rgba(232,255,71,.2);}
-.rt-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:rtpulse 1.5s infinite;}
-@keyframes rtpulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ── BUTTONS — timeassign uses inline-flex layout ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;transition:all .12s;}
