@@ -3206,24 +3206,6 @@ window.doDeleteTime=async function(s){
     closeModal(); toast(`${s} 시간 정보가 삭제되었습니다`,'ok');
   }catch(e){toast(errMsg(e),'err');}
 };
-window.openDeleteTeamsModal=function(){
-  showModal('팀 정보 삭제',
-    `<div style="color:var(--danger);font-weight:600;font-size:13px">모든 팀 정보를 삭제합니다. 이 작업은 되돌릴 수 없습니다.</div>
-     <div class="fl">삭제하려면 하단에 <b>'삭제'</b>를 입력해주세요.</div>
-     <input class="fi" type="text" id="delTeamsInput" placeholder="삭제"/>`,
-    `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-d" onclick="doDeleteTeams()">삭제</button>`
-  );
-};
-window.doDeleteTeams=async function(){
-  const val=document.getElementById('delTeamsInput').value;
-  if(val!=='삭제'){toast('"삭제"를 정확히 입력해주세요','err');return;}
-  try{
-    await supabase.from('teams').delete().neq('id',0);
-    teams=[]; baseSlots=[]; merged=[]; exceptions=[];
-    closeModal(); toast('팀 정보가 삭제되었습니다','ok'); renderTeams(); renderSchedule();
-  }catch(e){toast(errMsg(e),'err');}
-};
 window.changeAdminPassword=async function(){
   const pw1=document.getElementById('newPw1').value;
   const pw2=document.getElementById('newPw2').value;
