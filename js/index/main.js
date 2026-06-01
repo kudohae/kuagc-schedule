@@ -604,12 +604,19 @@ function showStatus(){
   }
   if(activeEnsemble){
     const phase=activeEnsemble.phase;
+    const hasSess2=!!activeEnsemble.has_session2;
     const isSongSched=phase==='draft'&&activeEnsemble.song_scheduled_at&&new Date(activeEnsemble.song_scheduled_at)>now;
     const isSessSched=phase==='song'&&activeEnsemble.session_scheduled_at&&new Date(activeEnsemble.session_scheduled_at)>now;
-    if(phase==='song'||phase==='session'||isSongSched||isSessSched){
-      const label=isSongSched?'합주 곡 신청 예약됨':isSessSched?'합주 세션 신청 예약됨':phase==='song'?'합주 곡 신청 진행 중':'합주 세션 신청 진행 중';
-      notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${label}</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;white-space:nowrap;min-width:fit-content" onclick="closeStatus();navigate('ensemble')">이동</button></div>`);
-    }
+    const isSess2Sched=phase==='session_end'&&hasSess2;
+    let ensLabel=null;
+    if(isSongSched)        ensLabel='합주 곡 신청 예약됨';
+    else if(isSessSched)   ensLabel='합주 세션 신청 예약됨';
+    else if(phase==='song')         ensLabel='합주 곡 신청 진행 중';
+    else if(phase==='song_end')     ensLabel='합주 세션 신청 예정됨';
+    else if(phase==='session')      ensLabel='합주 세션 신청 진행 중';
+    else if(isSess2Sched)           ensLabel='합주 세션 2차 신청 예정됨';
+    else if(phase==='session2')     ensLabel='합주 세션 2차 신청 진행 중';
+    if(ensLabel) notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${ensLabel}</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;white-space:nowrap;min-width:fit-content" onclick="closeStatus();navigate('ensemble')">이동</button></div>`);
   }
   const notifBar=notifs.length?`<div class="notif-bar">${notifs.join('')}</div>`:'';
 
