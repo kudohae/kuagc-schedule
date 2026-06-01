@@ -7,6 +7,8 @@ let round=null, prevRound=null, classes=[], apps=[], prevApps=[];
 let cdTimer=null;
 let _rtChannel=null;
 let _bcChannel=null;
+let _presenceCh=null;
+let _presenceCount=0;
 let _outerContainer=null;
 let _withdrawLookup=null;
 let _lastSchoolSubmitTs=0;
@@ -14,6 +16,7 @@ let _lastLookupTs=0;
 let _pollTimer=null;
 
 function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});}
+function updatePresenceBadge(){const el=document.getElementById('presenceCount');if(el)el.textContent=`현재 접속자 ${_presenceCount}명`;}
 
 function escHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -38,10 +41,14 @@ export async function init(outerContainer) {
 
   outerContainer.innerHTML = '<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
 
+  const badgeEl=document.createElement('div');
+  badgeEl.style.cssText='display:flex;justify-content:flex-end;padding:4px 0 2px';
+  badgeEl.innerHTML='<span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span>';
   const inner = document.createElement('div');
   inner.className = 'container';
   inner.id = 'container';
   outerContainer.innerHTML = '';
+  outerContainer.appendChild(badgeEl);
   outerContainer.appendChild(inner);
 
   await syncServerTime(supabase);
@@ -68,6 +75,15 @@ export async function init(outerContainer) {
     })
     .subscribe();
 
+  _presenceCh=supabase.channel('presence-school')
+    .on('presence',{event:'sync'},()=>{
+      _presenceCount=Object.keys(_presenceCh.presenceState()).length;
+      updatePresenceBadge();
+    })
+    .subscribe(async status=>{
+      if(status==='SUBSCRIBED') await _presenceCh.track({t:Date.now()});
+    });
+
   _pollTimer=setInterval(async()=>{
     if(!document.getElementById('container')) return;
     const{data}=await supabase.from('school_rounds').select('id,status,open_at,close_at').order('created_at',{ascending:false}).limit(1).maybeSingle();
@@ -80,6 +96,8 @@ export async function init(outerContainer) {
     if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
+    if(_presenceCh){ supabase.removeChannel(_presenceCh); _presenceCh=null; }
+    _presenceCount=0;
     _outerContainer = null;
   };
 }
