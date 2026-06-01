@@ -50,15 +50,10 @@ export async function init(outerContainer) {
   Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
 
   outerContainer.innerHTML='';
-  const badgeEl=document.createElement('div');
-  badgeEl.className='container';
-  badgeEl.style.cssText='padding-top:6px;padding-bottom:0;flex-direction:row;justify-content:flex-end;gap:0;';
-  badgeEl.innerHTML='<span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span>';
   const inner=document.createElement('div');
   inner.className='container';
   inner.id='mainContainer';
   inner.innerHTML='<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
-  outerContainer.appendChild(badgeEl);
   outerContainer.appendChild(inner);
 
   try{
@@ -237,7 +232,7 @@ function render(){
 
   Object.keys(countdownTimers).filter(k=>k===type||k.startsWith(type+'-')).forEach(k=>{clearInterval(countdownTimers[k]);delete countdownTimers[k];});
 
-  let html='';
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🎸 합주 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div>`;
 
   html+=`<div class="search-bar">
     <span class="search-icon">🔍</span>
@@ -249,6 +244,7 @@ function render(){
     html+=renderManualPublicHtml(r,type);
     html+=`<div id="songListEl"></div>`;
     el.innerHTML=html;
+    updatePresenceBadge();
     return;
   }
 
@@ -266,6 +262,7 @@ function render(){
           </div>
         </div>`;
         el.innerHTML=html;
+        updatePresenceBadge();
         startCountdown(type,target,async()=>{
           if(rounds[type]?.id===r.id&&rounds[type]?.phase==='draft'){rounds[type].phase='song';rounds[type].song_scheduled_at=null;}
           try{await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id).eq('phase','draft');}catch(e){}
@@ -540,6 +537,7 @@ function render(){
 
   html+=`<div id="songListEl"></div>`;
   el.innerHTML=html;
+  updatePresenceBadge();
   renderList();
 }
 
