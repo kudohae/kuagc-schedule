@@ -1833,7 +1833,7 @@ function renderEnsemble(){
       sideBtns=`<button class="btn btn-s btn-xs" onclick="revertPhase('${type}',${r.id})">이전 단계</button>
                 <button class="btn btn-d btn-xs" onclick="closeRound(${r.id})">닫기</button>`;
     } else if(phase==='closed'){
-      mainBtns=`<button class="btn btn-s btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
+      mainBtns=`<button class="btn btn-p btn-xs" onclick="openCreateRoundModal('${type}')">새 회차 생성</button>
                 <button class="btn btn-s btn-xs" onclick="exportEnsembleXlsx('${type}')">📥 엑셀로 내보내기</button>`;
     }
 
