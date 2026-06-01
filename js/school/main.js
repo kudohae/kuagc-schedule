@@ -39,17 +39,11 @@ export async function init(outerContainer) {
   _outerContainer = outerContainer;
   round=null; prevRound=null; classes=[]; apps=[]; prevApps=[];
 
-  outerContainer.innerHTML = '<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
-
-  const badgeEl=document.createElement('div');
-  badgeEl.className='container';
-  badgeEl.style.cssText='padding-top:6px;padding-bottom:0;flex-direction:row;justify-content:flex-end;gap:0;';
-  badgeEl.innerHTML='<span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span>';
-  const inner = document.createElement('div');
-  inner.className = 'container';
-  inner.id = 'container';
-  outerContainer.innerHTML = '';
-  outerContainer.appendChild(badgeEl);
+  const inner=document.createElement('div');
+  inner.className='container';
+  inner.id='container';
+  inner.innerHTML='<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
+  outerContainer.innerHTML='';
   outerContainer.appendChild(inner);
 
   await syncServerTime(supabase);
@@ -158,7 +152,8 @@ function render(){
   const el=document.getElementById('container');
   if(!el) return;
   if(!round){
-    el.innerHTML='<div class="empty-state">스쿨 신청 기간이 아닙니다.</div>';
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div><div class="empty-state">스쿨 신청 기간이 아닙니다.</div>';
+    updatePresenceBadge();
     return;
   }
   const {status}=round;
@@ -172,7 +167,8 @@ function renderDraft(){
   if(!el) return;
   const name=getRoundName();
   const openAt=round.open_at;
-  let html=`<div class="round-status draft">
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div>
+  <div class="round-status draft">
     <div class="rs-icon">⏳</div>
     <div class="rs-texts">
       <div class="rs-title">${name}</div>
@@ -181,6 +177,7 @@ function renderDraft(){
     </div>
   </div>`;
   el.innerHTML=html;
+  updatePresenceBadge();
   if(openAt){
     if(new Date(openAt)<=serverNow()){autoOpen();}
     else startCd(openAt,autoOpen);
@@ -200,7 +197,8 @@ function renderOpen(){
   const closeAt=round.close_at;
   if(closeAt&&new Date(closeAt)<=serverNow()){autoClose();return;}
 
-  let html=`<div class="round-status open">
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div>
+  <div class="round-status open">
     <div class="rs-icon">📋</div>
     <div class="rs-texts">
       <div class="rs-title">${name} — 신청 진행 중</div>
@@ -235,6 +233,7 @@ function renderOpen(){
 
   html+=renderClassCards(true);
   el.innerHTML=html;
+  updatePresenceBadge();
   _withdrawLookup=null;
   if(closeAt) startCd(closeAt,autoClose);
 }
@@ -277,7 +276,8 @@ function renderClosed(){
   const el=document.getElementById('container');
   if(!el) return;
   const name=getRoundName();
-  let html=`<div class="round-status closed">
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div>
+  <div class="round-status closed">
     <div class="rs-icon">🔒</div>
     <div class="rs-texts">
       <div class="rs-title">${name} — 마감</div>
@@ -286,6 +286,7 @@ function renderClosed(){
   </div>`;
   html+=renderClassCards(false);
   el.innerHTML=html;
+  updatePresenceBadge();
 }
 
 function renderClassCards(isOpen){
