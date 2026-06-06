@@ -3266,6 +3266,40 @@ window.downloadBackupXlsx=async function(){
     const dayStr=(day,hour)=>day!=null?`${BK_DAYS[day]} ${hour}`:'—';
     const joinArr=arr=>(arr||[]).join(', ');
 
+    // ── 날짜 필터 ──
+    const startVal=document.getElementById('bkStart')?.value;
+    const endVal=document.getElementById('bkEnd')?.value;
+    const startDate=startVal?new Date(startVal+'T00:00:00'):null;
+    const endDate=endVal?new Date(endVal+'T23:59:59'):null;
+    const inRange=ts=>{
+      if(!ts) return false;
+      const d=new Date(ts);
+      if(startDate&&d<startDate) return false;
+      if(endDate&&d>endDate) return false;
+      return true;
+    };
+
+    // ── 스타일 헬퍼 (xlsx-js-style) ──
+    const GREEN='D5E8D4', GRAY='E0E0E0', BLUE='DAE8FC';
+    const sc=(v,rgb)=>rgb?{v:v??'',t:'s',s:{fill:{patternType:'solid',fgColor:{rgb}}}}:{v:v??'',t:'s'};
+    const mrow=(text,n,rgb)=>[sc(text,rgb),...Array(n-1).fill(sc('',rgb))];
+
+    const aoaToStyledSheet=rows=>{
+      const ws={};
+      const range={s:{r:0,c:0},e:{r:0,c:0}};
+      rows.forEach((row,R)=>{
+        range.e.r=Math.max(range.e.r,R);
+        row.forEach((cell,C)=>{
+          range.e.c=Math.max(range.e.c,C);
+          const addr=XLSX.utils.encode_cell({r:R,c:C});
+          if(cell&&typeof cell==='object'&&'v' in cell){ws[addr]=cell;}
+          else{ws[addr]={v:cell??'',t:'s'};}
+        });
+      });
+      ws['!ref']=XLSX.utils.encode_range(range);
+      return ws;
+    };
+
     const [
       {data:taRounds},{data:taApps},
       {data:scRounds},{data:scApps},{data:scSchools},
@@ -3281,7 +3315,7 @@ window.downloadBackupXlsx=async function(){
       supabase.from('session_applications').select('*').order('created_at'),
     ]);
 
-    // ── 시간 신청 시트 ──
+    // ── 시간 신청 시트 (6 cols) ──
     const taAppsByRound={};
     (taApps||[]).forEach(a=>{
       if(!taAppsByRound[a.round_id]) taAppsByRound[a.round_id]=[];
@@ -3289,21 +3323,24 @@ window.downloadBackupXlsx=async function(){
     });
     const taRows=[];
     for(const r of(taRounds||[])){
-      taRows.push([`${bkTs(r.created_at)} 회차 시작`]);
-      for(const a of(taAppsByRound[r.id]||[])){
+      const roundApps=(taAppsByRound[r.id]||[]).filter(a=>inRange(a.submitted_at));
+      const roundInRange=roundApps.length>0||inRange(r.created_at);
+      if(!roundInRange) continue;
+      taRows.push(mrow(`${bkTs(r.created_at)} 회차 시작`,6,GREEN));
+      for(const a of roundApps){
         taRows.push([
-          bkTs(a.submitted_at)||'—',
-          (a.teams?.name||'').replace(/팀$/,''),
-          a.teams?.info||'',
-          dayStr(a.pref1_day,a.pref1_hour),
-          a.pref2_day!=null?dayStr(a.pref2_day,a.pref2_hour):'—',
-          a.pref3_day!=null?dayStr(a.pref3_day,a.pref3_hour):'—',
+          sc(bkTs(a.submitted_at)||'—'),
+          sc((a.teams?.name||'').replace(/팀$/,'')),
+          sc(a.teams?.info||''),
+          sc(dayStr(a.pref1_day,a.pref1_hour)),
+          sc(a.pref2_day!=null?dayStr(a.pref2_day,a.pref2_hour):'—'),
+          sc(a.pref3_day!=null?dayStr(a.pref3_day,a.pref3_hour):'—'),
         ]);
       }
-      taRows.push([`${r.close_at?bkTs(r.close_at):'(마감 일시 미기록)'} 회차 마감`]);
+      taRows.push(mrow(`${r.close_at?bkTs(r.close_at):'(마감 일시 미기록)'} 회차 마감`,6,GRAY));
     }
 
-    // ── 스쿨 신청 시트 ──
+    // ── 스쿨 신청 시트 (5 cols) ──
     const scSchoolMap={};
     (scSchools||[]).forEach(s=>scSchoolMap[s.id]=s.name);
     const scAppsByRound={};
@@ -3314,20 +3351,23 @@ window.downloadBackupXlsx=async function(){
     const scRows=[];
     for(const r of(scRounds||[])){
       const rn=r.name||'스쿨 신청';
-      scRows.push([`${bkTs(r.created_at)} '${rn}' 시작`]);
-      for(const a of(scAppsByRound[r.id]||[])){
+      const roundApps=(scAppsByRound[r.id]||[]).filter(a=>inRange(a.created_at));
+      const roundInRange=roundApps.length>0||inRange(r.created_at);
+      if(!roundInRange) continue;
+      scRows.push(mrow(`${bkTs(r.created_at)} '${rn}' 시작`,5,GREEN));
+      for(const a of roundApps){
         scRows.push([
-          bkTs(a.created_at)||'—',
-          a.applicant_name||'',
-          a.student_id||'',
-          scSchoolMap[a.pref1_school_id]||'—',
-          a.pref2_school_id?scSchoolMap[a.pref2_school_id]||'—':'—',
+          sc(bkTs(a.created_at)||'—'),
+          sc(a.applicant_name||''),
+          sc(a.student_id||''),
+          sc(scSchoolMap[a.pref1_school_id]||'—'),
+          sc(a.pref2_school_id?scSchoolMap[a.pref2_school_id]||'—':'—'),
         ]);
       }
-      scRows.push([`${r.close_at?bkTs(r.close_at):'(마감 일시 미기록)'} '${rn}' 마감`]);
+      scRows.push(mrow(`${r.close_at?bkTs(r.close_at):'(마감 일시 미기록)'} '${rn}' 마감`,5,GRAY));
     }
 
-    // ── 합주 신청 시트 ──
+    // ── 합주 신청 시트 (7 cols) ──
     const songById={};
     (songApps||[]).forEach(s=>songById[s.id]=s);
     const songsByRound={};
@@ -3347,68 +3387,70 @@ window.downloadBackupXlsx=async function(){
     });
     const ensRows=[];
     for(const type of['regular','busking']){
-      const typeRounds=(ensRounds||[]).filter(r=>r.type===type);
-      for(const r of typeRounds){
+      for(const r of(ensRounds||[]).filter(r=>r.type===type)){
         const typeName=type==='regular'?'일반합주':'버스킹합주';
         const rn=r.name||typeName;
-        ensRows.push([`${bkTs(r.created_at)} '${rn}' 시작`]);
+        const rSongs=(songsByRound[r.id]||[]).filter(s=>s.status!=='rejected'&&inRange(s.created_at));
+        const rSess1=(sessAppsByRound[r.id]||[]).filter(a=>(a.session_round||1)===1&&inRange(a.created_at));
+        const rSess2=r.has_session2?(sessAppsByRound[r.id]||[]).filter(a=>(a.session_round||1)===2&&inRange(a.created_at)):[];
+        const roundInRange=rSongs.length>0||rSess1.length>0||rSess2.length>0||inRange(r.created_at);
+        if(!roundInRange) continue;
 
-        ensRows.push(['[곡 신청]']);
-        const rSongs=(songsByRound[r.id]||[]).filter(s=>s.status!=='rejected');
+        ensRows.push(mrow(`${bkTs(r.created_at)} '${rn}' 시작`,7,GREEN));
+
+        ensRows.push(mrow('[곡 신청]',7,BLUE));
         for(const s of rSongs){
           const ownSess=(sessAppsBySong[s.id]||[]).find(a=>a.student_id===s.student_id&&(a.session_round||1)===1);
           ensRows.push([
-            bkTs(s.created_at)||'—',
-            s.title||'',
-            s.artist||'',
-            s.applicant_name||'',
-            s.student_id||'',
-            joinArr(s.sessions),
-            joinArr(ownSess?.sessions),
+            sc(bkTs(s.created_at)||'—'),
+            sc(s.title||''),
+            sc(s.artist||''),
+            sc(s.applicant_name||''),
+            sc(s.student_id||''),
+            sc(joinArr(s.sessions)),
+            sc(joinArr(ownSess?.sessions)),
           ]);
         }
-        ensRows.push([`${r.song_close_at?bkTs(r.song_close_at):'(미기록)'} '${rn}' 곡 신청 마감`]);
+        ensRows.push(mrow(`${r.song_close_at?bkTs(r.song_close_at):'(미기록)'} '${rn}' 곡 신청 마감`,7,GRAY));
 
-        ensRows.push(['[세션 신청]']);
-        const rSess1=(sessAppsByRound[r.id]||[]).filter(a=>(a.session_round||1)===1);
+        ensRows.push(mrow('[세션 신청]',7,BLUE));
         for(const a of rSess1){
           const s=songById[a.song_id];
           ensRows.push([
-            bkTs(a.created_at)||'—',
-            s?.title||'—',
-            s?.artist||'—',
-            a.applicant_name||'',
-            a.student_id||'',
-            joinArr(a.sessions),
-            '1차',
+            sc(bkTs(a.created_at)||'—'),
+            sc(s?.title||'—'),
+            sc(s?.artist||'—'),
+            sc(a.applicant_name||''),
+            sc(a.student_id||''),
+            sc(joinArr(a.sessions)),
+            sc('1차'),
           ]);
         }
-        ensRows.push([`${r.session_close_at?bkTs(r.session_close_at):'(미기록)'} '${rn}' 세션 신청 마감`]);
+        ensRows.push(mrow(`${r.session_close_at?bkTs(r.session_close_at):'(미기록)'} '${rn}' 세션 신청 마감`,7,GRAY));
 
         if(r.has_session2){
-          ensRows.push(['[세션 2차 신청]']);
-          const rSess2=(sessAppsByRound[r.id]||[]).filter(a=>(a.session_round||1)===2);
+          ensRows.push(mrow('[세션 2차 신청]',7,BLUE));
           for(const a of rSess2){
             const s=songById[a.song_id];
             ensRows.push([
-              bkTs(a.created_at)||'—',
-              s?.title||'—',
-              s?.artist||'—',
-              a.applicant_name||'',
-              a.student_id||'',
-              joinArr(a.sessions),
-              '2차',
+              sc(bkTs(a.created_at)||'—'),
+              sc(s?.title||'—'),
+              sc(s?.artist||'—'),
+              sc(a.applicant_name||''),
+              sc(a.student_id||''),
+              sc(joinArr(a.sessions)),
+              sc('2차'),
             ]);
           }
-          ensRows.push([`${r.session2_close_at?bkTs(r.session2_close_at):'(미기록)'} '${rn}' 2차 세션 신청 마감`]);
+          ensRows.push(mrow(`${r.session2_close_at?bkTs(r.session2_close_at):'(미기록)'} '${rn}' 2차 세션 신청 마감`,7,GRAY));
         }
       }
     }
 
     const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(taRows.length?taRows:[['데이터 없음']]),'시간 신청');
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(scRows.length?scRows:[['데이터 없음']]),'스쿨 신청');
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ensRows.length?ensRows:[['데이터 없음']]),'합주 신청');
+    XLSX.utils.book_append_sheet(wb,aoaToStyledSheet(taRows.length?taRows:[[sc('데이터 없음')]]),'시간 신청');
+    XLSX.utils.book_append_sheet(wb,aoaToStyledSheet(scRows.length?scRows:[[sc('데이터 없음')]]),'스쿨 신청');
+    XLSX.utils.book_append_sheet(wb,aoaToStyledSheet(ensRows.length?ensRows:[[sc('데이터 없음')]]),'합주 신청');
 
     const now=new Date();
     const pad=n=>String(n).padStart(2,'0');

@@ -235,7 +235,11 @@
   </div>
   <div class="card" style="padding:16px">
     <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)">백업 데이터 확인</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">시간 신청, 스쿨 신청, 합주 신청 데이터를 xlsx 파일로 다운로드합니다.</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">시간 신청, 스쿨 신청, 합주 신청 데이터를 xlsx 파일로 다운로드합니다.</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <label style="font-size:12px;color:var(--text2)">시작일 <input type="date" id="bkStart" style="font-size:12px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)"></label>
+      <label style="font-size:12px;color:var(--text2)">종료일 <input type="date" id="bkEnd" style="font-size:12px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)"></label>
+    </div>
     <button class="btn btn-s" onclick="downloadBackupXlsx()">데이터 다운로드</button>
   </div>
   <div class="card" style="padding:16px">
@@ -294,7 +298,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx-js-style.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script type="module" src="js/admin/main.js"></script>
