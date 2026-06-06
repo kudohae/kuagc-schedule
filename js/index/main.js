@@ -652,6 +652,24 @@ window.closeStatus=function(){
 
 // ── GUITAR TUNER ──────────────────────────────────────────────────────
 let _tCtx=null,_tAnal=null,_tStream=null,_tRAF=null;
+const _trailBuf=[];
+const _TRAIL_LEN=60;
+
+function _updateTrail(angle){
+  const a=angle*Math.PI/180;
+  _trailBuf.push(`${(130+88*Math.sin(a)).toFixed(1)},${(130-88*Math.cos(a)).toFixed(1)}`);
+  if(_trailBuf.length>_TRAIL_LEN) _trailBuf.shift();
+  const l=_trailBuf.length;
+  const t1=Math.floor(l*.33),t2=Math.floor(l*.67);
+  document.getElementById('ttA')?.setAttribute('points',_trailBuf.slice(0,t1).join(' '));
+  document.getElementById('ttB')?.setAttribute('points',_trailBuf.slice(t1,t2).join(' '));
+  document.getElementById('ttC')?.setAttribute('points',_trailBuf.slice(t2).join(' '));
+}
+
+function _clearTrail(){
+  _trailBuf.length=0;
+  ['ttA','ttB','ttC'].forEach(id=>document.getElementById(id)?.setAttribute('points',''));
+}
 
 function _initTuner(){
   const wrap=document.getElementById('tunerWrap');
@@ -662,6 +680,7 @@ function _initTuner(){
   if(noteEl) noteEl.textContent='—';
   if(hintEl){hintEl.textContent='탭하여 시작';hintEl.style.display='';}
   if(needle){needle.style.transform='rotate(0deg)';needle.className.baseVal='tuner-needle';}
+  _clearTrail();
   wrap.style.cursor='pointer';
   const handler=()=>{wrap.style.cursor='default';wrap.removeEventListener('click',handler);_startTuner();};
   wrap.addEventListener('click',handler);
@@ -694,6 +713,7 @@ function _stopTuner(){
   if(_tStream){_tStream.getTracks().forEach(t=>t.stop());_tStream=null;}
   if(_tCtx){_tCtx.close();_tCtx=null;}
   _tAnal=null;
+  _clearTrail();
 }
 
 function _tunerLoop(){
@@ -708,6 +728,7 @@ function _tunerLoop(){
     noteEl.textContent='—';
     needle.style.transform='rotate(0deg)';
     needle.className.baseVal='tuner-needle active';
+    _updateTrail(0);
     return;
   }
   const {name,octave,cents}=_freqToNote(freq);
@@ -716,6 +737,7 @@ function _tunerLoop(){
   needle.style.transform=`rotate(${angle}deg)`;
   const inTune=Math.abs(cents)<8;
   needle.className.baseVal='tuner-needle active'+(inTune?' intune':'');
+  _updateTrail(angle);
 }
 
 function _autoCorrelate(buf,sr){
