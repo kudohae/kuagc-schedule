@@ -579,6 +579,8 @@ window.onMBd=e=>{ if(e.target===document.getElementById('modalBd')) closeModal()
 function showStatus(){
   const suppressed = localStorage.getItem('statusSuppressUntil');
   if(suppressed && Date.now() < parseInt(suppressed)) return;
+  _stopTuner();
+  _initTuner();
   const now = new Date();
   const dow = (now.getDay()+6)%7; // 0=월
   const h   = now.getHours();
@@ -645,7 +647,105 @@ window.closeStatus=function(){
   if(chk?.checked) localStorage.setItem('statusSuppressUntil', Date.now() + 1800000);
   document.getElementById('statusBd').style.display='none';
   document.body.style.overflow='';
+  _stopTuner();
 };
+
+// ── GUITAR TUNER ──────────────────────────────────────────────────────
+let _tCtx=null,_tAnal=null,_tStream=null,_tRAF=null;
+
+function _initTuner(){
+  const wrap=document.getElementById('tunerWrap');
+  const noteEl=document.getElementById('tunerNote');
+  const hintEl=document.getElementById('tunerHint');
+  const needle=document.getElementById('tunerNeedle');
+  if(!wrap) return;
+  if(noteEl) noteEl.textContent='—';
+  if(hintEl){hintEl.textContent='탭하여 시작';hintEl.style.display='';}
+  if(needle){needle.setAttribute('transform','rotate(0 130 130)');needle.className.baseVal='tuner-needle';}
+  wrap.style.cursor='pointer';
+  const handler=()=>{wrap.style.cursor='default';wrap.removeEventListener('click',handler);_startTuner();};
+  wrap.addEventListener('click',handler);
+}
+
+function _startTuner(){
+  const hintEl=document.getElementById('tunerHint');
+  if(hintEl) hintEl.textContent='…';
+  if(!navigator.mediaDevices?.getUserMedia){
+    if(hintEl) hintEl.textContent='마이크 미지원';
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({audio:true,video:false})
+    .then(stream=>{
+      _tStream=stream;
+      _tCtx=new (window.AudioContext||window.webkitAudioContext)();
+      _tAnal=_tCtx.createAnalyser();
+      _tAnal.fftSize=4096;
+      _tCtx.createMediaStreamSource(stream).connect(_tAnal);
+      if(hintEl) hintEl.style.display='none';
+      _tunerLoop();
+    })
+    .catch(()=>{
+      if(hintEl) hintEl.textContent='마이크 권한 없음';
+    });
+}
+
+function _stopTuner(){
+  if(_tRAF){cancelAnimationFrame(_tRAF);_tRAF=null;}
+  if(_tStream){_tStream.getTracks().forEach(t=>t.stop());_tStream=null;}
+  if(_tCtx){_tCtx.close();_tCtx=null;}
+  _tAnal=null;
+}
+
+function _tunerLoop(){
+  _tRAF=requestAnimationFrame(_tunerLoop);
+  const buf=new Float32Array(_tAnal.fftSize);
+  _tAnal.getFloatTimeDomainData(buf);
+  const freq=_autoCorrelate(buf,_tCtx.sampleRate);
+  const noteEl=document.getElementById('tunerNote');
+  const needle=document.getElementById('tunerNeedle');
+  if(!noteEl||!needle) return;
+  if(freq<0){
+    noteEl.textContent='—';
+    needle.setAttribute('transform','rotate(0 130 130)');
+    needle.className.baseVal='tuner-needle active';
+    return;
+  }
+  const {name,octave,cents}=_freqToNote(freq);
+  noteEl.textContent=`${name}${octave}`;
+  const angle=(Math.max(-50,Math.min(50,cents))/50)*90;
+  needle.setAttribute('transform',`rotate(${angle} 130 130)`);
+  const inTune=Math.abs(cents)<8;
+  needle.className.baseVal='tuner-needle active'+(inTune?' intune':'');
+}
+
+function _autoCorrelate(buf,sr){
+  let rms=0;
+  for(let i=0;i<buf.length;i++) rms+=buf[i]*buf[i];
+  if(rms/buf.length<0.0005) return -1;
+  const n=buf.length;
+  const minT=Math.ceil(sr/1200), maxT=Math.min(Math.floor(sr/60),n-3);
+  const corr=new Float32Array(maxT+1);
+  let best=-1,bestV=-Infinity;
+  for(let t=minT;t<=maxT;t++){
+    let s=0;
+    for(let j=0;j<n-t;j++) s+=buf[j]*buf[j+t];
+    corr[t]=s;
+    if(s>bestV){bestV=s;best=t;}
+  }
+  if(best<0) return -1;
+  const y1=best>minT?corr[best-1]:bestV, y2=bestV, y3=best<maxT?corr[best+1]:bestV;
+  const a=(y1-2*y2+y3)/2, b=(y3-y1)/2;
+  const refined=a!==0?best-b/(2*a):best;
+  return sr/refined;
+}
+
+const _NOTES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function _freqToNote(freq){
+  const midi=12*Math.log2(freq/440)+69;
+  const midiR=Math.round(midi);
+  const cents=Math.round((midi-midiR)*100);
+  return{name:_NOTES[((midiR%12)+12)%12],octave:Math.floor(midiR/12)-1,cents};
+}
 
 function toast(msg,type=''){ window.toast(msg,type); }
 
