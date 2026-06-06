@@ -3252,6 +3252,174 @@ window.exportEnsembleXlsx = function(type) {
   toast('엑셀 파일을 내보냈습니다', 'ok');
 };
 
+// ── DATA BACKUP DOWNLOAD ─────────────────────────────────────────────
+window.downloadBackupXlsx=async function(){
+  if(typeof XLSX==='undefined'){toast('라이브러리 로드 중입니다. 잠시 후 다시 시도해주세요','err');return;}
+  toast('백업 파일 생성 중...','');
+  try{
+    const BK_DAYS=['월','화','수','목','금','토','일'];
+    const bkTs=ts=>{
+      if(!ts) return null;
+      const d=new Date(ts);
+      return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${d.getHours()}시 ${String(d.getMinutes()).padStart(2,'0')}분 ${String(d.getSeconds()).padStart(2,'0')}초`;
+    };
+    const dayStr=(day,hour)=>day!=null?`${BK_DAYS[day]} ${hour}`:'—';
+    const joinArr=arr=>(arr||[]).join(', ');
+
+    const [
+      {data:taRounds},{data:taApps},
+      {data:scRounds},{data:scApps},{data:scSchools},
+      {data:ensRounds},{data:songApps},{data:sessApps},
+    ]=await Promise.all([
+      supabase.from('application_rounds').select('*').order('created_at'),
+      supabase.from('time_applications').select('*,teams(name,info)').order('submitted_at'),
+      supabase.from('school_rounds').select('*').order('created_at'),
+      supabase.from('school_applications').select('*').order('created_at'),
+      supabase.from('schools').select('id,name,round_id'),
+      supabase.from('ensemble_rounds').select('*').order('created_at'),
+      supabase.from('song_applications').select('*').order('created_at'),
+      supabase.from('session_applications').select('*').order('created_at'),
+    ]);
+
+    // ── 시간 신청 시트 ──
+    const taAppsByRound={};
+    (taApps||[]).forEach(a=>{
+      if(!taAppsByRound[a.round_id]) taAppsByRound[a.round_id]=[];
+      taAppsByRound[a.round_id].push(a);
+    });
+    const taRows=[];
+    for(const r of(taRounds||[])){
+      taRows.push([`${bkTs(r.created_at)} 회차 시작`]);
+      for(const a of(taAppsByRound[r.id]||[])){
+        taRows.push([
+          bkTs(a.submitted_at)||'—',
+          (a.teams?.name||'').replace(/팀$/,''),
+          a.teams?.info||'',
+          dayStr(a.pref1_day,a.pref1_hour),
+          a.pref2_day!=null?dayStr(a.pref2_day,a.pref2_hour):'—',
+          a.pref3_day!=null?dayStr(a.pref3_day,a.pref3_hour):'—',
+        ]);
+      }
+      taRows.push([`${r.close_at?bkTs(r.close_at):'(마감 일시 미기록)'} 회차 마감`]);
+    }
+
+    // ── 스쿨 신청 시트 ──
+    const scSchoolMap={};
+    (scSchools||[]).forEach(s=>scSchoolMap[s.id]=s.name);
+    const scAppsByRound={};
+    (scApps||[]).forEach(a=>{
+      if(!scAppsByRound[a.round_id]) scAppsByRound[a.round_id]=[];
+      scAppsByRound[a.round_id].push(a);
+    });
+    const scRows=[];
+    for(const r of(scRounds||[])){
+      const rn=r.name||'스쿨 신청';
+      scRows.push([`${bkTs(r.created_at)} '${rn}' 시작`]);
+      for(const a of(scAppsByRound[r.id]||[])){
+        scRows.push([
+          bkTs(a.created_at)||'—',
+          a.applicant_name||'',
+          a.student_id||'',
+          scSchoolMap[a.pref1_school_id]||'—',
+          a.pref2_school_id?scSchoolMap[a.pref2_school_id]||'—':'—',
+        ]);
+      }
+      scRows.push([`${r.close_at?bkTs(r.close_at):'(마감 일시 미기록)'} '${rn}' 마감`]);
+    }
+
+    // ── 합주 신청 시트 ──
+    const songById={};
+    (songApps||[]).forEach(s=>songById[s.id]=s);
+    const songsByRound={};
+    (songApps||[]).forEach(s=>{
+      if(!songsByRound[s.round_id]) songsByRound[s.round_id]=[];
+      songsByRound[s.round_id].push(s);
+    });
+    const sessAppsBySong={};
+    (sessApps||[]).forEach(a=>{
+      if(!sessAppsBySong[a.song_id]) sessAppsBySong[a.song_id]=[];
+      sessAppsBySong[a.song_id].push(a);
+    });
+    const sessAppsByRound={};
+    (sessApps||[]).forEach(a=>{
+      if(!sessAppsByRound[a.round_id]) sessAppsByRound[a.round_id]=[];
+      sessAppsByRound[a.round_id].push(a);
+    });
+    const ensRows=[];
+    for(const type of['regular','busking']){
+      const typeRounds=(ensRounds||[]).filter(r=>r.type===type);
+      for(const r of typeRounds){
+        const typeName=type==='regular'?'일반합주':'버스킹합주';
+        const rn=r.name||typeName;
+        ensRows.push([`${bkTs(r.created_at)} '${rn}' 시작`]);
+
+        ensRows.push(['[곡 신청]']);
+        const rSongs=(songsByRound[r.id]||[]).filter(s=>s.status!=='rejected');
+        for(const s of rSongs){
+          const ownSess=(sessAppsBySong[s.id]||[]).find(a=>a.student_id===s.student_id&&(a.session_round||1)===1);
+          ensRows.push([
+            bkTs(s.created_at)||'—',
+            s.title||'',
+            s.artist||'',
+            s.applicant_name||'',
+            s.student_id||'',
+            joinArr(s.sessions),
+            joinArr(ownSess?.sessions),
+          ]);
+        }
+        ensRows.push([`${r.song_close_at?bkTs(r.song_close_at):'(미기록)'} '${rn}' 곡 신청 마감`]);
+
+        ensRows.push(['[세션 신청]']);
+        const rSess1=(sessAppsByRound[r.id]||[]).filter(a=>(a.session_round||1)===1);
+        for(const a of rSess1){
+          const s=songById[a.song_id];
+          ensRows.push([
+            bkTs(a.created_at)||'—',
+            s?.title||'—',
+            s?.artist||'—',
+            a.applicant_name||'',
+            a.student_id||'',
+            joinArr(a.sessions),
+            '1차',
+          ]);
+        }
+        ensRows.push([`${r.session_close_at?bkTs(r.session_close_at):'(미기록)'} '${rn}' 세션 신청 마감`]);
+
+        if(r.has_session2){
+          ensRows.push(['[세션 2차 신청]']);
+          const rSess2=(sessAppsByRound[r.id]||[]).filter(a=>(a.session_round||1)===2);
+          for(const a of rSess2){
+            const s=songById[a.song_id];
+            ensRows.push([
+              bkTs(a.created_at)||'—',
+              s?.title||'—',
+              s?.artist||'—',
+              a.applicant_name||'',
+              a.student_id||'',
+              joinArr(a.sessions),
+              '2차',
+            ]);
+          }
+          ensRows.push([`${r.session2_close_at?bkTs(r.session2_close_at):'(미기록)'} '${rn}' 2차 세션 신청 마감`]);
+        }
+      }
+    }
+
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(taRows.length?taRows:[['데이터 없음']]),'시간 신청');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(scRows.length?scRows:[['데이터 없음']]),'스쿨 신청');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ensRows.length?ensRows:[['데이터 없음']]),'합주 신청');
+
+    const now=new Date();
+    const pad=n=>String(n).padStart(2,'0');
+    const fname=`KUAGC_data_backups_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.xlsx`;
+    XLSX.writeFile(wb,fname);
+    toast('다운로드 완료','ok');
+  }catch(e){
+    toast(errMsg(e),'err');
+  }
+};
+
 // ── TOAST ─────────────────────────────────────────────────────────────
 let toastT;
 function toast(msg,type=''){

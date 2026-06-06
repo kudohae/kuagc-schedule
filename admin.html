@@ -234,6 +234,11 @@
     <button class="btn btn-d" onclick="openDeleteTimeModal()">시간 정보 삭제</button>
   </div>
   <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)">백업 데이터 확인</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">시간 신청, 스쿨 신청, 합주 신청 데이터를 xlsx 파일로 다운로드합니다.</div>
+    <button class="btn btn-s" onclick="downloadBackupXlsx()">데이터 다운로드</button>
+  </div>
+  <div class="card" style="padding:16px">
     <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2)">관리자 비밀번호 변경</div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <div><div class="fl">새 비밀번호</div><input class="fi" type="password" id="newPw1" placeholder="새 비밀번호 (6자 이상)"/></div>
