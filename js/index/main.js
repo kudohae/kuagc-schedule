@@ -661,7 +661,7 @@ function _initTuner(){
   if(!wrap) return;
   if(noteEl) noteEl.textContent='—';
   if(hintEl){hintEl.textContent='탭하여 시작';hintEl.style.display='';}
-  if(needle){needle.setAttribute('transform','rotate(0 130 130)');needle.className.baseVal='tuner-needle';}
+  if(needle){needle.style.transform='rotate(0deg)';needle.className.baseVal='tuner-needle';}
   wrap.style.cursor='pointer';
   const handler=()=>{wrap.style.cursor='default';wrap.removeEventListener('click',handler);_startTuner();};
   wrap.addEventListener('click',handler);
@@ -706,14 +706,14 @@ function _tunerLoop(){
   if(!noteEl||!needle) return;
   if(freq<0){
     noteEl.textContent='—';
-    needle.setAttribute('transform','rotate(0 130 130)');
+    needle.style.transform='rotate(0deg)';
     needle.className.baseVal='tuner-needle active';
     return;
   }
   const {name,octave,cents}=_freqToNote(freq);
   noteEl.textContent=`${name}${octave}`;
   const angle=(Math.max(-50,Math.min(50,cents))/50)*90;
-  needle.setAttribute('transform',`rotate(${angle} 130 130)`);
+  needle.style.transform=`rotate(${angle}deg)`;
   const inTune=Math.abs(cents)<8;
   needle.className.baseVal='tuner-needle active'+(inTune?' intune':'');
 }
