@@ -653,22 +653,42 @@ window.closeStatus=function(){
 // ── GUITAR TUNER ──────────────────────────────────────────────────────
 let _tCtx=null,_tAnal=null,_tStream=null,_tRAF=null;
 const _trailBuf=[];
-const _TRAIL_LEN=60;
+const _TRAIL_LEN=50;
+let _trailDots=null;
+
+function _initTrailDots(){
+  const g=document.getElementById('tunerTrailG');
+  if(!g||_trailDots) return;
+  _trailDots=[];
+  for(let i=0;i<_TRAIL_LEN;i++){
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('r','1.8');
+    c.setAttribute('cx','130');
+    c.setAttribute('cy','42');
+    c.style.opacity='0';
+    g.appendChild(c);
+    _trailDots.push(c);
+  }
+}
 
 function _updateTrail(angle){
   const a=angle*Math.PI/180;
-  _trailBuf.push(`${(130+88*Math.sin(a)).toFixed(1)},${(130-88*Math.cos(a)).toFixed(1)}`);
+  _trailBuf.push({x:+(130+88*Math.sin(a)).toFixed(1),y:+(130-88*Math.cos(a)).toFixed(1)});
   if(_trailBuf.length>_TRAIL_LEN) _trailBuf.shift();
-  const l=_trailBuf.length;
-  const t1=Math.floor(l*.33),t2=Math.floor(l*.67);
-  document.getElementById('ttA')?.setAttribute('points',_trailBuf.slice(0,t1).join(' '));
-  document.getElementById('ttB')?.setAttribute('points',_trailBuf.slice(t1,t2).join(' '));
-  document.getElementById('ttC')?.setAttribute('points',_trailBuf.slice(t2).join(' '));
+  if(!_trailDots) return;
+  _trailDots.forEach((c,i)=>{
+    const bi=_trailBuf.length-_TRAIL_LEN+i;
+    if(bi<0){c.style.opacity='0';return;}
+    const p=_trailBuf[bi];
+    c.setAttribute('cx',p.x);
+    c.setAttribute('cy',p.y);
+    c.style.opacity=((i+1)/_TRAIL_LEN).toFixed(2);
+  });
 }
 
 function _clearTrail(){
   _trailBuf.length=0;
-  ['ttA','ttB','ttC'].forEach(id=>document.getElementById(id)?.setAttribute('points',''));
+  if(_trailDots) _trailDots.forEach(c=>{c.style.opacity='0';});
 }
 
 function _initTuner(){
@@ -680,6 +700,7 @@ function _initTuner(){
   if(noteEl) noteEl.textContent='—';
   if(hintEl){hintEl.textContent='탭하여 시작';hintEl.style.display='';}
   if(needle){needle.style.transform='rotate(0deg)';needle.className.baseVal='tuner-needle';}
+  _initTrailDots();
   _clearTrail();
   wrap.style.cursor='pointer';
   const handler=()=>{wrap.style.cursor='default';wrap.removeEventListener('click',handler);_startTuner();};
