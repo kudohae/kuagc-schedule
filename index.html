@@ -103,6 +103,23 @@
 
 <!-- STATUS POPUP -->
 <div class="status-bd" id="statusBd" style="display:none">
+  <div class="tuner-wrap" id="tunerWrap">
+    <svg class="tuner-svg" viewBox="0 0 260 140" id="tunerSvg" aria-hidden="true">
+      <path d="M10,130 A120,120 0 0,1 250,130 Z" class="tuner-bg"/>
+      <path d="M10,130 A120,120 0 0,1 250,130" class="tuner-arc"/>
+      <line x1="10" y1="130" x2="21" y2="130" class="tuner-tick"/>
+      <line x1="45" y1="45" x2="53" y2="53" class="tuner-tick"/>
+      <line x1="130" y1="10" x2="130" y2="21" class="tuner-tick tuner-tick-main"/>
+      <line x1="215" y1="45" x2="207" y2="53" class="tuner-tick"/>
+      <line x1="250" y1="130" x2="239" y2="130" class="tuner-tick"/>
+      <text x="22" y="122" class="tuner-lbl">♭</text>
+      <text x="238" y="122" class="tuner-lbl">♯</text>
+      <line id="tunerNeedle" x1="130" y1="130" x2="130" y2="42" class="tuner-needle"/>
+      <circle cx="130" cy="130" r="5" class="tuner-hub"/>
+      <text id="tunerNote" x="130" y="91" class="tuner-note">—</text>
+      <text id="tunerHint" x="130" y="116" class="tuner-hint">탭하여 시작</text>
+    </svg>
+  </div>
   <div class="status-popup">
     <div class="status-popup-main" id="statusMain"></div>
     <div class="status-popup-foot">
