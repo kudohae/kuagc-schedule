@@ -652,44 +652,6 @@ window.closeStatus=function(){
 
 // ── GUITAR TUNER ──────────────────────────────────────────────────────
 let _tCtx=null,_tAnal=null,_tStream=null,_tRAF=null;
-const _trailBuf=[];
-const _TRAIL_LEN=50;
-let _trailDots=null;
-
-function _initTrailDots(){
-  const g=document.getElementById('tunerTrailG');
-  if(!g||_trailDots) return;
-  _trailDots=[];
-  for(let i=0;i<_TRAIL_LEN;i++){
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('r','1.8');
-    c.setAttribute('cx','130');
-    c.setAttribute('cy','42');
-    c.style.opacity='0';
-    g.appendChild(c);
-    _trailDots.push(c);
-  }
-}
-
-function _updateTrail(angle){
-  const a=angle*Math.PI/180;
-  _trailBuf.push({x:+(130+88*Math.sin(a)).toFixed(1),y:+(130-88*Math.cos(a)).toFixed(1)});
-  if(_trailBuf.length>_TRAIL_LEN) _trailBuf.shift();
-  if(!_trailDots) return;
-  _trailDots.forEach((c,i)=>{
-    const bi=_trailBuf.length-_TRAIL_LEN+i;
-    if(bi<0){c.style.opacity='0';return;}
-    const p=_trailBuf[bi];
-    c.setAttribute('cx',p.x);
-    c.setAttribute('cy',p.y);
-    c.style.opacity=((i+1)/_TRAIL_LEN).toFixed(2);
-  });
-}
-
-function _clearTrail(){
-  _trailBuf.length=0;
-  if(_trailDots) _trailDots.forEach(c=>{c.style.opacity='0';});
-}
 
 function _initTuner(){
   const wrap=document.getElementById('tunerWrap');
@@ -700,8 +662,6 @@ function _initTuner(){
   if(noteEl) noteEl.textContent='—';
   if(hintEl){hintEl.textContent='탭하여 시작';hintEl.style.display='';}
   if(needle){needle.style.transform='rotate(0deg)';needle.className.baseVal='tuner-needle';}
-  _initTrailDots();
-  _clearTrail();
   wrap.style.cursor='pointer';
   const handler=()=>{wrap.style.cursor='default';wrap.removeEventListener('click',handler);_startTuner();};
   wrap.addEventListener('click',handler);
@@ -734,7 +694,6 @@ function _stopTuner(){
   if(_tStream){_tStream.getTracks().forEach(t=>t.stop());_tStream=null;}
   if(_tCtx){_tCtx.close();_tCtx=null;}
   _tAnal=null;
-  _clearTrail();
 }
 
 function _tunerLoop(){
@@ -749,7 +708,6 @@ function _tunerLoop(){
     noteEl.textContent='—';
     needle.style.transform='rotate(0deg)';
     needle.className.baseVal='tuner-needle active';
-    _updateTrail(0);
     return;
   }
   const {name,octave,cents}=_freqToNote(freq);
@@ -758,7 +716,6 @@ function _tunerLoop(){
   needle.style.transform=`rotate(${angle}deg)`;
   const inTune=Math.abs(cents)<8;
   needle.className.baseVal='tuner-needle active'+(inTune?' intune':'');
-  _updateTrail(angle);
 }
 
 function _autoCorrelate(buf,sr){
