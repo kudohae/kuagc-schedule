@@ -652,6 +652,8 @@ window.closeStatus=function(){
 
 // ── GUITAR TUNER ──────────────────────────────────────────────────────
 let _tCtx=null,_tAnal=null,_tStream=null,_tRAF=null;
+let _smoothAngle=0,_pendingNote=null,_pendingFrames=0,_silenceFrames=0;
+const _SMOOTH=0.18,_NOTE_FRAMES=15,_SILENCE_FRAMES=60;
 
 function _initTuner(){
   const wrap=document.getElementById('tunerWrap');
@@ -662,6 +664,9 @@ function _initTuner(){
   if(noteEl) noteEl.textContent='—';
   if(hintEl){hintEl.textContent='탭하여 시작';hintEl.style.display='';}
   if(needle){needle.style.transform='rotate(0deg)';needle.className.baseVal='tuner-needle';}
+  _smoothAngle=0;_pendingNote=null;_pendingFrames=0;_silenceFrames=0;
+  const centsEl0=document.getElementById('tunerCents');
+  if(centsEl0) centsEl0.textContent='';
   wrap.style.cursor='pointer';
   const handler=()=>{wrap.style.cursor='default';wrap.removeEventListener('click',handler);_startTuner();};
   wrap.addEventListener('click',handler);
@@ -694,6 +699,7 @@ function _stopTuner(){
   if(_tStream){_tStream.getTracks().forEach(t=>t.stop());_tStream=null;}
   if(_tCtx){_tCtx.close();_tCtx=null;}
   _tAnal=null;
+  _smoothAngle=0;_pendingNote=null;_pendingFrames=0;_silenceFrames=0;
 }
 
 function _tunerLoop(){
@@ -702,18 +708,32 @@ function _tunerLoop(){
   _tAnal.getFloatTimeDomainData(buf);
   const freq=_autoCorrelate(buf,_tCtx.sampleRate);
   const noteEl=document.getElementById('tunerNote');
+  const centsEl=document.getElementById('tunerCents');
   const needle=document.getElementById('tunerNeedle');
   if(!noteEl||!needle) return;
   if(freq<0){
-    noteEl.textContent='—';
-    needle.style.transform='rotate(0deg)';
+    _pendingNote=null;_pendingFrames=0;_silenceFrames++;
+    _smoothAngle=_SMOOTH*0+(1-_SMOOTH)*_smoothAngle;
+    needle.style.transform=`rotate(${_smoothAngle.toFixed(2)}deg)`;
     needle.className.baseVal='tuner-needle active';
+    if(_silenceFrames>=_SILENCE_FRAMES){
+      noteEl.textContent='—';
+      if(centsEl) centsEl.textContent='';
+    }
     return;
   }
+  _silenceFrames=0;
   const {name,octave,cents}=_freqToNote(freq);
-  noteEl.textContent=`${name}${octave}`;
-  const angle=(Math.max(-50,Math.min(50,cents))/50)*90;
-  needle.style.transform=`rotate(${angle}deg)`;
+  const noteStr=`${name}${octave}`;
+  if(noteStr===_pendingNote){_pendingFrames++;}
+  else{_pendingNote=noteStr;_pendingFrames=1;}
+  if(_pendingFrames>=_NOTE_FRAMES){
+    noteEl.textContent=noteStr;
+    if(centsEl) centsEl.textContent=cents===0?'0¢':(cents>0?`+${cents}¢`:`${cents}¢`);
+  }
+  const rawAngle=(Math.max(-50,Math.min(50,cents))/50)*90;
+  _smoothAngle=_SMOOTH*rawAngle+(1-_SMOOTH)*_smoothAngle;
+  needle.style.transform=`rotate(${_smoothAngle.toFixed(2)}deg)`;
   const inTune=Math.abs(cents)<8;
   needle.className.baseVal='tuner-needle active'+(inTune?' intune':'');
 }
