@@ -579,8 +579,8 @@ window.onMBd=e=>{ if(e.target===document.getElementById('modalBd')) closeModal()
 function showStatus(){
   const suppressed = localStorage.getItem('statusSuppressUntil');
   if(suppressed && Date.now() < parseInt(suppressed)) return;
-  _stopTuner();
-  _initTuner();
+  _stopTuner();_metroStop();
+  _initTuner();_metroInit();
   const now = new Date();
   const dow = (now.getDay()+6)%7; // 0=월
   const h   = now.getHours();
@@ -647,7 +647,7 @@ window.closeStatus=function(){
   if(chk?.checked) localStorage.setItem('statusSuppressUntil', Date.now() + 1800000);
   document.getElementById('statusBd').style.display='none';
   document.body.style.overflow='';
-  _stopTuner();
+  _stopTuner();_metroStop();
 };
 
 // ── GUITAR TUNER ──────────────────────────────────────────────────────
@@ -780,6 +780,98 @@ function _freqToNote(freq){
   const cents=Math.round((midi-midiR)*100);
   return{name:_NOTES[((midiR%12)+12)%12],octave:Math.floor(midiR/12)-1,cents};
 }
+
+// ── METRONOME ──────────────────────────────────────────────────────────
+let _mCtx=null,_mRunning=false,_mBpm=120,_mBeat=0;
+const _mBeats=4;
+let _mNextTime=0,_mTimer=null,_mPending=[],_mTapTimes=[];
+const _M_LOOKAHEAD=0.08,_M_INTERVAL=25;
+
+function _metroInit(){
+  _mRunning=false;_mBeat=0;_mPending=[];
+  const bpmEl=document.getElementById('metroBpm');
+  const playBtn=document.getElementById('metroPlayBtn');
+  if(bpmEl) bpmEl.textContent=_mBpm;
+  if(playBtn){playBtn.textContent='▶';playBtn.classList.remove('active');}
+  for(let i=0;i<_mBeats;i++){const d=document.getElementById(`md${i}`);if(d) d.className='metro-dot';}
+}
+
+function _metroStop(){
+  _mRunning=false;
+  if(_mTimer){clearTimeout(_mTimer);_mTimer=null;}
+  _mPending=[];
+  const playBtn=document.getElementById('metroPlayBtn');
+  if(playBtn){playBtn.textContent='▶';playBtn.classList.remove('active');}
+  for(let i=0;i<_mBeats;i++){const d=document.getElementById(`md${i}`);if(d) d.className='metro-dot';}
+}
+
+function _metroStart(){
+  if(!_mCtx) _mCtx=new (window.AudioContext||window.webkitAudioContext)();
+  _mRunning=true;_mBeat=0;_mPending=[];
+  _mNextTime=_mCtx.currentTime+0.05;
+  const playBtn=document.getElementById('metroPlayBtn');
+  if(playBtn){playBtn.textContent='■';playBtn.classList.add('active');}
+  _mSchedule();
+  requestAnimationFrame(_mVisual);
+}
+
+function _mSchedule(){
+  if(!_mRunning) return;
+  while(_mNextTime<_mCtx.currentTime+_M_LOOKAHEAD){
+    _mClick(_mNextTime,_mBeat===0);
+    _mPending.push({beat:_mBeat,time:_mNextTime});
+    _mBeat=(_mBeat+1)%_mBeats;
+    _mNextTime+=60/_mBpm;
+  }
+  _mTimer=setTimeout(_mSchedule,_M_INTERVAL);
+}
+
+function _mClick(t,accent){
+  const o=_mCtx.createOscillator(),g=_mCtx.createGain();
+  o.connect(g);g.connect(_mCtx.destination);
+  o.frequency.value=accent?1000:700;
+  g.gain.setValueAtTime(accent?0.55:0.3,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.04);
+  o.start(t);o.stop(t+0.045);
+}
+
+function _mVisual(){
+  if(!_mRunning) return;
+  const now=_mCtx.currentTime;
+  while(_mPending.length&&_mPending[0].time<=now){
+    const {beat}=_mPending.shift();
+    for(let i=0;i<_mBeats;i++){
+      const d=document.getElementById(`md${i}`);
+      if(d) d.className='metro-dot'+(i===beat?(beat===0?' accent':' beat'):'');
+    }
+  }
+  requestAnimationFrame(_mVisual);
+}
+
+window.metroToggle=function(){_mRunning?_metroStop():_metroStart();};
+
+window.metroBpmAdj=function(d){
+  _mBpm=Math.max(30,Math.min(300,_mBpm+d));
+  const el=document.getElementById('metroBpm');
+  if(el) el.textContent=_mBpm;
+  if(_mRunning){_metroStop();_metroStart();}
+};
+
+window.metroTap=function(){
+  const now=performance.now();
+  if(_mTapTimes.length&&now-_mTapTimes[_mTapTimes.length-1]>2000) _mTapTimes=[];
+  _mTapTimes.push(now);
+  if(_mTapTimes.length>=2){
+    let sum=0;
+    for(let i=1;i<_mTapTimes.length;i++) sum+=_mTapTimes[i]-_mTapTimes[i-1];
+    _mBpm=Math.max(30,Math.min(300,Math.round(60000/(sum/(_mTapTimes.length-1)))));
+    const el=document.getElementById('metroBpm');
+    if(el) el.textContent=_mBpm;
+    if(_mRunning){_metroStop();_metroStart();}
+  }
+  const btn=document.getElementById('metroTapBtn');
+  if(btn){btn.style.background='var(--accent)';btn.style.color='#000';setTimeout(()=>{btn.style.background='';btn.style.color='';},80);}
+};
 
 function toast(msg,type=''){ window.toast(msg,type); }
 
