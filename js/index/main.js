@@ -727,10 +727,8 @@ function _tunerLoop(){
   const noteStr=`${name}${octave}`;
   if(noteStr===_pendingNote){_pendingFrames++;}
   else{_pendingNote=noteStr;_pendingFrames=1;}
-  if(_pendingFrames>=_NOTE_FRAMES){
-    noteEl.textContent=noteStr;
-    if(centsEl) centsEl.textContent=cents===0?'0¢':(cents>0?`+${cents}¢`:`${cents}¢`);
-  }
+  if(_pendingFrames>=_NOTE_FRAMES) noteEl.textContent=noteStr;
+  if(centsEl) centsEl.textContent=cents===0?'0¢':(cents>0?`+${cents}¢`:`${cents}¢`);
   const rawAngle=(Math.max(-50,Math.min(50,cents))/50)*90;
   _smoothAngle=_SMOOTH*rawAngle+(1-_SMOOTH)*_smoothAngle;
   needle.style.transform=`rotate(${_smoothAngle.toFixed(2)}deg)`;
