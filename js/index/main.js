@@ -653,7 +653,7 @@ window.closeStatus=function(){
 // ── GUITAR TUNER ──────────────────────────────────────────────────────
 let _tCtx=null,_tAnal=null,_tStream=null,_tRAF=null;
 let _smoothAngle=0,_pendingNote=null,_pendingFrames=0,_silenceFrames=0;
-const _SMOOTH=0.15,_NOTE_FRAMES=15,_SILENCE_FRAMES=60;
+const _SMOOTH=0.3,_NOTE_FRAMES=4,_SILENCE_FRAMES=60;
 
 function _dotPos(angle){
   const a=angle*Math.PI/180;
