@@ -667,9 +667,9 @@ function _initTuner(){
   const hintEl=document.getElementById('tunerHint');
   const centsEl=document.getElementById('tunerCents');
   const dot=document.getElementById('tunerDot');
-  if(noteEl){noteEl.textContent='—';noteEl.className='tuner-note-name';}
+  if(noteEl){noteEl.textContent='—';noteEl.setAttribute('class','tuner-note-svg');noteEl.style.display='none';}
   if(hintEl){hintEl.textContent='탭하여 튜너 시작';hintEl.style.display='';}
-  if(centsEl) centsEl.textContent='';
+  if(centsEl){centsEl.textContent='';centsEl.style.display='none';}
   if(dot){const p=_dotPos(0);dot.setAttribute('cx',p.cx);dot.setAttribute('cy',p.cy);dot.className.baseVal='tuner-dot';}
   _smoothAngle=0;_pendingNote=null;_pendingFrames=0;_silenceFrames=0;
   wrap.style.cursor='pointer';
@@ -688,6 +688,10 @@ function _startTuner(){
       _tAnal=_tCtx.createAnalyser();
       _tAnal.fftSize=2048;
       _tCtx.createMediaStreamSource(stream).connect(_tAnal);
+      const noteEl=document.getElementById('tunerNote');
+      const centsEl=document.getElementById('tunerCents');
+      if(noteEl) noteEl.style.display='';
+      if(centsEl) centsEl.style.display='';
       if(hintEl) hintEl.style.display='none';
       _tunerLoop();
     })
@@ -718,7 +722,7 @@ function _tunerLoop(){
     dot.setAttribute('cx',p.cx);dot.setAttribute('cy',p.cy);
     dot.className.baseVal='tuner-dot';
     if(_silenceFrames>=_SILENCE_FRAMES){
-      noteEl.textContent='—';noteEl.className='tuner-note-name';
+      noteEl.textContent='—';noteEl.setAttribute('class','tuner-note-svg');
       if(centsEl) centsEl.textContent='';
     }
     return;
@@ -732,7 +736,7 @@ function _tunerLoop(){
   const inTune=Math.abs(cents)<8;
   if(confirmed){
     noteEl.textContent=noteStr;
-    noteEl.className='tuner-note-name'+(inTune?' intune':'');
+    noteEl.setAttribute('class','tuner-note-svg'+(inTune?' intune':''));
   }
   if(centsEl) centsEl.textContent=cents===0?'0¢':(cents>0?`+${cents}¢`:`${cents}¢`);
   const rawAngle=(Math.max(-50,Math.min(50,cents))/50)*90;

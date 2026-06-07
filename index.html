@@ -104,7 +104,7 @@
 <!-- STATUS POPUP -->
 <div class="status-bd" id="statusBd" style="display:none">
   <div class="tuner-wrap" id="tunerWrap">
-    <svg class="tuner-gauge" viewBox="0 0 280 152" aria-hidden="true">
+    <svg class="tuner-gauge" viewBox="0 0 280 152">
       <path d="M18,142 A122,122 0 0,1 262,142" class="tuner-track"/>
       <path d="M110,24 A122,122 0 0,1 170,24" class="tuner-zone"/>
       <line x1="18" y1="142" x2="29" y2="142" class="tuner-tick"/>
@@ -115,12 +115,10 @@
       <text x="30" y="133" class="tuner-lbl">♭</text>
       <text x="250" y="133" class="tuner-lbl">♯</text>
       <circle id="tunerDot" cx="140" cy="20" r="7" class="tuner-dot"/>
+      <text id="tunerNote" x="140" y="100" class="tuner-note-svg" style="display:none">—</text>
+      <text id="tunerCents" x="140" y="130" class="tuner-cents-svg" style="display:none"></text>
+      <text id="tunerHint" x="140" y="112" class="tuner-hint-svg">탭하여 튜너 시작</text>
     </svg>
-    <div class="tuner-display">
-      <div class="tuner-note-name" id="tunerNote">—</div>
-      <div class="tuner-cents-val" id="tunerCents"></div>
-    </div>
-    <div class="tuner-hint-txt" id="tunerHint">탭하여 튜너 시작</div>
   </div>
   <div class="status-popup">
     <div class="status-popup-main" id="statusMain"></div>
