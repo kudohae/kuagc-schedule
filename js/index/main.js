@@ -580,6 +580,11 @@ function showStatus(){
   const suppressed = localStorage.getItem('statusSuppressUntil');
   if(suppressed && Date.now() < parseInt(suppressed)) return;
   _stopTuner();_metroStop();
+  const _ic=document.getElementById('instChk');if(_ic) _ic.checked=false;
+  document.getElementById('instLblTuner')?.classList.add('active');
+  document.getElementById('instLblMetro')?.classList.remove('active');
+  document.getElementById('tunerWrap').style.display='';
+  document.getElementById('metroView').style.display='none';
   _initTuner();_metroInit();
   const now = new Date();
   const dow = (now.getDay()+6)%7; // 0=월
@@ -848,6 +853,13 @@ function _mVisual(){
   requestAnimationFrame(_mVisual);
 }
 
+window.instSwitch=function(toMetro){
+  document.getElementById('tunerWrap').style.display=toMetro?'none':'';
+  document.getElementById('metroView').style.display=toMetro?'':'none';
+  document.getElementById('instLblTuner').classList.toggle('active',!toMetro);
+  document.getElementById('instLblMetro').classList.toggle('active',toMetro);
+  if(toMetro){_stopTuner();}else{_metroStop();_initTuner();}
+};
 window.metroToggle=function(){_mRunning?_metroStop():_metroStart();};
 
 window.metroBpmAdj=function(d){
