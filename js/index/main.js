@@ -653,45 +653,45 @@ window.closeStatus=function(){
 // ── GUITAR TUNER ──────────────────────────────────────────────────────
 let _tCtx=null,_tAnal=null,_tStream=null,_tRAF=null;
 let _smoothAngle=0,_pendingNote=null,_pendingFrames=0,_silenceFrames=0;
-const _SMOOTH=0.18,_NOTE_FRAMES=15,_SILENCE_FRAMES=60;
+const _SMOOTH=0.15,_NOTE_FRAMES=15,_SILENCE_FRAMES=60;
+
+function _dotPos(angle){
+  const a=angle*Math.PI/180;
+  return{cx:(140+122*Math.sin(a)).toFixed(1),cy:(142-122*Math.cos(a)).toFixed(1)};
+}
 
 function _initTuner(){
   const wrap=document.getElementById('tunerWrap');
+  if(!wrap) return;
   const noteEl=document.getElementById('tunerNote');
   const hintEl=document.getElementById('tunerHint');
-  const needle=document.getElementById('tunerNeedle');
-  if(!wrap) return;
-  if(noteEl) noteEl.textContent='—';
-  if(hintEl){hintEl.textContent='탭하여 시작';hintEl.style.display='';}
-  if(needle){needle.style.transform='rotate(0deg)';needle.className.baseVal='tuner-needle';}
+  const centsEl=document.getElementById('tunerCents');
+  const dot=document.getElementById('tunerDot');
+  if(noteEl){noteEl.textContent='—';noteEl.className='tuner-note-name';}
+  if(hintEl){hintEl.textContent='탭하여 튜너 시작';hintEl.style.display='';}
+  if(centsEl) centsEl.textContent='';
+  if(dot){const p=_dotPos(0);dot.setAttribute('cx',p.cx);dot.setAttribute('cy',p.cy);dot.className.baseVal='tuner-dot';}
   _smoothAngle=0;_pendingNote=null;_pendingFrames=0;_silenceFrames=0;
-  const centsEl0=document.getElementById('tunerCents');
-  if(centsEl0) centsEl0.textContent='';
   wrap.style.cursor='pointer';
-  const handler=()=>{wrap.style.cursor='default';wrap.removeEventListener('click',handler);_startTuner();};
-  wrap.addEventListener('click',handler);
+  const h=()=>{wrap.style.cursor='default';wrap.removeEventListener('click',h);_startTuner();};
+  wrap.addEventListener('click',h);
 }
 
 function _startTuner(){
   const hintEl=document.getElementById('tunerHint');
   if(hintEl) hintEl.textContent='…';
-  if(!navigator.mediaDevices?.getUserMedia){
-    if(hintEl) hintEl.textContent='마이크 미지원';
-    return;
-  }
+  if(!navigator.mediaDevices?.getUserMedia){if(hintEl) hintEl.textContent='마이크 미지원';return;}
   navigator.mediaDevices.getUserMedia({audio:true,video:false})
     .then(stream=>{
       _tStream=stream;
       _tCtx=new (window.AudioContext||window.webkitAudioContext)();
       _tAnal=_tCtx.createAnalyser();
-      _tAnal.fftSize=4096;
+      _tAnal.fftSize=2048;
       _tCtx.createMediaStreamSource(stream).connect(_tAnal);
       if(hintEl) hintEl.style.display='none';
       _tunerLoop();
     })
-    .catch(()=>{
-      if(hintEl) hintEl.textContent='마이크 권한 없음';
-    });
+    .catch(()=>{if(hintEl) hintEl.textContent='마이크 권한 없음';});
 }
 
 function _stopTuner(){
@@ -706,18 +706,19 @@ function _tunerLoop(){
   _tRAF=requestAnimationFrame(_tunerLoop);
   const buf=new Float32Array(_tAnal.fftSize);
   _tAnal.getFloatTimeDomainData(buf);
-  const freq=_autoCorrelate(buf,_tCtx.sampleRate);
+  const freq=_yin(buf,_tCtx.sampleRate);
   const noteEl=document.getElementById('tunerNote');
   const centsEl=document.getElementById('tunerCents');
-  const needle=document.getElementById('tunerNeedle');
-  if(!noteEl||!needle) return;
+  const dot=document.getElementById('tunerDot');
+  if(!noteEl||!dot) return;
   if(freq<0){
     _pendingNote=null;_pendingFrames=0;_silenceFrames++;
     _smoothAngle=_SMOOTH*0+(1-_SMOOTH)*_smoothAngle;
-    needle.style.transform=`rotate(${_smoothAngle.toFixed(2)}deg)`;
-    needle.className.baseVal='tuner-needle active';
+    const p=_dotPos(_smoothAngle);
+    dot.setAttribute('cx',p.cx);dot.setAttribute('cy',p.cy);
+    dot.className.baseVal='tuner-dot';
     if(_silenceFrames>=_SILENCE_FRAMES){
-      noteEl.textContent='—';
+      noteEl.textContent='—';noteEl.className='tuner-note-name';
       if(centsEl) centsEl.textContent='';
     }
     return;
@@ -727,34 +728,45 @@ function _tunerLoop(){
   const noteStr=`${name}${octave}`;
   if(noteStr===_pendingNote){_pendingFrames++;}
   else{_pendingNote=noteStr;_pendingFrames=1;}
-  if(_pendingFrames>=_NOTE_FRAMES) noteEl.textContent=noteStr;
+  const confirmed=_pendingFrames>=_NOTE_FRAMES;
+  const inTune=Math.abs(cents)<8;
+  if(confirmed){
+    noteEl.textContent=noteStr;
+    noteEl.className='tuner-note-name'+(inTune?' intune':'');
+  }
   if(centsEl) centsEl.textContent=cents===0?'0¢':(cents>0?`+${cents}¢`:`${cents}¢`);
   const rawAngle=(Math.max(-50,Math.min(50,cents))/50)*90;
   _smoothAngle=_SMOOTH*rawAngle+(1-_SMOOTH)*_smoothAngle;
-  needle.style.transform=`rotate(${_smoothAngle.toFixed(2)}deg)`;
-  const inTune=Math.abs(cents)<8;
-  needle.className.baseVal='tuner-needle active'+(inTune?' intune':'');
+  const p=_dotPos(_smoothAngle);
+  dot.setAttribute('cx',p.cx);dot.setAttribute('cy',p.cy);
+  const dotCls=inTune?'intune':(Math.abs(cents)<20?'warn':'danger');
+  dot.className.baseVal=`tuner-dot ${dotCls}`;
 }
 
-function _autoCorrelate(buf,sr){
+function _yin(buf,sr){
   let rms=0;
   for(let i=0;i<buf.length;i++) rms+=buf[i]*buf[i];
-  if(rms/buf.length<0.0005) return -1;
-  const n=buf.length;
-  const minT=Math.ceil(sr/1200), maxT=Math.min(Math.floor(sr/60),n-3);
-  const corr=new Float32Array(maxT+1);
-  let best=-1,bestV=-Infinity;
-  for(let t=minT;t<=maxT;t++){
-    let s=0;
-    for(let j=0;j<n-t;j++) s+=buf[j]*buf[j+t];
-    corr[t]=s;
-    if(s>bestV){bestV=s;best=t;}
+  if(rms/buf.length<0.0003) return -1;
+  const n=buf.length,half=n>>1,threshold=0.12;
+  const diff=new Float32Array(half);
+  for(let tau=1;tau<half;tau++){
+    for(let j=0;j<half;j++){const d=buf[j]-buf[j+tau];diff[tau]+=d*d;}
   }
-  if(best<0) return -1;
-  const y1=best>minT?corr[best-1]:bestV, y2=bestV, y3=best<maxT?corr[best+1]:bestV;
-  const a=(y1-2*y2+y3)/2, b=(y3-y1)/2;
-  const refined=a!==0?best-b/(2*a):best;
-  return sr/refined;
+  const cmndf=new Float32Array(half);
+  cmndf[0]=1;let run=0;
+  for(let tau=1;tau<half;tau++){run+=diff[tau];cmndf[tau]=diff[tau]*tau/run;}
+  const minT=Math.ceil(sr/1200),maxT=Math.min(Math.floor(sr/60),half-2);
+  let tau=-1;
+  for(let t=minT;t<=maxT;t++){
+    if(cmndf[t]<threshold){
+      while(t+1<=maxT&&cmndf[t+1]<cmndf[t]) t++;
+      tau=t;break;
+    }
+  }
+  if(tau<0) return -1;
+  const y1=tau>0?cmndf[tau-1]:cmndf[tau],y2=cmndf[tau],y3=tau<half-1?cmndf[tau+1]:cmndf[tau];
+  const a=(y1-2*y2+y3)/2,b=(y3-y1)/2;
+  return sr/(a!==0?tau-b/(2*a):tau);
 }
 
 const _NOTES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
