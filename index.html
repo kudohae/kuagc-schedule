@@ -104,22 +104,23 @@
 <!-- STATUS POPUP -->
 <div class="status-bd" id="statusBd" style="display:none">
   <div class="tuner-wrap" id="tunerWrap">
-    <svg class="tuner-svg" viewBox="0 0 260 140" id="tunerSvg" aria-hidden="true">
-      <path d="M10,130 A120,120 0 0,1 250,130 Z" class="tuner-bg"/>
-      <path d="M10,130 A120,120 0 0,1 250,130" class="tuner-arc"/>
-      <line x1="10" y1="130" x2="21" y2="130" class="tuner-tick"/>
-      <line x1="45" y1="45" x2="53" y2="53" class="tuner-tick"/>
-      <line x1="130" y1="10" x2="130" y2="21" class="tuner-tick tuner-tick-main"/>
-      <line x1="215" y1="45" x2="207" y2="53" class="tuner-tick"/>
-      <line x1="250" y1="130" x2="239" y2="130" class="tuner-tick"/>
-      <text x="22" y="122" class="tuner-lbl">♭</text>
-      <text x="238" y="122" class="tuner-lbl">♯</text>
-      <line id="tunerNeedle" x1="130" y1="130" x2="130" y2="42" class="tuner-needle"/>
-      <circle cx="130" cy="130" r="5" class="tuner-hub"/>
-      <text id="tunerNote" x="130" y="88" class="tuner-note">—</text>
-      <text id="tunerCents" x="130" y="112" class="tuner-cents"></text>
-      <text id="tunerHint" x="130" y="116" class="tuner-hint">탭하여 시작</text>
+    <svg class="tuner-gauge" viewBox="0 0 280 152" aria-hidden="true">
+      <path d="M18,142 A122,122 0 0,1 262,142" class="tuner-track"/>
+      <path d="M110,24 A122,122 0 0,1 170,24" class="tuner-zone"/>
+      <line x1="18" y1="142" x2="29" y2="142" class="tuner-tick"/>
+      <line x1="54" y1="56" x2="62" y2="64" class="tuner-tick"/>
+      <line x1="140" y1="20" x2="140" y2="31" class="tuner-tick tuner-tick-c"/>
+      <line x1="226" y1="56" x2="218" y2="64" class="tuner-tick"/>
+      <line x1="262" y1="142" x2="251" y2="142" class="tuner-tick"/>
+      <text x="30" y="133" class="tuner-lbl">♭</text>
+      <text x="250" y="133" class="tuner-lbl">♯</text>
+      <circle id="tunerDot" cx="140" cy="20" r="7" class="tuner-dot"/>
     </svg>
+    <div class="tuner-display">
+      <div class="tuner-note-name" id="tunerNote">—</div>
+      <div class="tuner-cents-val" id="tunerCents"></div>
+    </div>
+    <div class="tuner-hint-txt" id="tunerHint">탭하여 튜너 시작</div>
   </div>
   <div class="status-popup">
     <div class="status-popup-main" id="statusMain"></div>
