@@ -460,7 +460,7 @@ window.submitVacancyReport=async function(){
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 제출';}
 };
 
-function openClaimModal(){
+window.openClaimModal=function openClaimModal(){
   const opts=korSort(teams,'name').map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.type)})</option>`).join('');
   const dayOpts=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
   const hourOpts=HOURS.map(h=>`<option value="${h}">${h}:00${h>=24?' (익일)':''}</option>`).join('');
