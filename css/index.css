@@ -83,10 +83,8 @@ body.dark .blk{box-shadow:0 1px 3px rgba(0,0,0,.35);}
 .blk.absent{box-shadow:none;}
 .blk.extra{border-left:4px solid var(--accent2) !important;box-shadow:0 1px 3px rgba(0,0,0,.15);}
 .blk.pending{opacity:.5;box-shadow:none;}
-.blk-empty{position:absolute;inset:2px;border-radius:4px;border:1px dashed rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);cursor:pointer;transition:all .12s;}
-body.dark .blk-empty{border-color:rgba(255,255,255,.12);color:var(--text3);}
-.blk-empty:hover{border-color:var(--accent);color:var(--accent);background:rgba(92,158,0,.05);}
-body.dark .blk-empty:hover{background:rgba(232,255,71,.04);}
+.blk-empty{position:absolute;inset:2px;border-radius:4px;border:1px dashed rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);}
+body.dark .blk-empty{border-color:rgba(255,255,255,.12);}
 .now-line{position:absolute;left:0;right:0;height:2px;background:var(--danger);z-index:10;pointer-events:none;}
 .now-line::before{content:'';position:absolute;left:-1px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--danger);}
 
@@ -103,6 +101,10 @@ body.dark .stat-btn:hover{background:rgba(71,197,255,.16);}
 body.dark .stat-btn-red{background:rgba(255,71,71,.09);border-color:rgba(255,71,71,.35);}
 .stat-btn-red:hover{background:rgba(217,48,37,.14);border-color:var(--danger);}
 body.dark .stat-btn-red:hover{background:rgba(255,71,71,.16);}
+.stat-btn-green{background:rgba(92,158,0,.07);border-color:rgba(92,158,0,.4);}
+body.dark .stat-btn-green{background:rgba(232,255,71,.09);border-color:rgba(232,255,71,.35);}
+.stat-btn-green:hover{background:rgba(92,158,0,.14);border-color:var(--accent);}
+body.dark .stat-btn-green:hover{background:rgba(232,255,71,.16);}
 .apply-status{border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:10px;}
 .apply-status.open{background:rgba(232,255,71,.06);border:1px solid rgba(232,255,71,.2);}
 .apply-status.closed{background:var(--surface);border:1px solid var(--border);}
@@ -300,7 +302,9 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
   .blk-empty{font-size:13px;}
 
   /* stats row — 모바일 2x2 */
-  .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+  .stats-row>:nth-child(-n+3){grid-column:span 2;}
+  .stats-row>:nth-child(n+4){grid-column:span 3;}
   .stat{padding:8px 10px;}
   .stat-lbl{font-size:10px;}
   .stat-val{font-size:18px;}
