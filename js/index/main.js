@@ -759,7 +759,7 @@ function _tunerLoop(){
 function _yin(buf,sr){
   let rms=0;
   for(let i=0;i<buf.length;i++) rms+=buf[i]*buf[i];
-  if(rms/buf.length<0.0003) return -1;
+  if(rms/buf.length<0.001) return -1;
   const n=buf.length,half=n>>1,threshold=0.12;
   const diff=new Float32Array(half);
   for(let tau=1;tau<half;tau++){
