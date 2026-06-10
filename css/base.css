@@ -33,11 +33,11 @@ header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align
 .week-lbl{font-family:'Space Mono',monospace;font-size:11px;color:var(--text);white-space:nowrap;min-width:70px;text-align:center;}
 
 /* ── HEADER QUICK LINKS ── */
-.hdr-ensemble-btn{background:rgba(92,158,0,.1);border:1px solid rgba(92,158,0,.35);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;transition:all .12s;}
+.hdr-ensemble-btn{background:rgba(92,158,0,.1);border:1px solid rgba(92,158,0,.35);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;transition:all .12s;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
 body.dark .hdr-ensemble-btn{background:rgba(232,255,71,.08);border-color:rgba(232,255,71,.25);}
 .hdr-ensemble-btn:hover{opacity:.8;}
 .hdr-ensemble-btn.active{background:rgba(92,158,0,.18);border-color:rgba(92,158,0,.6);}
-.hdr-school-btn{background:rgba(200,118,10,.08);border:1px solid rgba(200,118,10,.3);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--warn);text-decoration:none;white-space:nowrap;transition:all .12s;}
+.hdr-school-btn{background:rgba(200,118,10,.08);border:1px solid rgba(200,118,10,.3);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--warn);text-decoration:none;white-space:nowrap;transition:all .12s;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
 body.dark .hdr-school-btn{background:rgba(255,170,71,.08);border-color:rgba(255,170,71,.25);}
 .hdr-school-btn:hover{opacity:.8;}
 .hdr-school-btn.active{background:rgba(200,118,10,.16);border-color:rgba(200,118,10,.55);}
