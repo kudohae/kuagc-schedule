@@ -168,7 +168,8 @@ function renderStats(){
   const extra=exceptions.filter(e=>e.exception_type==='extra').length;
   const pend=requests.filter(r=>r.status==='pending').length;
   document.getElementById('statsEl').innerHTML=`
-    <button class="stat stat-btn" onclick="openTeamAbsentModal()"><div style="font-size:18px">🙏</div><div style="font-size:12px;font-weight:700;color:var(--accent2)">미사용 보고하기</div></button>
+    <button class="stat stat-btn" onclick="openTeamAbsentModal()"><div style="font-size:18px">🙏</div><div style="font-size:12px;font-weight:700;color:var(--accent2)">미사용 보고</div></button>
+    <button class="stat stat-btn stat-btn-green" onclick="openClaimModal()"><div style="font-size:18px">📅</div><div style="font-size:12px;font-weight:700;color:var(--accent)">추가 사용 신청</div></button>
     <button class="stat stat-btn stat-btn-red" onclick="openVacancyReportModal()"><div style="font-size:18px">🚨</div><div style="font-size:12px;font-weight:700;color:var(--danger)">시간표 불일치 신고</div></button>
     <div class="stat"><div class="stat-ico">🔕</div><div class="stat-txt"><div class="stat-lbl">이번 주 미사용</div><div class="stat-val" style="color:var(--danger)">${absent}</div></div></div>
     <div class="stat"><div class="stat-ico">➕</div><div class="stat-txt"><div class="stat-lbl">이번 주 추가</div><div class="stat-val" style="color:var(--accent2)">${extra}</div></div></div>`;
@@ -242,8 +243,6 @@ function renderSchedule(){
         cell.appendChild(blk);
       } else {
         const ind=document.createElement('div'); ind.className='blk-empty';
-        ind.textContent='신청';
-        ind.onclick=()=>openClaimModal(d,h);
         cell.appendChild(ind);
       }
       col.appendChild(cell);
@@ -461,17 +460,20 @@ window.submitVacancyReport=async function(){
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 제출';}
 };
 
-function openClaimModal(day,hour){
+function openClaimModal(){
   const opts=korSort(teams,'name').map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.type)})</option>`).join('');
-  showModal(`추가 사용 신청 · ${DAYS[day]} ${hour}:00`,
+  const dayOpts=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
+  const hourOpts=HOURS.map(h=>`<option value="${h}">${h}:00${h>=24?' (익일)':''}</option>`).join('');
+  showModal('추가 사용 신청',
     `<div style="background:rgba(255,170,71,.1);border:1px solid rgba(255,170,71,.3);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--warn);line-height:1.5;">
        ⚠️ 합주는 <strong>1주 1회</strong>가 원칙입니다.<br>추가 합주 신청 전, 기존 배정 시간에 <strong>미사용 보고</strong>를 먼저 해주세요.
      </div>
      <div><div class="fl">팀 선택</div><select class="fs" id="clTeam">${opts}</select></div>
+     <div style="display:flex;gap:8px"><div style="flex:1"><div class="fl">요일</div><select class="fs" id="clDay">${dayOpts}</select></div><div style="flex:1"><div class="fl">시간</div><select class="fs" id="clHour">${hourOpts}</select></div></div>
      <div><div class="fl">신청자 성명</div><input class="fi" id="clName" placeholder="성명" maxlength="20"/></div>
      <div><div class="fl">사유</div><input class="fi" id="clReason" placeholder="예: 이번주 합주 시간 변경" maxlength="100"/></div>`,
     `<button class="btn btn-s" onclick="closeModal()">취소</button>
-     <button class="btn btn-p" id="clBtn" onclick="submitClaim(${day},${hour})">신청 제출</button>`
+     <button class="btn btn-p" id="clBtn" onclick="submitClaim()">신청 제출</button>`
   );
 }
 
@@ -485,7 +487,9 @@ window.cancelRequest=async function(reqId){
     closeModal(); toast('신청이 취소됐습니다'); renderStats(); renderSchedule();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;btn.textContent='신고 취소';}
 };
-window.submitClaim=async function(day,hour){
+window.submitClaim=async function(){
+  const day=parseInt(document.getElementById('clDay').value);
+  const hour=parseInt(document.getElementById('clHour').value);
   const reason=document.getElementById('clReason').value.trim();
   if(!reason){toast('사유를 입력해주세요','err');return;}
   const _now=Date.now();
