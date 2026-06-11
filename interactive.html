@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>그루터기 하이퍼 코스믹 타이포그래피</title>
+    <title>그루터기 하이퍼 코스믹 로컬 타이포그래피</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
@@ -14,8 +14,8 @@
         #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; cursor: grab; }
         #webgl-canvas:active { cursor: grabbing; }
         
-        /* 하단 Supabase 입력 콘솔 UI */
-        .supabase-ui-console {
+        /* 하단 미니멀 입력 UI */
+        .local-ui-console {
             position: absolute;
             bottom: 4%;
             left: 50%;
@@ -66,16 +66,12 @@
 
     <canvas id="webgl-canvas"></canvas>
     
-    <div class="supabase-ui-console">
-        <input type="text" id="msgInput" class="space-input" placeholder="우주에 각인할 텍스트 입력 (엔터)" maxlength="15">
+    <div class="local-ui-console">
+        <input type="text" id="msgInput" class="space-input" placeholder="우주로 발사할 텍스트 입력 (엔터)" maxlength="15">
         <button id="sendBtn" class="space-btn">LAUNCH</button>
     </div>
 
     <script>
-        // --- [CONFIG] Supabase 접속 정보 입력 자리에 세팅 ---
-        const SUPABASE_URL = "https://your-project-id.supabase.co"; 
-        const SUPABASE_ANON_KEY = "your-anon-public-key";
-
         // --- 1. 3D 가상 우주 공간 세팅 ---
         const scene = new THREE.Scene();
         scene.fog = new THREE.FogExp2(0x000000, 0.015);
@@ -87,7 +83,7 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // --- 2. 하이퍼 은하계 파티클 시스템 ---
+        // --- 2. 은하계 파티클 시스템 ---
         const starsGeom = new THREE.BufferGeometry();
         const count = 3000;
         const positions = new Float32Array(count * 3);
@@ -105,21 +101,21 @@
         const starField = new THREE.Points(starsGeom, new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }));
         scene.add(starField);
 
-        // 조명 셋업 (금속성 텍스트 반사용 스포트라이트 조합)
+        // 조명 시스템
         const ambientLight = new THREE.AmbientLight(0x444444);
         scene.add(ambientLight);
         const light1 = new THREE.PointLight(0x00ffff, 4, 40);
         const light2 = new THREE.PointLight(0xff00ff, 4, 40);
         scene.add(light1, light2);
 
-        // --- 3. 인터랙션 및 드래그 관성 물리 트래킹 데이터 ---
+        // --- 3. 인터랙션 및 관성 물리 트래킹 데이터 ---
         const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
         const rotationVelocity = { x: 0, y: 0 };
         let isDragging = false, isPressing = false, pressTimer = null;
         const raycaster = new THREE.Raycaster(), mouseVec = new THREE.Vector2();
         
-        let logoMesh = null;        // 메인 "그루터기" 3D 오브젝트
-        let geom = null;            // 메인 텍스트 지오메트리
+        let logoMesh = null;        
+        let geom = null;            
         let originalPositions = null;
         let hitPointLocal = new THREE.Vector3();
 
@@ -142,7 +138,7 @@
         });
 
         window.addEventListener('mousedown', (e) => {
-            if(e.target.closest('.supabase-ui-console')) return;
+            if(e.target.closest('.local-ui-console')) return;
             mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
@@ -180,7 +176,6 @@
             }
         });
 
-        // 벡터 팽창 연산식 (순수 글자 버텍스 법선 방향 확장)
         function updateDeformation() {
             if (!logoMesh) return;
             const posAttr = geom.attributes.position;
@@ -206,38 +201,34 @@
             geom.computeVertexNormals();
         }
 
-        // --- 4. [중요] 한글 폰트 파싱 및 3D 타이포그래피 구현부 ---
+        // --- 4. 한글 JSON 폰트 로드 및 타이포그래피 생성기 ---
         let globalFont = null;
-        const floatingTexts = [];
+        const localMemoryTexts = []; // 브라우저 내부 가상 메모리 배열 구조체
         const fontLoader = new THREE.FontLoader();
         
-        // 고해상도 나눔손글씨 붓 JSON 오픈소스 백터 폰트 로드
         fontLoader.load('https://raw.githubusercontent.com/space-shuttle/kr-fonts-json/main/NanumBrushScript_Regular.json', (font) => {
             globalFont = font;
-            
-            // A. 메인 시그니처 "그루터기" 3D 텍스트 빌드
             buildMainLogoText();
             
-            // B. Supabase 데이터 동기화 연동 실행
-            fetchExistingMessages();
+            // 초기 더미 단어 몇 개 로컬 가상 메모리에 사전 주입 유영
+            const welcomeKeywords = ["락밴드", "기타", "드럼", "사운드", "베이스"];
+            welcomeKeywords.forEach(word => createLocal3DText(word, false));
         });
 
         function buildMainLogoText() {
-            // 메인 타이포 정밀 스펙 설정 (두께 0.4 부여 및 베벨 라운딩 처리)
             geom = new THREE.TextGeometry("그루터기", {
                 font: globalFont,
                 size: 1.4,
                 height: 0.4,
-                curveSegments: 12, // 글자의 곡선을 부드럽게 세그먼트 밀도화
+                curveSegments: 12, 
                 bevelEnabled: true,
                 bevelThickness: 0.06,
                 bevelSize: 0.03,
                 bevelSegments: 3
             });
-            geom.center(); // 글자 메쉬의 피벗을 정확히 정중앙으로 보정
+            geom.center(); 
             originalPositions = geom.attributes.position.clone();
 
-            // 정면은 화이트 실버, 측면은 딥 사이언 컬러 배합으로 입체감 분리 극대화
             const frontMat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 200, specular: 0xffffff });
             const sideMat = new THREE.MeshPhongMaterial({ color: 0x005577, shininess: 100 });
             
@@ -247,8 +238,8 @@
             gsap.from(logoMesh.scale, { x: 0, y: 0, z: 0, duration: 1.5, ease: "elastic.out(1, 0.5)" });
         }
 
-        // B. 사용자들이 사출한 유저 파티클 텍스트 생성기
-        function createUser3DText(textStr, isNewLaunch = false) {
+        // 입력받은 텍스트를 로컬 배열 및 3D 공간에 사출하는 장치
+        function createLocal3DText(textStr, isNewLaunch = false) {
             if (!globalFont) return;
 
             const textGeom = new THREE.TextGeometry(textStr, {
@@ -270,6 +261,7 @@
 
             const textMesh = new THREE.Mesh(textGeom, textMat);
 
+            // 신규 사출 시 정면 중앙 폭발 연출, 사전 소환 시 무작위 분산 배치
             if(isNewLaunch) {
                 textMesh.position.set(0, 0, 3);
                 textMesh.scale.set(0, 0, 0);
@@ -278,61 +270,37 @@
                 textMesh.position.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 9, (Math.random() - 0.5) * 5 - 2);
             }
 
+            // 고유 유영 관성 벡터 및 물리 속성 주입
             textMesh.userData = {
-                rotSpeedX: (Math.random() - 0.5) * 0.012,
-                rotSpeedY: (Math.random() - 0.5) * 0.012,
+                rotSpeedX: (Math.random() - 0.5) * 0.025, // 회전 격렬도 상향
+                rotSpeedY: (Math.random() - 0.5) * 0.025,
                 seed: Math.random() * 100,
                 baseX: textMesh.position.x,
-                baseY: textMesh.position.y
+                baseY: textMesh.position.y,
+                speedModifier: Math.random() * 0.5 + 0.5
             };
 
             scene.add(textMesh);
-            floatingTexts.push(textMesh);
+            localMemoryTexts.push(textMesh); // 브라우저 내부 런타임 메모리 스택에 적재
         }
 
-        // --- 5. Supabase 통신 연산 레이어 ---
-        async function fetchExistingMessages() {
-            try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/space_messages?select=text&order=created_at.desc&limit=25`, {
-                    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
-                });
-                const data = await response.json();
-                data.forEach(item => createUser3DText(item.text, false));
-            } catch (err) { console.error("Supabase 로드 오류:", err); }
-        }
-
-        async function uploadMessage(textStr) {
-            try {
-                await fetch(`${SUPABASE_URL}/rest/v1/space_messages`, {
-                    method: "POST",
-                    headers: {
-                        "apikey": SUPABASE_ANON_KEY,
-                        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-                        "Content-Type": "application/json",
-                        "Prefer": "return=minimal"
-                    },
-                    body: JSON.stringify({ text: textStr })
-                });
-            } catch (err) { console.error("Supabase 전송 오류:", err); }
-        }
-
+        // UI 제어 장치
         const msgInput = document.getElementById('msgInput');
         const sendBtn = document.getElementById('sendBtn');
 
-        function triggerLaunch() {
+        function triggerLocalLaunch() {
             const val = msgInput.value.trim();
             if(!val) return;
             if(!globalFont) return;
 
-            createUser3DText(val, true);
-            uploadMessage(val);
+            createLocal3DText(val, true); // 로컬 메모리 배열에 실시간 추가 및 공간 사출
             msgInput.value = '';
         }
 
-        sendBtn.addEventListener('click', triggerLaunch);
-        msgInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') triggerLaunch(); });
+        sendBtn.addEventListener('click', triggerLocalLaunch);
+        msgInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') triggerLocalLaunch(); });
 
-        // --- 6. 실시간 프레임 동적 렌더 룹 ---
+        // --- 5. 실시간 프레임 동적 렌더 룹 ---
         const clock = new THREE.Clock();
         window.deformStrength = 0;
 
@@ -352,23 +320,25 @@
                     rotationVelocity.y *= 0.95;
                     rotationVelocity.x *= 0.95;
 
-                    // 평상시 마우스 움직임 동기화 회전각
                     logoMesh.rotation.y += (mouse.x * 0.05);
                     logoMesh.rotation.x += (-mouse.y * 0.04);
                 }
-                // 마우스 추적 위치 시프트 이동
                 logoMesh.position.x = mouse.x * 2.5;
                 logoMesh.position.y = mouse.y * 2.5;
                 logoMesh.position.z = Math.sin(time * 2.5) * 0.15 + (Math.abs(rotationVelocity.y) * 4);
             }
 
-            // 유저 사출 서브 한글 3D 텍스트 개체들 공간 유영 연산
-            floatingTexts.forEach((textMesh) => {
+            // 로컬 가상 메모리에 쌓인 3D 텍스트들의 개별 물리 유영 연산
+            localMemoryTexts.forEach((textMesh) => {
                 const ud = textMesh.userData;
+                // 이전보다 단어가 더 기묘하게 막 돌 수 있도록 회전 속도 궤적 강화
                 textMesh.rotation.x += ud.rotSpeedX;
                 textMesh.rotation.y += ud.rotSpeedY;
-                textMesh.position.x = ud.baseX + Math.sin(time * 0.4 + ud.seed) * 0.4;
-                textMesh.position.y = ud.baseY + Math.cos(time * 0.3 + ud.seed) * 0.4;
+                textMesh.rotation.z += ud.rotSpeedX * 0.5;
+
+                // 사인/코사인 중합 복합 유영
+                textMesh.position.x = ud.baseX + Math.sin(time * 0.6 * ud.speedModifier + ud.seed) * 0.6;
+                textMesh.position.y = ud.baseY + Math.cos(time * 0.5 * ud.speedModifier + ud.seed) * 0.6;
             });
 
             starField.rotation.y = time * 0.02;
