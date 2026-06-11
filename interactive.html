@@ -3,24 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>그루터기 하이퍼 탄성 매트릭스</title>
+    <title>그루터기 하이퍼 코스믹 데이터 매트릭스</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; user-select: none; font-family: sans-serif; }
         #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; cursor: grab; }
         #webgl-canvas:active { cursor: grabbing; }
         
-        .system-ui {
-            position: absolute; top: 4%; left: 4%; z-index: 10;
-            color: #00ffff; font-family: monospace; font-size: 0.75rem; line-height: 1.6;
-            text-shadow: 0 0 5px #00ffff; pointer-events: none;
+        /* 하단 미니멀 Supabase 입력 제어 UI 콘솔 */
+        .supabase-ui-console {
+            position: absolute;
+            bottom: 4%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
         }
-        .center-instruction {
-            position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%); z-index: 10;
-            color: #ffff00; font-family: monospace; font-size: 0.8rem; letter-spacing: 3px;
-            text-shadow: 0 0 8px #ffff00; pointer-events: none; text-align: center;
+        .space-input {
+            background: rgba(20, 20, 25, 0.85);
+            border: 1px solid #333;
+            color: #fff;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            outline: none;
+            width: 240px;
+            transition: all 0.3s;
+        }
+        .space-input:focus {
+            border-color: #00ffff;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+        }
+        .space-btn {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .space-btn:hover {
+            background: #00cccc;
+            box-shadow: 0 0 10px #00ffff;
         }
     </style>
 </head>
@@ -28,15 +66,16 @@
 
     <canvas id="webgl-canvas"></canvas>
     
-    <div class="system-ui">
-        [SYSTEM: HYPER-ELASTIC LOGO MATRIX ACTIVE]<br>
-        [ENGINES: THREE.JS + GSAP ENHANCED]<br>
-        [INTERACTION: DRAG TO SPIN / LONG PRESS TO SQUASH]
+    <div class="supabase-ui-console">
+        <input type="text" id="msgInput" class="space-input" placeholder="우주에 각인할 텍스트 입력 (엔터)" maxlength="15">
+        <button id="sendBtn" class="space-btn">LAUNCH</button>
     </div>
-    
-    <div class="center-instruction">DRAG TO FLING / HOLD & RELEASE FOR JELLY ELASTICITY</div>
 
     <script>
+        // --- [CRITICAL CONFIG] 본인의 Supabase 접속 정보 주입 자리에 세팅 ---
+        const SUPABASE_URL = "https://your-project-id.supabase.co"; 
+        const SUPABASE_ANON_KEY = "your-anon-public-key";
+
         // --- 1. 3D 가상 우주 공간 기초 세팅 ---
         const scene = new THREE.Scene();
         scene.fog = new THREE.FogExp2(0x000000, 0.02);
@@ -48,225 +87,253 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // --- 2. 하이퍼 은하계 파티클 시스템 (배경 디스플레이스먼트용 3500개) ---
+        // --- 2. 하이퍼 은하계 성운 파티클 시스템 ---
         const starsGeom = new THREE.BufferGeometry();
         const count = 3500;
         const positions = new Float32Array(count * 3);
         const colors = new Float32Array(count * 3);
-
         for(let i=0; i<count*3; i+=3) {
             positions[i] = (Math.random() - 0.5) * 40;
             positions[i+1] = (Math.random() - 0.5) * 40;
             positions[i+2] = (Math.random() - 0.5) * 40;
-            
             colors[i] = Math.random() * 0.5 + 0.5;
             colors[i+1] = Math.random() * 0.2;
             colors[i+2] = Math.random() * 1.0;
         }
         starsGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         starsGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        
-        const starMat = new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
-        const starField = new THREE.Points(starsGeom, starMat);
+        const starField = new THREE.Points(starsGeom, new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }));
         scene.add(starField);
 
-        // --- 3. 메인 그루터기 로고 배치 (고해상도 버텍스 세그먼트 부여) ---
-        let logoMesh;
-        // 꾹 누를 때 마우스 좌표 중심으로 찌그러트리는 연출을 위해 세그먼트를 64x64로 쪼갭니다.
-        const geom = new THREE.PlaneGeometry(4, 4, 64, 64);
-        // 원래 버텍스 위치 기억용 배열
-        const originalPositions = geom.attributes.position.clone();
+        // --- 3. 메인 그루터기 3D 입체 블록(두께감) 배치 ---
+        let logoMesh, originalPositions, geom;
+        geom = new THREE.BoxGeometry(4, 4, 0.4, 48, 48, 6);
+        originalPositions = geom.attributes.position.clone();
 
         new THREE.TextureLoader().load('./img/logo.png', (texture) => {
-            const mat = new THREE.MeshPhongMaterial({ 
-                map: texture, 
-                transparent: true, 
-                side: THREE.DoubleSide, 
-                shininess: 200,
-                depthWrite: false
-            });
-            logoMesh = new THREE.Mesh(geom, mat);
+            const frontMat = new THREE.MeshPhongMaterial({ map: texture, transparent: true, shininess: 200 });
+            const sideMat = new THREE.MeshPhongMaterial({ color: 0x1f2226, shininess: 120, specular: 0xffffff });
+            logoMesh = new THREE.Mesh(geom, [sideMat, sideMat, sideMat, sideMat, frontMat, sideMat]);
             scene.add(logoMesh);
-            
-            // 최초 진입 연출
             gsap.from(logoMesh.scale, { x: 0, y: 0, z: 0, duration: 1.5, ease: "elastic.out(1, 0.5)" });
         });
 
-        // --- 4. 네온 라이팅 시스템 ---
+        // 조명 셋업
         const light1 = new THREE.PointLight(0x00ffff, 3, 30);
         const light2 = new THREE.PointLight(0xff00ff, 3, 30);
         scene.add(light1, light2);
 
-        // --- 5. 마우스 트래킹 및 드래그/인터랙션 데이터 연산 장치 ---
+        // --- 4. 드래그 관성 및 클릭 왜곡 데이터 스코프 ---
         const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
-        const rotationVelocity = { x: 0, y: 0 }; // 던지는 관성 속도
-        
-        let isDragging = false;
-        let isPressing = false;
-        let pressTimer = null;
-        let deformStrength = 0; // 부풀어 오르는 누적 강도
-        
-        const raycaster = new THREE.Raycaster();
-        const mouseVec = new THREE.Vector2();
-        let hitPoint3D = new THREE.Vector3(); // 꾹 누른 3D 로고 표면 좌표
+        const rotationVelocity = { x: 0, y: 0 };
+        let isDragging = false, isPressing = false, pressTimer = null, hitPointLocal = new THREE.Vector3();
+        const raycaster = new THREE.Raycaster(), mouseVec = new THREE.Vector2();
 
-        // 마우스 무브먼트 핸들러
         window.addEventListener('mousemove', (e) => {
+            // 입력창 내부 컴포넌트 마우스 무브 조작 시 3D 회전 제어 차단 인터셉트
+            if(document.activeElement === document.getElementById('msgInput')) return;
+            
             mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
 
-            mouseVec.x = mouse.targetX;
-            mouseVec.y = mouse.targetY;
-
-            // 드래그 중일 때 로고 마우스 방향으로 회전 강제 가속화
             if (isDragging && logoMesh) {
-                // 이전 프레임과의 차이만큼 회전 속도 부여 (잡기술: 마우스 변조 플링)
-                const deltaX = mouse.targetX - mouse.x;
-                const deltaY = mouse.targetY - mouse.y;
-                
-                logoMesh.rotation.y += deltaX * 3;
-                logoMesh.rotation.x -= deltaY * 3;
-
-                rotationVelocity.y = deltaX * 1.5;
-                rotationVelocity.x = -deltaY * 1.5;
+                const deltaX = mouse.targetX - mouse.x; const deltaY = mouse.targetY - mouse.y;
+                logoMesh.rotation.y += deltaX * 3; logoMesh.rotation.x -= deltaY * 3;
+                rotationVelocity.y = deltaX * 1.5; rotationVelocity.x = -deltaY * 1.5;
             }
         });
 
-        // 다운 (클릭 및 꾹 누르기 시작)
         window.addEventListener('mousedown', (e) => {
+            if(e.target.closest('.supabase-ui-console')) return; // 입력 오버레이 클릭 시 예외 처리
             mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouseVec, camera);
             if (logoMesh) {
                 const intersects = raycaster.intersectObject(logoMesh);
-                
-                // 로고 위를 정확히 클릭했을 때만 발동
                 if (intersects.length > 0) {
-                    isDragging = true;
-                    isPressing = true;
-                    hitPoint3D.copy(intersects[0].point); // 정확히 클릭된 3D 지점 저장
-
-                    // 드래그 시작 시 기존 회전 관성 정지
-                    rotationVelocity.x = 0;
-                    rotationVelocity.y = 0;
-
-                    // [탱탱볼 효과] 누르고 있으면 실시간으로 부풀어 오르는 강도 누적 트래킹
-                    gsap.killTweensOf(window); // 기존 리턴 트윈 초기화
-                    pressTimer = gsap.to(window, {
-                        deformStrength: 1.8, 
-                        duration: 1.2, 
-                        ease: "power2.out"
-                    });
+                    isDragging = true; isPressing = true;
+                    hitPointLocal = logoMesh.worldToLocal(intersects[0].point.clone());
+                    rotationVelocity.x = 0; rotationVelocity.y = 0;
+                    gsap.killTweensOf(window);
+                    pressTimer = gsap.to(window, { deformStrength: 1.5, duration: 1.0, ease: "power2.out" });
                 }
             }
         });
 
-        // 업 (마우스를 놓았을 때 탄성 복귀)
         window.addEventListener('mouseup', () => {
             if (isPressing) {
-                isDragging = false;
-                isPressing = false;
+                isDragging = false; isPressing = false;
                 if (pressTimer) pressTimer.kill();
-
-                // [탱탱볼 복귀] 부풀어 올랐던 변형 강도를 탱탱하게 0으로 리턴 (Elastic 튕김 효과)
                 gsap.to(window, {
-                    deformStrength: 0,
-                    duration: 1.5,
-                    ease: "elastic.out(1.5, 0.3)", // 극대화된 젤리 복원력 바인딩
-                    onUpdate: () => {
-                        if(!logoMesh) return;
-                        // GSAP이 0으로 복귀시키는 도중에도 실시간으로 메시 형태 복원 연산
-                        updateDeformation();
-                    },
-                    onComplete: () => {
-                        // 완전히 끝나면 버텍스 위치 완벽 원상복구 보정
-                        if(logoMesh) {
-                            geom.attributes.position.copy(originalPositions);
-                            geom.attributes.position.needsUpdate = true;
-                        }
-                    }
+                    deformStrength: 0, duration: 1.4, ease: "elastic.out(1.2, 0.4)",
+                    onUpdate: () => { if(logoMesh) updateDeformation(); },
+                    onComplete: () => { if(logoMesh) { geom.attributes.position.copy(originalPositions); geom.attributes.position.needsUpdate = true; } }
                 });
             }
         });
 
-        // --- 6. 실시간 정밀 3D 버텍스 파괴/부품 변형 연산 엔진 ---
         function updateDeformation() {
             if (!logoMesh) return;
-
-            const posAttr = geom.attributes.position;
-            const origAttr = originalPositions;
-            
-            // 로고의 현재 세계관 중심 매트릭스 변환
-            const localHit = logoMesh.worldToLocal(hitPoint3D.clone());
-
+            const posAttr = geom.attributes.position; const origAttr = originalPositions; const normAttr = geom.attributes.normal;
             for (let i = 0; i < posAttr.count; i++) {
-                // 원본 버텍스 좌표 가져오기
-                const vx = origAttr.getX(i);
-                const vy = origAttr.getY(i);
-                const vz = origAttr.getZ(i);
-
-                // 클릭한 3D 위치와 각 정점(Vertex) 사이의 거리 계산
-                const dist = Math.sqrt((vx - localHit.x)**2 + (vy - localHit.y)**2);
-
-                // 마우스 클릭 반경 내의 버텍스들을 마우스 반대축(Z축 앞)으로 밀어내어 부풀림 구현
-                if (dist < 2.5) {
-                    const falloff = (1.0 - (dist / 2.5)) ** 2; // 거리에 따른 왜곡 감쇄율
-                    // Z축으로 부풀리며 볼록 렌즈 효과 연출
-                    posAttr.setZ(i, vz + (falloff * window.deformStrength * 1.2));
+                const vx = origAttr.getX(i); const vy = origAttr.getY(i); const vz = origAttr.getZ(i);
+                const dist = Math.sqrt((vx - hitPointLocal.x)**2 + (vy - hitPointLocal.y)**2 + (vz - hitPointLocal.z)**2);
+                if (dist < 2.0) {
+                    const falloff = (1.0 - (dist / 2.0)) ** 2;
+                    const nx = normAttr.getX(i); const ny = normAttr.getY(i); const nz = normAttr.getZ(i);
+                    posAttr.setX(i, vx + nx * falloff * window.deformStrength * 0.5);
+                    posAttr.setY(i, vy + ny * falloff * window.deformStrength * 0.5);
+                    posAttr.setZ(i, vz + nz * falloff * window.deformStrength * 0.5);
                 } else {
-                    posAttr.setZ(i, vz);
+                    posAttr.setX(i, vx); posAttr.setY(i, vy); posAttr.setZ(i, vz);
                 }
             }
-            posAttr.needsUpdate = true;
-            geom.computeVertexNormals(); // 빛 반사 법선 벡터 재계산하여 네온 반사각 유지
+            posAttr.needsUpdate = true; geom.computeVertexNormals();
         }
+
+        // --- 5. [핵심 기술] 한글 손글씨 JSON 폰트 파싱 및 3D 생성 엔진 ---
+        let globalFont = null;
+        const floatingTexts = []; // 우주에 띄운 텍스트 객체 배열 구조체
+        const fontLoader = new THREE.FontLoader();
+        
+        // 오픈소스 CDN을 통해 '나눔손글씨 붓' 고해상도 벡터 다면체 JSON 데이터 스트리밍 로드
+        fontLoader.load('https://raw.githubusercontent.com/space-shuttle/kr-fonts-json/main/NanumBrushScript_Regular.json', (font) => {
+            globalFont = font;
+            // 폰트 로드가 끝나면 Supabase로부터 기존 유저들이 입력했던 데이터 일괄 소환
+            fetchExistingMessages();
+        });
+
+        // 3D 텍스트 개체를 매트릭스 내부 공간에 임베딩 및 날리기 함수
+        function create3DText(textStr, isNewLaunch = false) {
+            if (!globalFont) return;
+
+            // 3D 텍스트 지오메트리 옵션 상세 정의 (한글 손글씨 두께감 0.15 구현)
+            const textGeom = new THREE.TextGeometry(textStr, {
+                font: globalFont,
+                size: 0.4,
+                height: 0.15,
+                curveSegments: 4,
+                bevelEnabled: true,
+                bevelThickness: 0.02,
+                bevelSize: 0.01,
+                bevelSegments: 2
+            });
+            textGeom.center(); // 바운딩 박스 정중앙 정렬
+
+            // 네온 무광 매테리얼 조합 (무작위 사이버 컬러 조합)
+            const textMat = new THREE.MeshPhongMaterial({
+                color: new THREE.Color(`hsl(${Math.random() * 360}, 90%, 65%)`),
+                shininess: 100
+            });
+
+            const textMesh = new THREE.Mesh(textGeom, textMat);
+
+            // 초기 물리적 소환 위치 서정 (로고 주변에 무작위 구체 궤도 분포)
+            if(isNewLaunch) {
+                // 새로 작성된 글은 정면 중앙에서 대폭발 스케일로 사출 연출
+                textMesh.position.set(0, 0, 3);
+                textMesh.scale.set(0, 0, 0);
+                gsap.to(textMesh.scale, { x: 1, y: 1, z: 1, duration: 1, ease: "back.out(1.7)" });
+            } else {
+                textMesh.position.set((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4 - 2);
+            }
+
+            // 고유 유영 관성값 임베딩
+            textMesh.userData = {
+                rotSpeedX: (Math.random() - 0.5) * 0.015,
+                rotSpeedY: (Math.random() - 0.5) * 0.015,
+                seed: Math.random() * 50,
+                baseX: textMesh.position.x,
+                baseY: textMesh.position.y
+            };
+
+            scene.add(textMesh);
+            floatingTexts.push(textMesh);
+        }
+
+        // --- 6. Supabase REST API 연동 네트워크 레이어 ---
+        async function fetchExistingMessages() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/space_messages?select=text&order=created_at.desc&limit=25`, {
+                    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
+                });
+                const data = await response.json();
+                // 기존 가동되었던 최대 25개의 메시지들을 우주 배경 공간에 역전개 소환
+                data.forEach(item => create3DText(item.text, false));
+            } catch (err) { console.error("Supabase 로드 오류:", err); }
+        }
+
+        async function uploadMessage(textStr) {
+            try {
+                await fetch(`${SUPABASE_URL}/rest/v1/space_messages`, {
+                    method: "POST",
+                    headers: {
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                        "Content-Type": "application/json",
+                        "Prefer": "return=minimal"
+                    },
+                    body: JSON.stringify({ text: textStr })
+                });
+            } catch (err) { console.error("Supabase 전송 오류:", err); }
+        }
+
+        // UI 이벤트 바인딩
+        const msgInput = document.getElementById('msgInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function triggerLaunch() {
+            const val = msgInput.value.trim();
+            if(!val) return;
+            if(!globalFont) { alert("한글 3D 엔진 초기화 중입니다. 잠시만 기다려주세요."); return; }
+
+            create3DText(val, true); // 내 화면에 즉각 실시간 3D 사출 연출
+            uploadMessage(val);     // Supabase 원격 공유 클라우드 테이블에 기록 전송
+            msgInput.value = '';
+        }
+
+        sendBtn.addEventListener('click', triggerLaunch);
+        msgInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') triggerLaunch(); });
+
 
         // --- 7. 실시간 메인 프레임 렌더 룹 (지랄 가속도 엔진) ---
         const clock = new THREE.Clock();
-        window.deformStrength = 0; // 글로벌 윈도우 스코프 바인딩
+        window.deformStrength = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             const time = clock.getElapsedTime();
 
-            // 부드러운 감속 LERP 추적
             mouse.x += (mouse.targetX - mouse.x) * 0.1;
             mouse.y += (mouse.targetY - mouse.y) * 0.1;
 
-            // 1. 누르고 있는 동안 실시간 버텍스 융기 처리
-            if (isPressing) {
-                updateDeformation();
-            }
+            if (isPressing) updateDeformation();
 
             if (logoMesh) {
                 if (!isDragging) {
-                    // 2. 드래그를 놓았을 때 적용되는 관성 회전 속도 (마찰 저항값 0.95 부과)
-                    logoMesh.rotation.y += rotationVelocity.y;
-                    logoMesh.rotation.x += rotationVelocity.x;
-                    
-                    rotationVelocity.y *= 0.95;
-                    rotationVelocity.x *= 0.95;
-
-                    // 평상시 마우스 포인터 움직임에 따른 격렬한 추가 반응 (기존보다 반응 증폭값 2.5배 상향)
-                    logoMesh.rotation.y += (mouse.x * 0.05);
-                    logoMesh.rotation.x += (-mouse.y * 0.05);
+                    logoMesh.rotation.y += rotationVelocity.y; logoMesh.rotation.x += rotationVelocity.x;
+                    rotationVelocity.y *= 0.95; rotationVelocity.x *= 0.95;
+                    logoMesh.rotation.y += (mouse.x * 0.04); logoMesh.rotation.x += (-mouse.y * 0.04);
                 }
-
-                // 3. 마우스 포인터 위치에 따른 로고 자체의 3D 공간 요동 무브먼트 (격렬하게 포지션 이동)
-                logoMesh.position.x = mouse.x * 2.5;
-                logoMesh.position.y = mouse.y * 2.5;
-                
-                // 마우스 속도에 반응하여 Z축으로 울렁거리는 잡기술
-                logoMesh.position.z = Math.sin(time * 3) * 0.2 + (Math.abs(rotationVelocity.y) * 5);
+                logoMesh.position.x = mouse.x * 2.5; logoMesh.position.y = mouse.y * 2.5;
+                logoMesh.position.z = Math.sin(time * 3) * 0.1 + (Math.abs(rotationVelocity.y) * 4);
             }
 
-            // 4. 배경 성운 파티클 공간의 매트릭스 동시 뒤틀기
-            starField.rotation.y = time * 0.03;
-            starField.position.x = -mouse.x * 1.5;
-            starField.position.y = -mouse.y * 1.5;
+            // [추가 잡기술] 우주 공간에 생성된 한글 3D 텍스트 개체들의 무작위 자율 유영 물리 시뮬레이션
+            floatingTexts.forEach((textMesh) => {
+                const ud = textMesh.userData;
+                // 천천히 자전 처리
+                textMesh.rotation.x += ud.rotSpeedX;
+                textMesh.rotation.y += ud.rotSpeedY;
+                // 코스믹 부유 효과 (사인파 중합 연산)
+                textMesh.position.x = ud.baseX + Math.sin(time * 0.5 + ud.seed) * 0.3;
+                textMesh.position.y = ud.baseY + Math.cos(time * 0.4 + ud.seed) * 0.3;
+            });
 
-            // 5. 네온 조명의 초고속 크로스 추격전
+            starField.rotation.y = time * 0.03;
+            starField.position.x = -mouse.x * 1.5; starField.position.y = -mouse.y * 1.5;
+
             light1.position.set(Math.sin(time * 3) * 5, Math.cos(time * 2) * 5, 3);
             light2.position.set(mouse.x * 6, mouse.y * 6, 2);
 
