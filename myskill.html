@@ -72,9 +72,11 @@ body.dark .sk-badge{background:rgba(71,197,255,.07);border-color:rgba(71,197,255
 .res-retry:hover{border-color:var(--text2);color:var(--text);}
 
 /* poop physics */
-.poop{position:fixed;font-size:36px;line-height:1;user-select:none;pointer-events:none;z-index:500;transform:translate(-50%,-50%);will-change:left,top;}
+.poop{position:fixed;line-height:1;user-select:none;pointer-events:none;z-index:500;transform:translate(-50%,-50%);will-change:left,top;}
 @keyframes poop-bump{0%{transform:translate(-50%,-50%) scale(1)}35%{transform:translate(-50%,-50%) scale(1.35) rotate(14deg)}65%{transform:translate(-50%,-50%) scale(0.88) rotate(-6deg)}100%{transform:translate(-50%,-50%) scale(1)}}
 .poop.bump{animation:poop-bump .22s ease-out forwards;}
+@keyframes poop-merge{0%{transform:translate(-50%,-50%) scale(0.6)}45%{transform:translate(-50%,-50%) scale(1.5)}78%{transform:translate(-50%,-50%) scale(0.92)}100%{transform:translate(-50%,-50%) scale(1)}}
+.poop.merge{animation:poop-merge .35s cubic-bezier(.34,1.56,.64,1) forwards;}
 
 /* phases */
 .phase{display:none;flex-direction:column;align-items:center;gap:22px;width:100%;}
@@ -390,10 +392,10 @@ function _showRes(){
 function retry(){_clearPoops();showPhase('phIntro');}
 
 // ── poop physics engine ──
-const _PS=[];   // poop state array
-const _PR=18;   // collision radius
+const _PS=[];
+const _PR=18;   // base radius
+const _MAX_R=90; // max merged radius
 const _REST_WALL=0.72;
-const _REST_PP=0.86;
 const _BUOY=0.003;  // slight upward pull per frame (space float)
 const _TURB=0.012;  // turbulence magnitude
 let _pRaf=null;
@@ -406,19 +408,15 @@ document.addEventListener('click',function(e){
 
 function _spawnPoop(cx,cy){
   if(_PS.length>=80)return;
+  const r=_PR;
   const el=document.createElement('div');
   el.className='poop';
   el.textContent='💩';
+  el.style.fontSize=(r*2)+'px';
   el.style.left=cx+'px';
   el.style.top=cy+'px';
   document.body.appendChild(el);
-  _PS.push({
-    x:cx, y:cy,
-    vx:(Math.random()-.5)*3,
-    vy:-(Math.random()*1.5+0.8),
-    el,
-    hitCooldown:0
-  });
+  _PS.push({x:cx,y:cy,vx:(Math.random()-.5)*3,vy:-(Math.random()*1.5+0.8),r,el,hitCooldown:0});
   if(!_pRaf)_pRaf=requestAnimationFrame(_physLoop);
 }
 
@@ -436,54 +434,60 @@ function _physLoop(){
     if(p.hitCooldown>0)p.hitCooldown--;
 
     // ceiling
-    if(p.y-_PR<TOP){
-      p.y=TOP+_PR;
+    if(p.y-p.r<TOP){
+      p.y=TOP+p.r;
       if(p.vy<0){
         p.vy=-p.vy*_REST_WALL;
         if(p.hitCooldown===0){_bumpAnim(p.el);p.hitCooldown=8;}
       }
     }
     // floor
-    if(p.y+_PR>H){
-      p.y=H-_PR;
+    if(p.y+p.r>H){
+      p.y=H-p.r;
       if(p.vy>0){p.vy=-p.vy*_REST_WALL;if(p.hitCooldown===0){_bumpAnim(p.el);p.hitCooldown=8;}}
     }
     // left/right
-    if(p.x-_PR<0){p.x=_PR;if(p.vx<0)p.vx=-p.vx*_REST_WALL;}
-    if(p.x+_PR>W){p.x=W-_PR;if(p.vx>0)p.vx=-p.vx*_REST_WALL;}
+    if(p.x-p.r<0){p.x=p.r;if(p.vx<0)p.vx=-p.vx*_REST_WALL;}
+    if(p.x+p.r>W){p.x=W-p.r;if(p.vx>0)p.vx=-p.vx*_REST_WALL;}
 
     p.el.style.left=p.x+'px';
     p.el.style.top=p.y+'px';
   }
 
-  // poop-poop elastic collisions
-  for(let i=0;i<_PS.length;i++){
+  // poop-poop merge (one merge per frame)
+  outer: for(let i=0;i<_PS.length;i++){
     for(let j=i+1;j<_PS.length;j++){
-      _collidePP(_PS[i],_PS[j]);
+      const dx=_PS[j].x-_PS[i].x, dy=_PS[j].y-_PS[i].y;
+      const md=_PS[i].r+_PS[j].r;
+      if(dx*dx+dy*dy<md*md){_mergePP(i,j);break outer;}
     }
   }
 
   _pRaf=requestAnimationFrame(_physLoop);
 }
 
-function _collidePP(a,b){
-  const dx=b.x-a.x, dy=b.y-a.y;
-  const d2=dx*dx+dy*dy;
-  const minD=_PR*2;
-  if(d2>=minD*minD||d2===0)return;
-  const d=Math.sqrt(d2);
-  const nx=dx/d, ny=dy/d;
-  // separate
-  const ov=(minD-d)/2;
-  a.x-=nx*ov; a.y-=ny*ov;
-  b.x+=nx*ov; b.y+=ny*ov;
-  // impulse (equal mass elastic along normal)
-  const dvx=a.vx-b.vx, dvy=a.vy-b.vy;
-  const dot=dvx*nx+dvy*ny;
-  if(dot<=0)return; // already separating
-  const imp=dot*_REST_PP;
-  a.vx-=imp*nx; a.vy-=imp*ny;
-  b.vx+=imp*nx; b.vy+=imp*ny;
+function _mergePP(i,j){
+  const a=_PS[i], b=_PS[j];
+  // area-conserving radius, capped
+  const ma=a.r*a.r, mb=b.r*b.r, mt=ma+mb;
+  const r=Math.min(Math.sqrt(mt), _MAX_R);
+  // center of mass
+  const x=(a.x*ma+b.x*mb)/mt, y=(a.y*ma+b.y*mb)/mt;
+  // momentum conservation
+  const vx=(a.vx*ma+b.vx*mb)/mt, vy=(a.vy*ma+b.vy*mb)/mt;
+  a.el.remove(); b.el.remove();
+  const el=document.createElement('div');
+  el.className='poop merge';
+  el.textContent='💩';
+  el.style.fontSize=(r*2)+'px';
+  el.style.left=x+'px';
+  el.style.top=y+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.classList.remove('merge'),350);
+  // remove both (higher index first to avoid shifting)
+  _PS.splice(Math.max(i,j),1);
+  _PS.splice(Math.min(i,j),1);
+  _PS.push({x,y,vx,vy,r,el,hitCooldown:0});
 }
 
 function _bumpAnim(el){
