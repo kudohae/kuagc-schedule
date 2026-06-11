@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 기타 실력 진단 | 그루터기</title>
+<link rel="stylesheet" href="css/base.css">
+<style>
+body{min-height:100vh;}
+.skill-wrap{max-width:460px;margin:0 auto;padding:32px 16px 80px;}
+.sk-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px 24px;display:flex;flex-direction:column;align-items:center;gap:22px;box-shadow:0 4px 24px rgba(0,0,0,.06);}
+body.dark .sk-card{box-shadow:0 4px 24px rgba(0,0,0,.3);}
+
+/* badges */
+.sk-badges{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;}
+.sk-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.4px;background:rgba(0,119,204,.07);border:1px solid rgba(0,119,204,.22);color:var(--accent2);}
+body.dark .sk-badge{background:rgba(71,197,255,.07);border-color:rgba(71,197,255,.2);}
+
+.sk-title{font-size:21px;font-weight:900;text-align:center;line-height:1.35;}
+.sk-icon{font-size:60px;line-height:1;}
+.sk-desc{font-size:13px;color:var(--text2);text-align:center;line-height:1.7;}
+.sk-start-btn{width:100%;padding:15px;border-radius:8px;border:none;background:var(--accent);color:#000;font-size:15px;font-weight:900;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:opacity .12s;letter-spacing:.3px;}
+.sk-start-btn:hover{opacity:.85;}
+
+/* recording */
+.rec-top{display:flex;align-items:center;justify-content:space-between;width:100%;}
+.rec-badge{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#d93025;}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:#d93025;animation:rpulse .8s infinite;}
+@keyframes rpulse{0%,100%{opacity:1}50%{opacity:.15}}
+.rec-count{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;color:var(--text);}
+.rec-canvas{width:100%;height:80px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:block;}
+.rec-log{width:100%;height:72px;overflow:hidden;position:relative;font-family:'Space Mono',monospace;}
+.rec-log-inner{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;gap:4px;}
+.rec-log-line{font-size:11px;color:var(--text3);transition:color .3s;}
+.rec-log-line.hl{color:var(--accent);}
+.rec-log-line.warn{color:var(--warn);}
+.rec-log-line.err{color:var(--danger);}
+
+/* analyzing */
+.an-head{width:100%;display:flex;align-items:center;justify-content:space-between;}
+.an-title{font-size:15px;font-weight:700;}
+.an-spin{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.an-bars{width:100%;display:flex;flex-direction:column;gap:12px;}
+.an-row{display:flex;flex-direction:column;gap:5px;}
+.an-row-top{display:flex;justify-content:space-between;align-items:center;}
+.an-lbl{font-size:12px;color:var(--text2);}
+.an-pct{font-size:11px;font-family:'Space Mono',monospace;color:var(--text3);}
+.an-track{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.an-fill{height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width .9s cubic-bezier(.4,0,.2,1);}
+
+/* result */
+.res-stamp{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;width:100%;text-align:center;}
+.res-label{font-size:13px;font-weight:700;color:var(--text2);}
+.res-score-row{display:flex;align-items:center;justify-content:center;gap:28px;width:100%;}
+.score-ring{width:96px;height:96px;border-radius:50%;border:3px solid var(--danger);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.score-num{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;color:var(--danger);line-height:1;}
+.score-of{font-size:10px;color:var(--text3);}
+.grade-col{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.grade-letter{font-family:'Space Mono',monospace;font-size:48px;font-weight:700;color:var(--danger);line-height:1;}
+.grade-tag{font-size:11px;color:var(--text3);text-align:center;}
+.res-headline{font-size:13px;color:var(--text2);text-align:center;font-style:italic;line-height:1.6;padding:0 4px;}
+.res-divider{width:100%;border:none;border-top:1px solid var(--border);}
+.res-stats{width:100%;display:flex;flex-direction:column;}
+.res-stat{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;gap:8px;}
+.res-stat:last-child{border-bottom:none;}
+.rs-lbl{color:var(--text2);flex-shrink:0;}
+.rs-val{font-weight:700;color:var(--text);text-align:right;}
+.rs-note{font-size:10px;color:var(--text3);margin-left:3px;font-weight:400;}
+.res-advice{width:100%;padding:11px 14px;background:rgba(217,48,37,.06);border:1px solid rgba(217,48,37,.18);border-radius:8px;font-size:12px;color:var(--text2);text-align:center;line-height:1.6;}
+.res-retry{width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s;}
+.res-retry:hover{border-color:var(--text2);color:var(--text);}
+
+/* phases */
+.phase{display:none;flex-direction:column;align-items:center;gap:22px;width:100%;}
+.phase.active{display:flex;}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="index.html"><span class="logo-img"></span></a>
+  <div style="flex:1"></div>
+  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+</header>
+
+<div class="skill-wrap">
+  <div class="sk-card">
+
+    <!-- 인트로 -->
+    <div class="phase active" id="phIntro">
+      <div class="sk-badges">
+        <span class="sk-badge">딥러닝 기반</span>
+        <span class="sk-badge">실시간 음정 분석</span>
+        <span class="sk-badge">특허 출원 중</span>
+      </div>
+      <div class="sk-title">KUAGC AI<br>기타 실력 정밀 진단</div>
+      <div class="sk-icon">🎸</div>
+      <div class="sk-desc">10초간 기타를 연주하면<br>AI가 실력을 정밀하게 분석합니다<br><small style="font-size:11px;color:var(--text3)">* 분석 결과는 법적 효력이 없으나 도덕적 구속력은 있습니다</small></div>
+      <button class="sk-start-btn" onclick="startRec()">🎙 진단 시작</button>
+    </div>
+
+    <!-- 녹음 -->
+    <div class="phase" id="phRec">
+      <div class="rec-top">
+        <div class="rec-badge"><span class="rec-dot"></span>REC</div>
+        <div class="rec-count" id="recCount">10</div>
+      </div>
+      <canvas class="rec-canvas" id="recCvs"></canvas>
+      <div class="rec-log"><div class="rec-log-inner" id="recLog"></div></div>
+    </div>
+
+    <!-- 분석 -->
+    <div class="phase" id="phAn">
+      <div class="an-head">
+        <div class="an-title">AI 분석 중...</div>
+        <div class="an-spin"></div>
+      </div>
+      <div class="an-bars" id="anBars"></div>
+    </div>
+
+    <!-- 결과 -->
+    <div class="phase" id="phRes">
+      <div class="res-stamp" id="resStamp"></div>
+      <div class="res-label">진단 완료</div>
+      <div class="res-score-row">
+        <div class="score-ring">
+          <div class="score-num" id="resScore">—</div>
+          <div class="score-of">/ 100</div>
+        </div>
+        <div class="grade-col">
+          <div class="grade-letter" id="resGrade">—</div>
+          <div class="grade-tag" id="resGradeTag">—</div>
+        </div>
+      </div>
+      <div class="res-headline" id="resHeadline"></div>
+      <hr class="res-divider">
+      <div class="res-stats" id="resStats"></div>
+      <div class="res-advice" id="resAdvice"></div>
+      <button class="res-retry" onclick="retry()">↩ 다시 진단하기</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── theme ──
+(()=>{
+  const t=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  if(t==='dark')document.body.classList.add('dark');
+  document.getElementById('themeBtn').textContent=t==='dark'?'☀️':'🌙';
+})();
+function toggleTheme(){
+  const d=document.body.classList.toggle('dark');
+  localStorage.setItem('theme',d?'dark':'light');
+  document.getElementById('themeBtn').textContent=d?'☀️':'🌙';
+}
+
+// ── result variants ──
+const V=[
+  {
+    score:23, grade:'F', tag:'재능 없음 등급',
+    headline:'AI가 세 번 재분석을 시도했으나 결과가 동일합니다.',
+    stats:[
+      ['음정 정확도','31%','오차 범위 ±31%'],
+      ['리듬 안정성','0.3%',''],
+      ['코드 전환 속도','인간 평균의 34%',''],
+      ['다음 30분 내 줄 끊을 확률','78%',''],
+    ],
+    advice:'가장 가까운 악기 학원까지 1.2km입니다.',
+  },
+  {
+    score:17, grade:'F⁻', tag:'새로운 영역',
+    headline:'이 점수는 당사 AI 개발 이후 처음 기록됩니다.',
+    stats:[
+      ['음정 정확도','측정 불가','범위 초과'],
+      ['리듬 안정성','-9%','음수는 처음입니다'],
+      ['기타 적성 지수','0.01%',''],
+      ['권장 악기','탬버린','아니면 트라이앵글'],
+    ],
+    advice:'기타를 팔고 그 돈으로 맛있는 거 드세요.',
+  },
+  {
+    score:11, grade:'G', tag:'F 아래 신설 등급',
+    headline:'분석 결과를 합주 팀원에게는 공유하지 마세요.',
+    stats:[
+      ['음정 정확도','22%',''],
+      ['리듬 감각','없음','확인됨'],
+      ['합주 기여도','음수로 추정','오차 ±0%'],
+      ['즉시 연습 필요 여부','네','지금 당장'],
+    ],
+    advice:'"그냥 노래라도 잘 하면 안 되나" — AI 코멘트',
+  },
+  {
+    score:8, grade:'?', tag:'등급 시스템 오류',
+    headline:'AI가 결과 출력을 잠시 거부했습니다.',
+    stats:[
+      ['음정 정확도','19%',''],
+      ['리듬 안정성','3%','숨 참으면 나아질 수도'],
+      ['관객 이탈 예상 시점','연주 시작 즉시',''],
+      ['동아리 계속 다닐 의향','재검토 권장',''],
+    ],
+    advice:'이 결과는 5년 후에도 바뀌지 않을 것입니다.',
+  },
+  {
+    score:34, grade:'F', tag:'희망 없음',
+    headline:'34점은 최솟값이 아닙니다. 그냥 당신이 이 정도입니다.',
+    stats:[
+      ['음정 정확도','41%','우연의 일치 포함'],
+      ['리듬 안정성','12%',''],
+      ['지금 연주하는 게 기타 맞는지 여부','불확실',''],
+      ['권고 일일 연습량','최소 8시간','지금부터'],
+    ],
+    advice:'포기하지 마세요. 아직 탬버린이 남아 있습니다.',
+  },
+];
+
+// ── log messages ──
+const LOGS=[
+  {t:'마이크 입력 감지됨', c:''},
+  {t:'주파수 스펙트럼 수집 중...', c:''},
+  {t:'배음 패턴 분석 중...', c:''},
+  {t:'리듬 마커 추출 중...', c:''},
+  {t:'음정 벡터 계산 중...', c:''},
+  {t:'⚠ 이상 패턴 감지됨 (3건)', c:'warn'},
+  {t:'기준 데이터와 비교 중...', c:''},
+  {t:'LSTM 레이어 처리 중...', c:''},
+  {t:'⚠ 재분석 필요 여부 검토 중...', c:'warn'},
+  {t:'✕ 재분석 필요함', c:'err'},
+  {t:'재분석 완료 — 결과 동일', c:'err'},
+  {t:'최종 데이터 수집 완료', c:''},
+];
+
+// ── analysis steps ──
+const STEPS=[
+  '신경망 레이어 처리',
+  '음정 편차 계산',
+  '리듬 패턴 매핑',
+  '전문가 연주 데이터 비교',
+  '최종 점수 산출',
+];
+
+// ── state ──
+let _actx, _an, _src, _mic, _raf, _cti, _lti;
+
+function showPhase(id){
+  ['phIntro','phRec','phAn','phRes'].forEach(p=>{
+    document.getElementById(p).classList.toggle('active',p===id);
+  });
+}
+
+async function startRec(){
+  showPhase('phRec');
+  let countLeft=10;
+  document.getElementById('recCount').textContent=10;
+  document.getElementById('recLog').innerHTML='';
+
+  const cvs=document.getElementById('recCvs');
+  const ctx=cvs.getContext('2d');
+  // size canvas to CSS pixels
+  const r=cvs.getBoundingClientRect();
+  cvs.width=r.width*devicePixelRatio;
+  cvs.height=r.height*devicePixelRatio;
+
+  try{
+    _mic=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    _actx=new AudioContext();
+    _an=_actx.createAnalyser();
+    _an.fftSize=1024;
+    _src=_actx.createMediaStreamSource(_mic);
+    _src.connect(_an);
+    _drawReal(cvs,ctx,_an);
+  }catch(e){
+    _drawFake(cvs,ctx);
+  }
+
+  let li=0;
+  _lti=setInterval(()=>{
+    if(li<LOGS.length) _addLog(LOGS[li++]);
+  },700);
+
+  _cti=setInterval(()=>{
+    countLeft--;
+    document.getElementById('recCount').textContent=countLeft;
+    if(countLeft<=0){clearInterval(_cti);clearInterval(_lti);_stopRec();}
+  },1000);
+}
+
+function _addLog({t,c}){
+  const wrap=document.getElementById('recLog');
+  const el=document.createElement('div');
+  el.className='rec-log-line'+(c?' '+c:'');
+  el.textContent='> '+t;
+  wrap.appendChild(el);
+  if(wrap.children.length>5) wrap.removeChild(wrap.firstChild);
+}
+
+function _drawReal(cvs,ctx,an){
+  const buf=new Uint8Array(an.frequencyBinCount);
+  function draw(){
+    _raf=requestAnimationFrame(draw);
+    an.getByteTimeDomainData(buf);
+    const W=cvs.width,H=cvs.height;
+    ctx.clearRect(0,0,W,H);
+    const col=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#5c9e00';
+    ctx.strokeStyle=col; ctx.lineWidth=2; ctx.beginPath();
+    const sw=W/buf.length;
+    for(let i=0;i<buf.length;i++){
+      const y=(buf[i]/128)*(H/2);
+      i===0?ctx.moveTo(0,y):ctx.lineTo(i*sw,y);
+    }
+    ctx.stroke();
+  }
+  draw();
+}
+
+let _ft=0;
+function _drawFake(cvs,ctx){
+  function draw(){
+    _raf=requestAnimationFrame(draw);
+    _ft+=0.06;
+    const W=cvs.width,H=cvs.height;
+    ctx.clearRect(0,0,W,H);
+    const col=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#5c9e00';
+    ctx.strokeStyle=col; ctx.lineWidth=2; ctx.beginPath();
+    for(let i=0;i<W;i++){
+      const t=(i/W)*Math.PI*10+_ft;
+      const n=(Math.random()-.5)*.25;
+      const y=H/2+(Math.sin(t)*.45+Math.sin(t*2.7)*.2+n)*(H*.38);
+      i===0?ctx.moveTo(i,y):ctx.lineTo(i,y);
+    }
+    ctx.stroke();
+  }
+  draw();
+}
+
+function _stopRec(){
+  if(_raf)cancelAnimationFrame(_raf);
+  try{if(_src)_src.disconnect();}catch(e){}
+  if(_mic)_mic.getTracks().forEach(t=>t.stop());
+  try{if(_actx)_actx.close();}catch(e){}
+  _showAn();
+}
+
+function _showAn(){
+  showPhase('phAn');
+  const wrap=document.getElementById('anBars');
+  wrap.innerHTML='';
+  const fills=[];
+  STEPS.forEach(lbl=>{
+    const d=document.createElement('div');
+    d.className='an-row';
+    d.innerHTML=`<div class="an-row-top"><span class="an-lbl">${lbl}</span><span class="an-pct" data-pct>0%</span></div><div class="an-track"><div class="an-fill"></div></div>`;
+    wrap.appendChild(d);
+    fills.push({fill:d.querySelector('.an-fill'),pct:d.querySelector('[data-pct]')});
+  });
+
+  fills.forEach(({fill,pct},i)=>{
+    setTimeout(()=>{
+      const target=85+Math.floor(Math.random()*12);
+      fill.style.width=target+'%';
+      pct.textContent=target+'%';
+      if(i===fills.length-1) setTimeout(_showRes,1400);
+    },i*480+250);
+  });
+}
+
+function _showRes(){
+  const v=V[Math.floor(Math.random()*V.length)];
+  showPhase('phRes');
+  const now=new Date();
+  document.getElementById('resStamp').textContent=
+    `분석 완료: ${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} `+
+    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  document.getElementById('resScore').textContent=v.score;
+  document.getElementById('resGrade').textContent=v.grade;
+  document.getElementById('resGradeTag').textContent=v.tag;
+  document.getElementById('resHeadline').textContent=v.headline;
+  document.getElementById('resStats').innerHTML=v.stats.map(([l,val,note])=>
+    `<div class="res-stat"><span class="rs-lbl">${l}</span><span class="rs-val">${val}${note?`<span class="rs-note">(${note})</span>`:''}</span></div>`
+  ).join('');
+  document.getElementById('resAdvice').textContent=v.advice;
+}
+
+function retry(){showPhase('phIntro');}
+</script>
+</body>
+</html>
