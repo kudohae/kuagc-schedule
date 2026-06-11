@@ -3,286 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>그루터기 사이버네틱스</title>
+    <title>그루터기 우주 대혼돈 매트릭스</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            user-select: none;
-        }
-        #webgl-canvas {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; user-select: none; }
+        #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        /* 초현실적 오버레이 UI */
+        .system-ui {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
+            top: 4%; left: 4%; z-index: 10;
+            color: #00ff66; font-family: monospace; font-size: 0.75rem; line-height: 1.6;
+            text-shadow: 0 0 5px #00ff66; pointer-events: none;
         }
-        /* 사이버펑크 스타일 오버레이 안내 */
-        .ui-overlay {
+        .center-instruction {
             position: absolute;
-            bottom: 5%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            color: #00ffff;
-            font-family: monospace;
-            font-size: 0.8rem;
-            letter-spacing: 4px;
-            text-shadow: 0 0 10px #00ffff;
-            pointer-events: none;
-            opacity: 0;
-            text-align: center;
+            bottom: 5%; left: 50%; transform: translateX(-50%); z-index: 10;
+            color: #ff00ff; font-family: monospace; font-size: 0.8rem; letter-spacing: 5px;
+            text-shadow: 0 0 8px #ff00ff; pointer-events: none; text-align: center;
+            animation: pulse 1.5s infinite alternate;
         }
-        .glitch-text {
-            animation: glitch 1s linear infinite;
-        }
-        @keyframes glitch {
-            0% { text-shadow: 2px -1px 0 #ff00ff, -2px 1px 0 #00ffff; }
-            50% { text-shadow: -1px 2px 0 #ff00ff, 2px -2px 0 #00ffff; }
-            100% { text-shadow: 1px -1px 0 #ff00ff, -1px 1px 0 #00ffff; }
+        @keyframes pulse {
+            0% { opacity: 0.3; transform: translateX(-50%) scale(0.95); }
+            100% { opacity: 1; transform: translateX(-50%) scale(1.05); }
         }
     </style>
 </head>
 <body>
 
     <canvas id="webgl-canvas"></canvas>
-    <div class="ui-overlay" id="ui"><span class="glitch-text">SYSTEM ACTIVE: MOVE MOUSE & OVERDRIVE CLICK</span></div>
+    
+    <div class="system-ui">
+        [SYSTEM: COSMIC INSTRUMENT MATRIX ACTIVE]<br>
+        [ENGINES: THREE.JS + GSAP + WEB AUDIO API]<br>
+        [STATUS: CRITICAL OVERLOAD RECEPTIVE]
+    </div>
+    
+    <div class="center-instruction">CLICK FLOATING INSTRUMENTS TO LAUNCH AUDIO OVERDRIVE</div>
 
     <script>
-        // 1. 기본 3D 셋업 (Scene, Camera, Renderer)
+        // --- 1. 오디오 신디사이저 엔진 (Web Audio API 기반 잡기술) ---
+        // 악기 에셋이 없어도 브라우저가 실시간으로 고유 주파수를 연산해 폭발음을 생성합니다.
+        const AudioEngine = {
+            ctx: null,
+            init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            play(type) {
+                if(!this.ctx) this.init();
+                if(this.ctx.state === 'suspended') this.ctx.resume();
+                
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                const now = this.ctx.currentTime;
+                // 악기별 특성 주파수 매핑
+                if(type === 'guitar') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(147.14, now); // D3
+                    osc.frequency.exponentialRampToValueAtTime(587.33, now + 0.4);
+                } else if(type === 'drum') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); // 킥드럼 베이스
+                    osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.3);
+                } else if(type === 'bass') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(55, now); // A1 초저역
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.5);
+                } else if(type === 'keyboard') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); // C5 고음
+                    osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.6);
+                } else if(type === 'microphone') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(880, now); // 에코 피드백 유도
+                    osc.frequency.exponentialRampToValueAtTime(220, now + 0.4);
+                }
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+            }
+        };
+
+        // --- 2. 3D 가상 우주 공간 기초 세팅 ---
         const scene = new THREE.Scene();
-        // 안개 효과 추가하여 깊이감(패러랙스 극대화) 조성
-        scene.fog = new THREE.FogExp2(0x000000, 0.015);
+        scene.fog = new THREE.FogExp2(0x020005, 0.02); // 오묘한 우주 안개 심화
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 5;
+        camera.position.z = 8;
 
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('webgl-canvas'), antialias: true, alpha: true });
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('webgl-canvas'), antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // 2. 우주공간 파티클 필드 (3,000개의 성운 입자)
-        const starsGeometry = new THREE.BufferGeometry();
-        const starsCount = 3000;
-        const starPositions = new Float32Array(starsCount * 3);
-        const starColors = new Float32Array(starsCount * 3);
+        // --- 3. 은하계 파티클 시스템 (하이퍼 스페이스 성운 4000개) ---
+        const starsGeom = new THREE.BufferGeometry();
+        const count = 4000;
+        const positions = new Float32Array(count * 3);
+        const colors = new Float32Array(count * 3);
 
-        for(let i=0; i < starsCount * 3; i+=3) {
-            // 사방에 무작위 배치
-            starPositions[i] = (Math.random() - 0.5) * 30;
-            starPositions[i+1] = (Math.random() - 0.5) * 30;
-            starPositions[i+2] = (Math.random() - 0.5) * 30;
-
-            // 사이버네틱 컬러 (네온 블루, 마젠타, 화이트 믹스)
-            starColors[i] = Math.random() > 0.5 ? 0.0 : 1.0;     // R
-            starColors[i+1] = Math.random() > 0.5 ? 1.0 : 0.0;   // G
-            starColors[i+2] = 1.0;                               // B
+        for(let i=0; i<count*3; i+=3) {
+            positions[i] = (Math.random() - 0.5) * 40;
+            positions[i+1] = (Math.random() - 0.5) * 40;
+            positions[i+2] = (Math.random() - 0.5) * 40;
+            
+            // 색상 배열 극대화 (네온 그린, 퍼플, 시안 하이퍼 믹싱)
+            colors[i] = Math.random();
+            colors[i+1] = Math.random() * 0.3;
+            colors[i+2] = Math.random() * 1.0;
         }
-        starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        starsGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-
-        // 입자 텍스처 스타일링
-        const starMaterial = new THREE.PointsMaterial({
-            size: 0.06,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
-        });
-        const starField = new THREE.Points(starsGeometry, starMaterial);
+        starsGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        starsGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        const starMat = new THREE.PointsMaterial({ size: 0.05, vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+        const starField = new THREE.Points(starsGeom, starMat);
         scene.add(starField);
 
-        // 3. 메인 3D 로고 플레이트 생성
+        // --- 4. 메인 그루터기 로고 배치 ---
         let logoMesh;
-        const textureLoader = new THREE.TextureLoader();
-        
-        // 여기에 이미지 경로 바인딩
-        textureLoader.load('./img/logo.png', (texture) => {
-            // 로고 정밀 사각형 평면
-            const geometry = new THREE.PlaneGeometry(3.5, 3.5, 32, 32);
-            
-            // 고급 메테리얼 설정: 마우스 빛에 반응하는 질감 구현
-            const material = new THREE.MeshPhongMaterial({
-                map: texture,
-                transparent: true,
-                side: THREE.DoubleSide,
-                depthWrite: false,
-                shininess: 100,
-                specular: 0xffffff
-            });
-            
-            logoMesh = new THREE.Mesh(geometry, material);
-            logoMesh.scale.set(0, 0, 0); // 인트로용 초기화
+        new THREE.TextureLoader().load('./img/logo.png', (texture) => {
+            const geom = new THREE.PlaneGeometry(4, 4);
+            const mat = new THREE.MeshPhongMaterial({ map: texture, transparent: true, side: THREE.DoubleSide, shininess: 150 });
+            logoMesh = new THREE.Mesh(geom, mat);
             scene.add(logoMesh);
-
-            // 최초 화면 진입 연출 (시공간 왜곡 돌진 마우스 인트로)
-            gsap.to(logoMesh.scale, { x: 1, y: 1, z: 1, duration: 2, ease: "elastic.out(1, 0.5)" });
-            gsap.to(logoMesh.rotation, { z: Math.PI * 2, duration: 2, ease: "power4.out" });
-            gsap.to(document.getElementById('ui'), { opacity: 1, duration: 1, delay: 1.5 });
+            
+            // 인트로 폭발 진입
+            gsap.from(logoMesh.scale, { x: 0, y: 0, z: 0, duration: 2.5, ease: "elastic.out(1, 0.4)" });
         });
 
-        // 4. 조명 시스템 (마우스 반응형 네온 스포트라이트)
-        const ambientLight = new THREE.AmbientLight(0x333333);
-        scene.add(ambientLight);
+        // --- 5. 우주를 떠다니는 3D 추상 악기 오브젝트 생성 블록 ---
+        const interactiveObjects = [];
+        const instrumentTypes = ['guitar', 'drum', 'bass', 'keyboard', 'microphone'];
+        const colorsMapping = [0xff5555, 0x55ff55, 0x5555ff, 0xffff55, 0xff55ff];
 
-        const pointLight1 = new THREE.PointLight(0x00ffff, 2, 50); // 사이언 빔
-        const pointLight2 = new THREE.PointLight(0xff00ff, 2, 50); // 마젠타 빔
-        scene.add(pointLight1, pointLight2);
+        // 와이어프레임과 기하학적 도형 조합으로 우주적 기계 악기 형상화
+        function createInstrumentMesh(type, color, index) {
+            let geom;
+            // 각 악기의 고유 기하학적 난리법석 형태 설계
+            if(type === 'guitar') geom = new THREE.ConeGeometry(0.5, 1.5, 4);
+            else if(type === 'drum') geom = new THREE.CylinderGeometry(0.7, 0.7, 0.8, 8);
+            else if(type === 'bass') geom = new THREE.BoxGeometry(0.4, 1.6, 0.3);
+            else if(type === 'keyboard') geom = new THREE.BoxGeometry(1.6, 0.3, 0.6);
+            else if(type === 'microphone') geom = new THREE.SphereGeometry(0.5, 8, 8);
 
-        // 5. 마우스 인터랙션 데이터 트래킹
+            // 네온 빛을 발산하는 와이어프레임 이중 구조 메테리얼
+            const mat = new THREE.MeshPhongMaterial({
+                color: color,
+                wireframe: true,
+                emissive: color,
+                emissiveIntensity: 0.6
+            });
+
+            const mesh = new THREE.Mesh(geom, mat);
+            
+            // 초기 랜덤 우주 좌표 배치 구역 설정
+            mesh.position.set(
+                (Math.random() - 0.5) * 7,
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 3 + 2
+            );
+            
+            // 실시간 트래킹용 메타데이터 삽입
+            mesh.userData = { 
+                type: type, 
+                baseX: mesh.position.x, 
+                baseY: mesh.position.y,
+                speed: Math.random() * 0.02 + 0.01,
+                seed: Math.random() * 100,
+                isBlasted: false
+            };
+
+            scene.add(mesh);
+            interactiveObjects.push(mesh);
+        }
+
+        // 5대 악기 매트릭스 동시 소환
+        instrumentTypes.forEach((type, idx) => createInstrumentMesh(type, colorsMapping[idx], idx));
+
+        // --- 6. 다이나믹 조명 시스템 ---
+        const light1 = new THREE.PointLight(0xff00ff, 2, 30);
+        const light2 = new THREE.PointLight(0x00ffff, 2, 30);
+        scene.add(light1, light2);
+
+        // --- 7. 마우스 추적 및 레이캐스팅 클릭 충격 변조 장치 ---
         const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
-        const raycaster = new THREE.Raycaster(); // 클릭 위치 판정용
-        const clickCoords = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+        const mouseVec = new THREE.Vector2();
 
         window.addEventListener('mousemove', (e) => {
-            // 정규화 좌표 (-1 ~ 1)
             mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
         });
 
-        // 6. 하이퍼 파티클 클릭 엔진 (클릭 시 3D 파티클 분사)
-        const clickParticlesCount = 150;
-        const clickGeometry = new THREE.BufferGeometry();
-        const clickPositions = new Float32Array(clickParticlesCount * 3);
-        const clickVels = [];
-
-        for(let i=0; i<clickParticlesCount; i++) {
-            // 대기 상태 좌표 배치
-            clickPositions[i*3] = 999;
-            clickPositions[i*3+1] = 999;
-            clickPositions[i*3+2] = 999;
-            clickVels.push(new THREE.Vector3());
-        }
-        clickGeometry.setAttribute('position', new THREE.BufferAttribute(clickPositions, 3));
-        const clickMaterial = new THREE.PointsMaterial({
-            size: 0.08,
-            color: 0xffffff,
-            transparent: true,
-            blending: THREE.AdditiveBlending
-        });
-        const clickParticleSystem = new THREE.Points(clickGeometry, clickMaterial);
-        scene.add(clickParticleSystem);
-
-        let activeParticleIdx = 0;
-
         window.addEventListener('click', (e) => {
-            clickCoords.x = (e.clientX / window.innerWidth) * 2 - 1;
-            clickCoords.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            
-            // 3D 스페이스 상의 마우스 월드 좌표 역추적 계산
-            raycaster.setFromCamera(clickCoords, camera);
-            const targetPos = new THREE.Vector3();
-            raycaster.ray.at(5, targetPos); // 카메라 앞 5유닛 거리의 좌표 계산
+            mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
-            // 로고 펄스 리액션 강타 애니메이션
-            if(logoMesh) {
-                gsap.timeline()
-                    .to(logoMesh.scale, { x: 1.3, y: 1.3, z: 1.3, duration: 0.05 })
-                    .to(logoMesh.scale, { x: 1, y: 1, z: 1, duration: 0.6, ease: "elastic.out(1, 0.3)" });
+            raycaster.setFromCamera(mouseVec, camera);
+            // 클릭 광선에 맞은 악기 추적
+            const intersects = raycaster.intersectObjects(interactiveObjects);
+
+            if(intersects.length > 0) {
+                const hitObj = intersects[0].object;
                 
-                // 광폭 회전축 뒤틀기 잡기술
-                gsap.to(logoMesh.rotation, {
-                    x: logoMesh.rotation.x + (Math.random() - 0.5) * 3,
-                    y: logoMesh.rotation.y + (Math.random() - 0.5) * 3,
-                    duration: 0.5,
-                    ease: "power2.out"
-                });
+                if(!hitObj.userData.isBlasted) {
+                    hitObj.userData.isBlasted = true;
+                    
+                    // 주파수 사운드 합성기 가동
+                    AudioEngine.play(hitObj.userData.type);
+
+                    // [지랄 연출] 클릭된 악기 화면 뒤편 공간 시공간 너머로 미친 속도로 날려보내기
+                    gsap.to(hitObj.position, {
+                        x: (Math.random() - 0.5) * 50,
+                        y: (Math.random() - 0.5) * 50,
+                        z: -100,
+                        duration: 1.5,
+                        ease: "power4.in",
+                        onComplete: () => {
+                            // 날아갔다가 3초 뒤 다시 우주 공간으로 워프 생환 복귀
+                            setTimeout(() => {
+                                hitObj.position.set((Math.random() - 0.5) * 7, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 3 + 2);
+                                hitObj.scale.set(1, 1, 1);
+                                hitObj.userData.isBlasted = false;
+                                gsap.from(hitObj.scale, { x: 0, y: 0, z: 0, duration: 0.5 });
+                            }, 3000);
+                        }
+                    });
+
+                    // 날아가면서 초신성 폭발하듯 3D 스케일 확대 및 극대 회전
+                    gsap.to(hitObj.rotation, { x: Math.random() * 20, y: Math.random() * 20, duration: 1.5 });
+                    gsap.to(hitObj.scale, { x: 5, y: 5, z: 5, duration: 0.5 });
+
+                    // 메인 로고 싱크로율 충격 펄스 리액션
+                    if(logoMesh) {
+                        gsap.timeline()
+                            .to(logoMesh.scale, { x: 1.4, y: 1.4, duration: 0.05 })
+                            .to(logoMesh.scale, { x: 1, y: 1, duration: 0.8, ease: "bounce.out" });
+                    }
+                }
             }
-
-            // 실시간 3D 위치 기반 파티클 사방 폭발 시퀀스
-            const posArr = clickParticleSystem.geometry.attributes.position.array;
-            for(let i=0; i<30; i++) { // 클릭당 30개씩 순환 사출
-                const idx = (activeParticleIdx + i) % clickParticlesCount;
-                posArr[idx*3] = targetPos.x;
-                posArr[idx*3+1] = targetPos.y;
-                posArr[idx*3+2] = targetPos.z;
-
-                // 유기적 구체 연쇄 분산 벡터 계산
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos((Math.random() * 2) - 1);
-                const speed = Math.random() * 0.15 + 0.05;
-
-                clickVels[idx].x = Math.sin(phi) * Math.cos(theta) * speed;
-                clickVels[idx].y = Math.sin(phi) * Math.sin(theta) * speed;
-                clickVels[idx].z = Math.cos(phi) * speed;
-            }
-            activeParticleIdx = (activeParticleIdx + 30) % clickParticlesCount;
-            clickParticleSystem.geometry.attributes.position.needsUpdate = true;
         });
 
-        // 7. 실시간 무한 프레임 렌더 룹 (매트릭스 연산 처리 부서)
+        // --- 8. 실시간 무한 렌더 가속 룹 (연산 부하 메인 엔진) ---
         const clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
-            const elapsedTime = clock.getElapsedTime();
+            const time = clock.getElapsedTime();
 
-            // 마우스 부드러운 감속 추적 감도 계산 (LERP 기법)
-            mouse.x += (mouse.targetX - mouse.x) * 0.08;
-            mouse.y += (mouse.targetY - mouse.y) * 0.08;
+            // 부드러운 래치 가속화 추적 (LERP 기법)
+            mouse.x += (mouse.targetX - mouse.x) * 0.05;
+            mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
-            // [잡기술 1] 배경 성운 공간의 매트릭스 회전 및 카메라 마우스 디스플레이스먼트(패러랙스 극대화)
-            starField.rotation.y = elapsedTime * 0.02;
-            starField.rotation.x = elapsedTime * 0.01;
-            camera.position.x = mouse.x * 1.5;
-            camera.position.y = mouse.y * 1.5;
+            // 1. 카메라 마우스 반응 디스플레이스먼트 (광활한 공간 패러랙스)
+            camera.position.x = mouse.x * 2.5;
+            camera.position.y = mouse.y * 2.5;
             camera.lookAt(scene.position);
 
-            // [잡기술 2] 네온 스포트라이트가 마우스 커서 궤적을 3D 궤도로 강렬하게 추격
-            pointLight1.position.set(mouse.x * 5, mouse.y * 5, 2);
-            pointLight2.position.set(-mouse.x * 5, -mouse.y * 5, 3);
+            // 2. 배경 성운 파티클 하이퍼 드라이브 스페이스 회전 연산
+            starField.rotation.y = time * 0.015;
+            starField.rotation.z = Math.sin(time * 0.1) * 0.2;
 
-            // [잡기술 3] 메인 로고 3D 매트릭스 제어
+            // 3. 다이내믹 양방향 크로스 네온 조명 궤도 추적
+            light1.position.set(Math.sin(time * 1.5) * 6, Math.cos(time * 1.5) * 6, 3);
+            light2.position.set(Math.cos(time * 2) * -6, Math.sin(time * 2) * 6, 4);
+
+            // 4. 메인 로고 3D 실시간 물리 흔들림 및 왜곡 처리
             if(logoMesh) {
-                // 평상시 숨쉬는 듯한 부유(Floating) 모션 
-                logoMesh.position.y = Math.sin(elapsedTime * 2) * 0.15;
-                
-                // 마우스 무브먼트 연동 강렬한 3D 회전각 틸트 변조
-                logoMesh.rotation.y = mouse.x * 1.2;
-                logoMesh.rotation.x = -mouse.y * 1.2;
-                
-                // 마우스 왜곡 깊이 변경
-                logoMesh.position.z = Math.abs(mouse.x) * 0.5;
+                logoMesh.rotation.y = mouse.x * 1.0 + Math.sin(time) * 0.1;
+                logoMesh.rotation.x = -mouse.y * 1.0 + Math.cos(time) * 0.1;
+                // 미세한 부유 블랙홀 효과
+                logoMesh.position.z = Math.sin(time * 2) * 0.2;
             }
 
-            // [잡기술 4] 클릭 파티클 역학 처리 루틴 (소멸 및 확산)
-            const posArr = clickParticleSystem.geometry.attributes.position.array;
-            for(let i=0; i<clickParticlesCount; i++) {
-                if(posArr[i*3] !== 999) {
-                    posArr[i*3] += clickVels[i].x;
-                    posArr[i*3+1] += clickVels[i].y;
-                    posArr[i*3+2] += clickVels[i].z;
+            // 5. [핵심 지랄 연출] 떠다니는 5대 악기 독립 오비탈 부유(Floating) 물리 시뮬레이션
+            interactiveObjects.forEach((obj) => {
+                if(!obj.userData.isBlasted) {
+                    const ud = obj.userData;
+                    // 삼각함수 중첩 주파수를 이용해 불규칙하고 킹받는 우주적 부유 궤도 계산
+                    obj.position.x = ud.baseX + Math.sin(time + ud.seed) * 0.8;
+                    obj.position.y = ud.baseY + Math.cos(time * 1.3 + ud.seed) * 0.6;
+                    obj.position.z = 2 + Math.sin(time * 0.7 + ud.seed) * 0.5;
 
-                    // 서서히 감속하면서 블랙홀로 분해되는 연출 (저항값 부과)
-                    clickVels[i].multiplyScalar(0.96);
-
-                    // 화면 밖 멀어지거나 힘을 다하면 좌표 초기화 격리
-                    if (clickVels[i].length() < 0.005) {
-                        posArr[i*3] = 999;
-                    }
+                    // 끊임없이 스스로의 축을 뒤틀며 3D 회전 제어
+                    obj.rotation.x += ud.speed;
+                    obj.rotation.y += ud.speed * 1.5;
                 }
-            }
-            clickParticleSystem.geometry.attributes.position.needsUpdate = true;
+            });
 
             renderer.render(scene, camera);
         }
 
-        // 브라우저 해상도 변경 대응 가변 리사이징
+        // 반응형 디바이스 화면 뷰포트 최적화 스케일링
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         });
 
         animate();
