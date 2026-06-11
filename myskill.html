@@ -68,8 +68,13 @@ body.dark .sk-badge{background:rgba(71,197,255,.07);border-color:rgba(71,197,255
 .rs-val{font-weight:700;color:var(--text);text-align:right;}
 .rs-note{font-size:10px;color:var(--text3);margin-left:3px;font-weight:400;}
 .res-advice{width:100%;padding:11px 14px;background:rgba(217,48,37,.06);border:1px solid rgba(217,48,37,.18);border-radius:8px;font-size:12px;color:var(--text2);text-align:center;line-height:1.6;}
-.res-retry{width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s;}
+.res-retry{width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s;position:relative;z-index:10;}
 .res-retry:hover{border-color:var(--text2);color:var(--text);}
+
+/* poop physics */
+.poop{position:fixed;font-size:36px;line-height:1;user-select:none;pointer-events:none;z-index:500;transform:translate(-50%,-50%);will-change:left,top;}
+@keyframes poop-bump{0%{transform:translate(-50%,-50%) scale(1)}35%{transform:translate(-50%,-50%) scale(1.35) rotate(14deg)}65%{transform:translate(-50%,-50%) scale(0.88) rotate(-6deg)}100%{transform:translate(-50%,-50%) scale(1)}}
+.poop.bump{animation:poop-bump .22s ease-out forwards;}
 
 /* phases */
 .phase{display:none;flex-direction:column;align-items:center;gap:22px;width:100%;}
@@ -382,7 +387,116 @@ function _showRes(){
   document.getElementById('resAdvice').textContent=v.advice;
 }
 
-function retry(){showPhase('phIntro');}
+function retry(){_clearPoops();showPhase('phIntro');}
+
+// ── poop physics engine ──
+const _PS=[];   // poop state array
+const _PR=18;   // collision radius
+const _REST_WALL=0.72;
+const _REST_PP=0.86;
+const _BUOY=0.003;  // slight upward pull per frame (space float)
+const _TURB=0.012;  // turbulence magnitude
+let _pRaf=null;
+
+document.addEventListener('click',function(e){
+  if(!document.getElementById('phRes').classList.contains('active'))return;
+  if(e.target.closest('.res-retry'))return;
+  _spawnPoop(e.clientX,e.clientY);
+});
+
+function _spawnPoop(cx,cy){
+  if(_PS.length>=80)return;
+  const el=document.createElement('div');
+  el.className='poop';
+  el.textContent='💩';
+  el.style.left=cx+'px';
+  el.style.top=cy+'px';
+  document.body.appendChild(el);
+  _PS.push({
+    x:cx, y:cy,
+    vx:(Math.random()-.5)*3,
+    vy:-(Math.random()*1.5+0.8),
+    el,
+    hitCooldown:0
+  });
+  if(!_pRaf)_pRaf=requestAnimationFrame(_physLoop);
+}
+
+function _physLoop(){
+  const W=window.innerWidth, H=window.innerHeight;
+  const TOP=48; // header height
+
+  for(const p of _PS){
+    // upward buoyancy + turbulence
+    p.vy-=_BUOY;
+    p.vx+=(Math.random()-.5)*_TURB;
+    p.vy+=(Math.random()-.5)*_TURB;
+
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.hitCooldown>0)p.hitCooldown--;
+
+    // ceiling
+    if(p.y-_PR<TOP){
+      p.y=TOP+_PR;
+      if(p.vy<0){
+        p.vy=-p.vy*_REST_WALL;
+        if(p.hitCooldown===0){_bumpAnim(p.el);p.hitCooldown=8;}
+      }
+    }
+    // floor
+    if(p.y+_PR>H){
+      p.y=H-_PR;
+      if(p.vy>0){p.vy=-p.vy*_REST_WALL;if(p.hitCooldown===0){_bumpAnim(p.el);p.hitCooldown=8;}}
+    }
+    // left/right
+    if(p.x-_PR<0){p.x=_PR;if(p.vx<0)p.vx=-p.vx*_REST_WALL;}
+    if(p.x+_PR>W){p.x=W-_PR;if(p.vx>0)p.vx=-p.vx*_REST_WALL;}
+
+    p.el.style.left=p.x+'px';
+    p.el.style.top=p.y+'px';
+  }
+
+  // poop-poop elastic collisions
+  for(let i=0;i<_PS.length;i++){
+    for(let j=i+1;j<_PS.length;j++){
+      _collidePP(_PS[i],_PS[j]);
+    }
+  }
+
+  _pRaf=requestAnimationFrame(_physLoop);
+}
+
+function _collidePP(a,b){
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const d2=dx*dx+dy*dy;
+  const minD=_PR*2;
+  if(d2>=minD*minD||d2===0)return;
+  const d=Math.sqrt(d2);
+  const nx=dx/d, ny=dy/d;
+  // separate
+  const ov=(minD-d)/2;
+  a.x-=nx*ov; a.y-=ny*ov;
+  b.x+=nx*ov; b.y+=ny*ov;
+  // impulse (equal mass elastic along normal)
+  const dvx=a.vx-b.vx, dvy=a.vy-b.vy;
+  const dot=dvx*nx+dvy*ny;
+  if(dot<=0)return; // already separating
+  const imp=dot*_REST_PP;
+  a.vx-=imp*nx; a.vy-=imp*ny;
+  b.vx+=imp*nx; b.vy+=imp*ny;
+}
+
+function _bumpAnim(el){
+  el.classList.remove('bump');
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add('bump');
+}
+
+function _clearPoops(){
+  _PS.forEach(p=>p.el.remove());
+  _PS.length=0;
+  if(_pRaf){cancelAnimationFrame(_pRaf);_pRaf=null;}
+}
 </script>
 </body>
 </html>
