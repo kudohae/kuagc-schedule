@@ -393,17 +393,24 @@ function retry(){_clearPoops();showPhase('phIntro');}
 
 // ── poop physics engine ──
 const _PS=[];
-const _PR=18;   // base radius
-const _MAX_R=90; // max merged radius
+const _DL=[];  // paint droplets
+const _PR=18;
 const _REST_WALL=0.72;
-const _BUOY=0.003;  // slight upward pull per frame (space float)
-const _TURB=0.012;  // turbulence magnitude
+const _BUOY=0.003;
+const _TURB=0.012;
+const _BROWNS=['#5c2e0a','#7a3b0e','#8b4513','#6b3a2a','#4a2508','#3d1f07'];
 let _pRaf=null;
 
 document.addEventListener('click',function(e){
   if(!document.getElementById('phRes').classList.contains('active'))return;
   if(e.target.closest('.res-retry'))return;
-  _spawnPoop(e.clientX,e.clientY);
+  const cx=e.clientX,cy=e.clientY;
+  // hit-test existing poops (topmost first)
+  for(let i=_PS.length-1;i>=0;i--){
+    const p=_PS[i];
+    if((cx-p.x)**2+(cy-p.y)**2<=p.r*p.r){_explodePoop(i);return;}
+  }
+  _spawnPoop(cx,cy);
 });
 
 function _spawnPoop(cx,cy){
@@ -436,10 +443,7 @@ function _physLoop(){
     // ceiling
     if(p.y-p.r<TOP){
       p.y=TOP+p.r;
-      if(p.vy<0){
-        p.vy=-p.vy*_REST_WALL;
-        if(p.hitCooldown===0){_bumpAnim(p.el);p.hitCooldown=8;}
-      }
+      if(p.vy<0) p.vy=-p.vy*_REST_WALL;
     }
     // floor
     if(p.y+p.r>H){
@@ -463,6 +467,21 @@ function _physLoop(){
     }
   }
 
+  // droplet physics
+  for(let i=_DL.length-1;i>=0;i--){
+    const d=_DL[i];
+    if(d.stuck)continue;
+    d.vy+=0.1;
+    d.x+=d.vx; d.y+=d.vy;
+    let sf=null;
+    if(d.y+d.sz/2>=H)sf='floor';
+    else if(d.y-d.sz/2<=TOP)sf='ceil';
+    else if(d.x-d.sz/2<=0)sf='left';
+    else if(d.x+d.sz/2>=W)sf='right';
+    if(sf){_stickDrop(d,sf);}
+    else{d.el.style.left=d.x+'px';d.el.style.top=d.y+'px';}
+  }
+
   _pRaf=requestAnimationFrame(_physLoop);
 }
 
@@ -470,7 +489,7 @@ function _mergePP(i,j){
   const a=_PS[i], b=_PS[j];
   // area-conserving radius, capped
   const ma=a.r*a.r, mb=b.r*b.r, mt=ma+mb;
-  const r=Math.min(Math.sqrt(mt), _MAX_R);
+  const r=Math.sqrt(mt);
   // center of mass
   const x=(a.x*ma+b.x*mb)/mt, y=(a.y*ma+b.y*mb)/mt;
   // momentum conservation
@@ -492,13 +511,59 @@ function _mergePP(i,j){
 
 function _bumpAnim(el){
   el.classList.remove('bump');
-  void el.offsetWidth; // reflow to restart animation
+  void el.offsetWidth;
   el.classList.add('bump');
 }
 
+function _explodePoop(idx){
+  const p=_PS[idx];
+  _PS.splice(idx,1);
+  // flash scale then vanish
+  p.el.style.transition='transform .07s,opacity .07s';
+  p.el.style.transform='translate(-50%,-50%) scale(1.7)';
+  p.el.style.opacity='0';
+  setTimeout(()=>p.el.remove(),80);
+  // spawn paint droplets
+  const N=Math.min(Math.floor(p.r*1.5)+8,60);
+  for(let i=0;i<N;i++) _spawnDrop(p.x,p.y,p.r);
+  if(!_pRaf)_pRaf=requestAnimationFrame(_physLoop);
+}
+
+function _spawnDrop(cx,cy,pr){
+  const angle=Math.random()*Math.PI*2;
+  const spd=Math.min(pr*0.18+Math.random()*pr*0.25,18);
+  const vx=Math.cos(angle)*spd, vy=Math.sin(angle)*spd;
+  const sz=Math.max(pr*0.08+Math.random()*pr*0.2,3);
+  const col=_BROWNS[Math.floor(Math.random()*_BROWNS.length)];
+  const rot=Math.atan2(vy,vx)*180/Math.PI;
+  const el=document.createElement('div');
+  el.style.cssText=`position:fixed;width:${sz}px;height:${sz*(0.55+Math.random()*0.7)}px;border-radius:50%;background:${col};pointer-events:none;z-index:498;left:${cx}px;top:${cy}px;transform:translate(-50%,-50%) rotate(${rot}deg);`;
+  document.body.appendChild(el);
+  _DL.push({x:cx,y:cy,vx,vy,sz,el,stuck:false});
+}
+
+function _stickDrop(d,sf){
+  d.stuck=true; d.vx=0; d.vy=0;
+  d.el.style.left=d.x+'px'; d.el.style.top=d.y+'px';
+  const sq={
+    floor:`translate(-50%,-6%) scaleY(0.1) rotate(${Math.random()*40-20}deg)`,
+    ceil:`translate(-50%,-94%) scaleY(0.1) rotate(${Math.random()*40-20}deg)`,
+    left:`translate(-6%,-50%) scaleX(0.1) rotate(${Math.random()*40-20}deg)`,
+    right:`translate(-94%,-50%) scaleX(0.1) rotate(${Math.random()*40-20}deg)`,
+  };
+  d.el.style.transition='transform .06s ease-out';
+  d.el.style.transform=sq[sf];
+  const wait=5000+Math.random()*6000;
+  setTimeout(()=>{
+    d.el.style.transition='opacity 3s';
+    d.el.style.opacity='0';
+    setTimeout(()=>{d.el.remove();const i=_DL.indexOf(d);if(i!==-1)_DL.splice(i,1);},3000);
+  },wait);
+}
+
 function _clearPoops(){
-  _PS.forEach(p=>p.el.remove());
-  _PS.length=0;
+  _PS.forEach(p=>p.el.remove()); _PS.length=0;
+  _DL.forEach(d=>d.el.remove()); _DL.length=0;
   if(_pRaf){cancelAnimationFrame(_pRaf);_pRaf=null;}
 }
 </script>
