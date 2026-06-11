@@ -401,6 +401,13 @@ const _TURB=0.012;
 const _BROWNS=['#5c2e0a','#7a3b0e','#8b4513','#6b3a2a','#4a2508','#3d1f07'];
 let _pRaf=null;
 
+// persistent paint canvas
+const _paintCvs=document.createElement('canvas');
+_paintCvs.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:497;';
+_paintCvs.width=window.innerWidth; _paintCvs.height=window.innerHeight;
+document.body.appendChild(_paintCvs);
+const _pctx=_paintCvs.getContext('2d');
+
 document.addEventListener('click',function(e){
   if(!document.getElementById('phRes').classList.contains('active'))return;
   if(e.target.closest('.res-retry'))return;
@@ -470,7 +477,6 @@ function _physLoop(){
   // droplet physics
   for(let i=_DL.length-1;i>=0;i--){
     const d=_DL[i];
-    if(d.stuck)continue;
     d.vy+=0.1;
     d.x+=d.vx; d.y+=d.vy;
     let sf=null;
@@ -478,8 +484,13 @@ function _physLoop(){
     else if(d.y-d.sz/2<=TOP)sf='ceil';
     else if(d.x-d.sz/2<=0)sf='left';
     else if(d.x+d.sz/2>=W)sf='right';
-    if(sf){_stickDrop(d,sf);}
-    else{d.el.style.left=d.x+'px';d.el.style.top=d.y+'px';}
+    if(sf){
+      d.el.remove();
+      _drawSplat(d.x,d.y,d.sz,d.col,sf,d.vx,d.vy);
+      _DL.splice(i,1);
+    } else {
+      d.el.style.left=d.x+'px'; d.el.style.top=d.y+'px';
+    }
   }
 
   _pRaf=requestAnimationFrame(_physLoop);
@@ -539,31 +550,88 @@ function _spawnDrop(cx,cy,pr){
   const el=document.createElement('div');
   el.style.cssText=`position:fixed;width:${sz}px;height:${sz*(0.55+Math.random()*0.7)}px;border-radius:50%;background:${col};pointer-events:none;z-index:498;left:${cx}px;top:${cy}px;transform:translate(-50%,-50%) rotate(${rot}deg);`;
   document.body.appendChild(el);
-  _DL.push({x:cx,y:cy,vx,vy,sz,el,stuck:false});
+  _DL.push({x:cx,y:cy,vx,vy,sz,col,el});
 }
 
-function _stickDrop(d,sf){
-  d.stuck=true; d.vx=0; d.vy=0;
-  d.el.style.left=d.x+'px'; d.el.style.top=d.y+'px';
-  const sq={
-    floor:`translate(-50%,-6%) scaleY(0.1) rotate(${Math.random()*40-20}deg)`,
-    ceil:`translate(-50%,-94%) scaleY(0.1) rotate(${Math.random()*40-20}deg)`,
-    left:`translate(-6%,-50%) scaleX(0.1) rotate(${Math.random()*40-20}deg)`,
-    right:`translate(-94%,-50%) scaleX(0.1) rotate(${Math.random()*40-20}deg)`,
-  };
-  d.el.style.transition='transform .06s ease-out';
-  d.el.style.transform=sq[sf];
-  const wait=5000+Math.random()*6000;
-  setTimeout(()=>{
-    d.el.style.transition='opacity 3s';
-    d.el.style.opacity='0';
-    setTimeout(()=>{d.el.remove();const i=_DL.indexOf(d);if(i!==-1)_DL.splice(i,1);},3000);
-  },wait);
+function _drawSplat(x,y,sz,col,sf,vx,vy){
+  const ctx=_pctx;
+  const spd=Math.sqrt(vx*vx+vy*vy);
+  const R=Math.max(sz*2+spd*1.2,7);
+
+  // ── main blob: squashed irregular polygon ──
+  ctx.save();
+  ctx.translate(x,y);
+  const sqsh=0.15+Math.random()*0.09;
+  const stretch=1.6+Math.abs(sf==='floor'||sf==='ceil'?vx:vy)*0.07;
+  if(sf==='floor')     ctx.scale(stretch, sqsh);
+  else if(sf==='ceil') ctx.scale(stretch,-sqsh);
+  else if(sf==='left') ctx.scale( sqsh, stretch);
+  else                 ctx.scale(-sqsh, stretch);
+
+  const nPts=10+Math.floor(Math.random()*6);
+  ctx.fillStyle=col;
+  ctx.globalAlpha=0.88+Math.random()*0.1;
+  ctx.beginPath();
+  for(let i=0;i<=nPts;i++){
+    const a=(i/nPts)*Math.PI*2;
+    const r=R*(0.45+Math.random()*0.9);
+    i===0?ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r):ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // ── satellite micro-drops ──
+  const nSat=8+Math.floor(Math.random()*14);
+  const satR=R*2.5+spd*1.8;
+  for(let i=0;i<nSat;i++){
+    let sx,sy;
+    if(sf==='floor'||sf==='ceil'){
+      sx=x+(Math.random()-.5)*satR*2.2;
+      sy=y+(sf==='floor'?-1:1)*Math.random()*satR*0.35;
+    }else{
+      sx=x+(sf==='left'?1:-1)*Math.random()*satR*0.35;
+      sy=y+(Math.random()-.5)*satR*2.2;
+    }
+    const sr=Math.max(sz*0.04+Math.random()*sz*0.22,1.2);
+    ctx.fillStyle=col;
+    ctx.globalAlpha=0.35+Math.random()*0.55;
+    ctx.beginPath();
+    ctx.arc(sx,sy,sr,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // ── drips (gravity — run DOWN from wall/ceil hits) ──
+  if(sf!=='floor'){
+    const nDrips=1+Math.floor(Math.random()*3);
+    for(let d=0;d<nDrips;d++){
+      const dw=Math.max(sz*0.1+Math.random()*sz*0.18,2.5);
+      const dlen=R*(0.6+Math.random()*2.2);
+      const ox=(Math.random()-.5)*R*1.2;
+      let bx=x+ox, by=y;
+      if(sf==='left')  { bx=x+dw; }
+      if(sf==='right') { bx=x-dw; }
+      ctx.fillStyle=col;
+      ctx.globalAlpha=0.62+Math.random()*0.22;
+      ctx.beginPath();
+      ctx.moveTo(bx-dw/2, by);
+      ctx.bezierCurveTo(bx-dw/2, by+dlen*.55, bx+dw*.25, by+dlen*.8, bx, by+dlen);
+      ctx.bezierCurveTo(bx-dw*.25, by+dlen*.8, bx+dw/2, by+dlen*.55, bx+dw/2, by);
+      ctx.closePath();
+      ctx.fill();
+      // teardrop tip
+      ctx.beginPath();
+      ctx.arc(bx, by+dlen, dw*0.28, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1;
 }
 
 function _clearPoops(){
   _PS.forEach(p=>p.el.remove()); _PS.length=0;
   _DL.forEach(d=>d.el.remove()); _DL.length=0;
+  _pctx.clearRect(0,0,_paintCvs.width,_paintCvs.height);
   if(_pRaf){cancelAnimationFrame(_pRaf);_pRaf=null;}
 }
 </script>
