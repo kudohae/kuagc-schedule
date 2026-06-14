@@ -228,6 +228,11 @@ body.dark .notif-item{background:rgba(232,255,71,.05);}
 /* HEADER RIGHT */
 .hdr-right{display:flex;align-items:center;gap:6px;margin-left:auto;}
 .season-chip{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 9px;font-size:12px;font-weight:700;color:var(--accent2);}
+.hdr-games-btn{background:rgba(92,158,0,.1);border:1px solid rgba(92,158,0,.35);border-radius:4px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;font-family:'Noto Sans KR',sans-serif;text-decoration:none;transition:all .12s;white-space:nowrap;}
+body.dark .hdr-games-btn{background:rgba(232,255,71,.08);border-color:rgba(232,255,71,.25);}
+.hdr-games-btn:hover{opacity:.8;}
+.hdr-games-btn.active{background:rgba(92,158,0,.2);border-color:rgba(92,158,0,.7);color:var(--accent);}
+body.dark .hdr-games-btn.active{background:rgba(232,255,71,.18);border-color:rgba(232,255,71,.55);}
 .hdr-contacts-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s;white-space:nowrap;}
 .hdr-contacts-btn:hover{color:var(--text);border-color:var(--accent2);}
 
