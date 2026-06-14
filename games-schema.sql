@@ -54,11 +54,11 @@ declare c text:=upper(trim(p_code)); r public.guitar_duel_rooms; count_players i
   if c !~ '^[A-Z0-9]{2,8}$' then return jsonb_build_object('status','invalid'); end if;
   insert into public.guitar_duel_rooms(code) values(c) on conflict(code) do nothing;
   select * into r from public.guitar_duel_rooms where code=c for update;
-  if (r.status='finished' and r.updated_at<now()-interval '30 seconds')
+  if r.status='finished'
     or (r.status='waiting' and r.updated_at<now()-interval '10 minutes')
     or (r.status in ('assigning','briefing','playing') and r.ends_at<now()-interval '30 seconds') then
-    delete from public.guitar_duel_players where code=c;
-    update public.guitar_duel_rooms set status='waiting',tension=29,starts_at=null,ends_at=null,winner=null,updated_at=now() where code=c returning * into r;
+    delete from public.guitar_duel_rooms where code=c;
+    insert into public.guitar_duel_rooms(code) values(c) returning * into r;
   end if;
   if exists(select 1 from public.guitar_duel_players where code=c and token=p_token) then return public.guitar_duel_payload(c,p_token); end if;
   select count(*) into count_players from public.guitar_duel_players where code=c;
@@ -112,6 +112,20 @@ declare c text:=upper(trim(p_code)); r public.guitar_duel_rooms; begin
   return public.guitar_duel_payload(c,p_token);
 end $$;
 
-revoke all on function public.guitar_duel_payload(text,uuid),public.join_guitar_duel(text,uuid),public.get_guitar_duel(text,uuid),public.act_guitar_duel(text,uuid,text),public.finish_guitar_duel(text,uuid) from public;
-grant execute on function public.join_guitar_duel(text,uuid),public.get_guitar_duel(text,uuid),public.act_guitar_duel(text,uuid,text),public.finish_guitar_duel(text,uuid) to anon,authenticated;
+create or replace function public.cleanup_guitar_duel(p_code text,p_token uuid)
+returns boolean language plpgsql security definer set search_path=public as $$
+declare c text:=upper(trim(p_code)); begin
+  if exists(
+    select 1 from public.guitar_duel_players p
+    join public.guitar_duel_rooms r using(code)
+    where p.code=c and p.token=p_token and r.status='finished'
+  ) then
+    delete from public.guitar_duel_rooms where code=c;
+    return true;
+  end if;
+  return false;
+end $$;
+
+revoke all on function public.guitar_duel_payload(text,uuid),public.join_guitar_duel(text,uuid),public.get_guitar_duel(text,uuid),public.act_guitar_duel(text,uuid,text),public.finish_guitar_duel(text,uuid),public.cleanup_guitar_duel(text,uuid) from public;
+grant execute on function public.join_guitar_duel(text,uuid),public.get_guitar_duel(text,uuid),public.act_guitar_duel(text,uuid,text),public.finish_guitar_duel(text,uuid),public.cleanup_guitar_duel(text,uuid) to anon,authenticated;
 do $$ begin alter publication supabase_realtime add table public.guitar_duel_rooms; exception when duplicate_object then null; end $$;

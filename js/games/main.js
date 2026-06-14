@@ -36,8 +36,8 @@ function showScreen(id){
   screens.forEach(screen=>screen.classList.toggle('active',screen.id===id));
 }
 
-function resetGame(){
-  leaveDuel();
+async function resetGame(){
+  await leaveDuel(true);
   clearInterval(countdownTimer);
   score=0;answer=null;state='ready';
   scoreValue.textContent='0';
@@ -123,8 +123,8 @@ async function showLeaderboard(){
   board.innerHTML=data.length?data.map((row,index)=>`<div class="leaderboard-row"><span class="leaderboard-rank">${index+1}</span><span class="leaderboard-name">${escapeHtml(row.nickname)}</span><span class="leaderboard-score">${row.score}</span></div>`).join(''):'<div class="leaderboard-empty">아직 등록된 기록이 없습니다.</div>';
 }
 
-function openDuelGame(){
-  clearInterval(countdownTimer);leaveDuel();showScreen('duelScreen');
+async function openDuelGame(){
+  clearInterval(countdownTimer);await leaveDuel(true);showScreen('duelScreen');
   document.getElementById('duelLobby').style.display='flex';
   document.getElementById('duelArena').style.display='none';
   document.getElementById('duelMessage').textContent='';
@@ -230,9 +230,11 @@ function showDuelResult(winner){
   document.getElementById('duelResultText').textContent=winner==='attack'?'기타 줄이 끊어졌습니다.':'기타 줄을 지켜냈습니다.';
 }
 
-function leaveDuel(){
+async function leaveDuel(cleanup=false){
+  const code=duelCode;
   clearInterval(duelClock);
   if(duelChannel){supabase.removeChannel(duelChannel);duelChannel=null;}
+  if(cleanup&&code) await supabase.rpc('cleanup_guitar_duel',{p_code:code,p_token:playerToken}).catch(()=>{});
   duelCode='';duelRole='';duelPhase='';
 }
 
@@ -261,7 +263,7 @@ document.getElementById('scoreForm').addEventListener('submit',submitScore);
 document.getElementById('backToList').addEventListener('click',()=>{state='list';showScreen('listScreen');});
 document.getElementById('duelJoinForm').addEventListener('submit',joinDuel);
 document.querySelectorAll('.duel-action').forEach(button=>button.addEventListener('pointerdown',()=>duelAction(button.dataset.action)));
-document.getElementById('duelBackToList').addEventListener('click',()=>{leaveDuel();showScreen('listScreen');});
+document.getElementById('duelBackToList').addEventListener('click',async()=>{await leaveDuel(true);showScreen('listScreen');});
 window.addEventListener('beforeunload',leaveDuel);
 
 initTheme();initHeader();
