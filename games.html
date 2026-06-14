@@ -6,7 +6,7 @@
 <title>미니게임 | 그루터기</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/index.css">
-<link rel="stylesheet" href="css/games.css">
+<link rel="stylesheet" href="css/games.css?v=20260614-3">
 </head>
 <body>
 <header>
@@ -100,12 +100,14 @@
           <div class="tuner tuner-r1"><span class="tuner-post"></span><span class="tuner-key"></span></div>
           <div class="tuner tuner-r2"><span class="tuner-post"></span><span class="tuner-key"></span></div>
           <div class="tuner tuner-r3"><span class="tuner-post"></span><span class="tuner-key active-key" id="tuningKey"></span></div>
-          <div class="guitar-string string-6"></div>
-          <div class="guitar-string string-5"></div>
-          <div class="guitar-string string-4"></div>
-          <div class="guitar-string string-3"></div>
-          <div class="guitar-string string-2"></div>
-          <div class="guitar-string string-1" id="guitarString"></div>
+          <svg class="guitar-strings" viewBox="0 0 210 403" aria-hidden="true">
+            <line class="guitar-string string-6" x1="68" y1="403" x2="-1" y2="294"/>
+            <line class="guitar-string string-5" x1="82" y1="403" x2="-1" y2="204"/>
+            <line class="guitar-string string-4" x1="96" y1="403" x2="-1" y2="114"/>
+            <line class="guitar-string string-3" x1="114" y1="403" x2="211" y2="114"/>
+            <line class="guitar-string string-2" x1="128" y1="403" x2="211" y2="204"/>
+            <line class="guitar-string string-1" id="guitarString" x1="142" y1="403" x2="211" y2="294"/>
+          </svg>
           <div class="guitar-nut"></div>
         </div>
       </div>
@@ -161,6 +163,6 @@
   </div>
 </div>
 
-<script type="module" src="js/games/main.js"></script>
+<script type="module" src="js/games/main.js?v=20260614-3"></script>
 </body>
 </html>
