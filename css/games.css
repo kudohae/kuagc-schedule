@@ -88,7 +88,8 @@ body.dark .tension-fill{mix-blend-mode:screen;opacity:.65;}
 .duel-result{display:none;position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--bg) 92%,transparent);flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;}
 .duel-result h2{font-size:35px;}
 .duel-result p{color:var(--text2);font-size:16px;}
-.word-card-icon{background:var(--accent2);color:#fff;font-size:20px;}
+.duel-card-icon,.word-card-icon{font-family:'Noto Sans KR',sans-serif;font-size:25px;}
+.word-card-icon{background:var(--accent2);color:#fff;}
 .word-screen{position:relative;min-height:calc(100vh - var(--hh) - 108px);}
 .word-top{display:flex;justify-content:space-between;gap:10px;margin-bottom:16px;}
 .word-top>div{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 13px;}
