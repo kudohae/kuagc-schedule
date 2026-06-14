@@ -11,8 +11,13 @@ const countdownEl=document.getElementById('countdown');
 const listenCopy=document.getElementById('listenCopy');
 const choicesEl=document.getElementById('choices');
 const formMessage=document.getElementById('formMessage');
+const wordGrid=document.getElementById('wordGrid');
+const wordTime=document.getElementById('wordTime');
+const wordProgress=document.getElementById('wordProgress');
+const wordCheer=document.getElementById('wordCheer');
 const noteNames=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const notes=Array.from({length:25},(_,i)=>midiToNote(40+i));
+const randomSyllables=['가','나','다','라','마','바','사','아','자','차','카','타','파','하','고','노','도','로','모','보','소','오','조','초','코','토','포','호','구','누','두','무','부','수','우','주','추','쿠','투','푸','후','기','니','디','리','미','비','시','이','지','치','키','티','피','히','개','내','대','래','매','배','새','애','재','채','캐','태','패','해','거','너','더','러','머','버','서','어','저','처','커','터','퍼','허'];
 
 let audioContext;
 let score=0;
@@ -25,6 +30,12 @@ let duelCode='';
 let duelRole='';
 let duelPhase='';
 let lastDuelAction=0;
+let currentGame='pitch';
+let wordAnswerIndexes=[];
+let wordSelected=new Set();
+let wordStartedAt=0;
+let wordTimer=null;
+let wordResultMs=0;
 const playerToken=localStorage.getItem('guitarDuelToken')||crypto.randomUUID();
 localStorage.setItem('guitarDuelToken',playerToken);
 
@@ -37,6 +48,7 @@ function showScreen(id){
 }
 
 async function resetGame(){
+  currentGame='pitch';
   await leaveDuel(true);
   clearInterval(countdownTimer);
   score=0;answer=null;state='ready';
@@ -106,22 +118,73 @@ async function submitScore(event){
   const nickname=document.getElementById('nickname').value.trim();
   if(!nickname){formMessage.textContent='닉네임을 입력하세요.';return;}
   const button=document.getElementById('submitScore');button.disabled=true;formMessage.textContent='제출 중...';
-  const {error}=await supabase.from('absolute_pitch_scores').insert({nickname,score});
+  const table=currentGame==='word'?'word_find_scores':'absolute_pitch_scores';
+  const payload=currentGame==='word'?{nickname,time_ms:wordResultMs}:{nickname,score};
+  const {error}=await supabase.from(table).insert(payload);
   if(error){formMessage.textContent='점수를 저장하지 못했습니다. SQL 설정을 확인하세요.';button.disabled=false;return;}
   await showLeaderboard();
 }
 
 async function showLeaderboard(){
   showScreen('leaderboardScreen');
-  document.getElementById('leaderboardEyebrow').textContent='ABSOLUTE PITCH';
-  document.getElementById('leaderboardDescription').textContent='점수가 높은 순서대로 표시됩니다.';
+  const isWord=currentGame==='word';
+  document.getElementById('leaderboardEyebrow').textContent=isWord?'FIND GEURUTEOGI':'ABSOLUTE PITCH';
+  document.getElementById('leaderboardDescription').textContent=isWord?'찾는 데 걸린 시간이 짧은 순서대로 표시됩니다.':'점수가 높은 순서대로 표시됩니다.';
   const board=document.getElementById('leaderboard');
   board.innerHTML='<div class="leaderboard-empty">기록을 불러오는 중...</div>';
-  const {data,error}=await supabase.from('absolute_pitch_scores').select('nickname,score,created_at')
-    .order('score',{ascending:false}).order('created_at',{ascending:true}).limit(100);
+  let query=supabase.from(isWord?'word_find_scores':'absolute_pitch_scores')
+    .select(isWord?'nickname,time_ms,created_at':'nickname,score,created_at');
+  query=isWord?query.order('time_ms',{ascending:true}):query.order('score',{ascending:false});
+  const {data,error}=await query.order('created_at',{ascending:true}).limit(100);
   if(error){board.innerHTML='<div class="leaderboard-empty">리더보드를 불러오지 못했습니다.</div>';return;}
-  board.innerHTML=data.length?data.map((row,index)=>`<div class="leaderboard-row"><span class="leaderboard-rank">${index+1}</span><span class="leaderboard-name">${escapeHtml(row.nickname)}</span><span class="leaderboard-score">${row.score}</span></div>`).join(''):'<div class="leaderboard-empty">아직 등록된 기록이 없습니다.</div>';
+  board.innerHTML=data.length?data.map((row,index)=>`<div class="leaderboard-row"><span class="leaderboard-rank">${index+1}</span><span class="leaderboard-name">${escapeHtml(row.nickname)}</span><span class="leaderboard-score">${isWord?formatWordTime(row.time_ms):row.score}</span></div>`).join(''):'<div class="leaderboard-empty">아직 등록된 기록이 없습니다.</div>';
 }
+
+function openWordGame(){
+  clearInterval(countdownTimer);clearInterval(wordTimer);leaveDuel(true);
+  currentGame='word';wordSelected=new Set();wordAnswerIndexes=createWordBoard();
+  wordProgress.textContent='0 / 4';wordTime.textContent='0.00';wordCheer.style.display='none';
+  showScreen('wordScreen');wordStartedAt=performance.now();
+  wordTimer=setInterval(()=>{wordTime.textContent=formatWordTime(performance.now()-wordStartedAt);},10);
+}
+
+function createWordBoard(){
+  const directions=[[0,1],[1,0],[1,1],[1,-1]];
+  const [dr,dc]=directions[Math.floor(Math.random()*directions.length)];
+  const starts=[];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const er=r+dr*3,ec=c+dc*3;
+    if(er>=0&&er<8&&ec>=0&&ec<8) starts.push([r,c]);
+  }
+  const [sr,sc]=starts[Math.floor(Math.random()*starts.length)];
+  const answer=[0,1,2,3].map(i=>(sr+dr*i)*8+sc+dc*i);
+  const letters=Array.from({length:64},()=>randomSyllables[Math.floor(Math.random()*randomSyllables.length)]);
+  ['그','루','터','기'].forEach((letter,index)=>{letters[answer[index]]=letter;});
+  wordGrid.innerHTML=letters.map((letter,index)=>`<button class="word-cell" data-index="${index}">${letter}</button>`).join('');
+  return answer;
+}
+
+function selectWordCell(button){
+  const index=Number(button.dataset.index);
+  if(wordSelected.has(index)) return;
+  if(!wordAnswerIndexes.includes(index)){
+    button.classList.remove('wrong');void button.offsetWidth;button.classList.add('wrong');return;
+  }
+  wordSelected.add(index);button.classList.add('selected');wordProgress.textContent=`${wordSelected.size} / 4`;
+  if(wordSelected.size===4) finishWordGame();
+}
+
+function finishWordGame(){
+  wordResultMs=Math.max(1,Math.round(performance.now()-wordStartedAt));clearInterval(wordTimer);
+  wordTime.textContent=formatWordTime(wordResultMs);wordCheer.style.display='flex';
+  setTimeout(()=>{
+    document.getElementById('resultTitle').innerHTML=`<strong id="finalScore">${formatWordTime(wordResultMs)}</strong>초`;
+    document.getElementById('correctAnswerText').textContent='그루터기를 모두 찾았습니다.';
+    prepareResultForm();
+  },1300);
+}
+
+function formatWordTime(ms){return (Number(ms)/1000).toFixed(2);}
 
 async function openDuelGame(){
   clearInterval(countdownTimer);await leaveDuel(true);showScreen('duelScreen');
@@ -259,13 +322,15 @@ document.getElementById('previousWeek').addEventListener('click',()=>{location.h
 document.getElementById('nextWeek').addEventListener('click',()=>{location.href='index.html';});
 document.getElementById('openPitchGame').addEventListener('click',resetGame);
 document.getElementById('openDuelGame').addEventListener('click',openDuelGame);
+document.getElementById('openWordGame').addEventListener('click',openWordGame);
 gameStage.addEventListener('click',()=>{if(state==='ready') startRound();});
 choicesEl.addEventListener('click',event=>{const button=event.target.closest('.choice-btn');if(button) chooseAnswer(Number(button.dataset.midi));});
 document.getElementById('scoreForm').addEventListener('submit',submitScore);
-document.getElementById('backToList').addEventListener('click',()=>{state='list';showScreen('listScreen');});
+document.getElementById('backToList').addEventListener('click',()=>{clearInterval(wordTimer);state='list';showScreen('listScreen');});
 document.getElementById('duelJoinForm').addEventListener('submit',joinDuel);
 document.querySelectorAll('.duel-action').forEach(button=>button.addEventListener('pointerdown',()=>duelAction(button.dataset.action)));
 document.getElementById('duelBackToList').addEventListener('click',async()=>{await leaveDuel(true);showScreen('listScreen');});
+wordGrid.addEventListener('click',event=>{const button=event.target.closest('.word-cell');if(button) selectWordCell(button);});
 window.addEventListener('beforeunload',leaveDuel);
 
 initTheme();initHeader();

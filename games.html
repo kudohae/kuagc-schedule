@@ -6,7 +6,7 @@
 <title>미니게임 | 그루터기</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/index.css">
-<link rel="stylesheet" href="css/games.css?v=20260614-3">
+<link rel="stylesheet" href="css/games.css?v=20260614-4">
 </head>
 <body>
 <header>
@@ -54,7 +54,24 @@
       </span>
       <span class="game-card-arrow">›</span>
     </button>
+    <button class="game-card" id="openWordGame">
+      <span class="game-card-icon word-card-icon">글</span>
+      <span class="game-card-copy">
+        <strong>그루터기 찾기</strong>
+        <small>8×8 글자판 어딘가에 숨은 그루터기를 가장 빠르게 찾으세요.</small>
+      </span>
+      <span class="game-card-arrow">›</span>
+    </button>
     <p class="games-coming-soon">추후 업데이트 예정</p>
+  </section>
+
+  <section class="screen word-screen" id="wordScreen">
+    <div class="word-top">
+      <div><span>찾은 글자</span><strong id="wordProgress">0 / 4</strong></div>
+      <div><span>시간</span><strong id="wordTime">0.00</strong></div>
+    </div>
+    <div class="word-grid" id="wordGrid"></div>
+    <div class="word-cheer" id="wordCheer">만세!</div>
   </section>
 
   <section class="screen game-screen" id="gameScreen">
@@ -163,6 +180,6 @@
   </div>
 </div>
 
-<script type="module" src="js/games/main.js?v=20260614-3"></script>
+<script type="module" src="js/games/main.js?v=20260614-4"></script>
 </body>
 </html>
