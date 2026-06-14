@@ -33,6 +33,15 @@ create table if not exists public.guitar_duel_players (
   primary key(code,token),
   unique(code,slot)
 );
+delete from public.guitar_duel_rooms r
+where exists (
+  select 1 from public.guitar_duel_players p
+  where p.code=r.code and p.role is not null
+  group by p.code,p.role
+  having count(*)>1
+);
+create unique index if not exists guitar_duel_players_role_unique
+  on public.guitar_duel_players(code,role) where role is not null;
 alter table public.guitar_duel_rooms enable row level security;
 alter table public.guitar_duel_players enable row level security;
 drop policy if exists "public read guitar duel rooms" on public.guitar_duel_rooms;
@@ -50,7 +59,7 @@ $$;
 
 create or replace function public.join_guitar_duel(p_code text,p_token uuid)
 returns jsonb language plpgsql security definer set search_path=public as $$
-declare c text:=upper(trim(p_code)); r public.guitar_duel_rooms; count_players int; begin
+declare c text:=upper(trim(p_code)); r public.guitar_duel_rooms; count_players int; attack_slot smallint; begin
   if c !~ '^[A-Z0-9]{2,8}$' then return jsonb_build_object('status','invalid'); end if;
   insert into public.guitar_duel_rooms(code) values(c) on conflict(code) do nothing;
   select * into r from public.guitar_duel_rooms where code=c for update;
@@ -65,11 +74,10 @@ declare c text:=upper(trim(p_code)); r public.guitar_duel_rooms; count_players i
   if count_players>=2 then return jsonb_build_object('status','full'); end if;
   insert into public.guitar_duel_players(code,token,slot) values(c,p_token,count_players+1);
   if count_players=1 then
-    if random()<.5 then
-      update public.guitar_duel_players set role=case slot when 1 then 'attack' else 'defend' end where code=c;
-    else
-      update public.guitar_duel_players set role=case slot when 1 then 'defend' else 'attack' end where code=c;
-    end if;
+    attack_slot:=case when random()<.5 then 1 else 2 end;
+    update public.guitar_duel_players
+      set role=case when slot=attack_slot then 'attack' else 'defend' end
+      where code=c;
     update public.guitar_duel_rooms set status='assigning',tension=29,starts_at=now()+interval '5 seconds',ends_at=now()+interval '15 seconds',updated_at=now() where code=c;
   end if;
   return public.guitar_duel_payload(c,p_token);

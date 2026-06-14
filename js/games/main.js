@@ -149,7 +149,7 @@ async function joinDuel(event){
 function subscribeDuel(){
   if(duelChannel) supabase.removeChannel(duelChannel);
   duelChannel=supabase.channel(`guitar-duel-${duelCode}-${playerToken}`)
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'guitar_duel_rooms',filter:`code=eq.${duelCode}`},payload=>renderDuel(payload.new))
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'guitar_duel_rooms',filter:`code=eq.${duelCode}`},()=>requestDuelRefresh())
     .subscribe();
 }
 
@@ -180,11 +180,12 @@ function renderDuel(room){
   }
   if(room.status==='briefing'){
     overlay.style.display='flex';spinner.style.display='none';
-    title.textContent=duelRole==='attack'?'공격':'수비';
-    instruction.textContent=duelRole==='attack'?'줄을 감아 끊어버리세요!':'줄을 풀어 끊기지 않게 하세요!';
+    title.textContent=duelRole==='attack'?'공격':duelRole==='defend'?'수비':'역할 확인 중...';
+    instruction.textContent=duelRole==='attack'?'줄을 감아 끊어버리세요!':duelRole==='defend'?'줄을 풀어 끊기지 않게 하세요!':'잠시만 기다려 주세요.';
     duelClock=setInterval(()=>updateDuelClock(room),50);return;
   }
   if(room.status==='playing'){
+    if(!duelRole){requestDuelRefresh();return;}
     overlay.style.display='none';controls.style.display='grid';
     controls.querySelector('[data-action="attack"]').disabled=duelRole!=='attack';
     controls.querySelector('[data-action="defend"]').disabled=duelRole!=='defend';
