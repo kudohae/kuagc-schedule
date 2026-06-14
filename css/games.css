@@ -58,36 +58,33 @@ body{min-height:100vh;min-height:100svh;overflow-x:hidden;font-family:'Noto Sans
 .duel-arena{display:none;position:relative;min-height:650px;overflow:hidden;}
 .duel-top{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);}
 .duel-top strong{font-family:'Space Mono',monospace;color:var(--accent);}
-.tension-panel{margin:20px auto 0;width:min(440px,90%);text-align:center;font-size:12px;color:var(--text2);}
-.tension-track{height:18px;margin-top:7px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;}
-.tension-fill{height:100%;width:29%;background:linear-gradient(90deg,var(--accent),var(--warn),var(--danger));transition:width .1s;}
-.guitar-head{height:410px;display:grid;place-items:center;overflow:visible;}
-.headstock{position:relative;width:210px;height:365px;border-radius:34px 34px 62px 62px;background:repeating-linear-gradient(92deg,#351b13 0 15px,#48271b 16px 31px,#2d1711 32px 45px);border:5px solid #d5af68;outline:3px solid #5d341e;box-shadow:0 16px 28px rgba(0,0,0,.3);}
-.headstock::after{content:'';position:absolute;inset:5px;border:1px solid rgba(255,226,164,.38);border-radius:26px 26px 54px 54px;pointer-events:none;}
-.headstock-logo{position:absolute;left:0;right:0;top:35px;text-align:center;color:#e7d4a8;font-family:Georgia,serif;font-size:56px;font-weight:700;font-style:italic;text-shadow:0 2px #4b2a18;}
-.tuner{position:absolute;width:48px;height:48px;z-index:3;}
-.tuner-post{position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff3b0 0 12%,#bf7b20 30%,#6f3b0d 58%,#e8b84d 65%,#5f310c 78%);border:2px solid #4f2b12;box-shadow:0 2px 4px rgba(0,0,0,.45);}
-.tuner-key{position:absolute;top:14px;width:53px;height:21px;border-radius:48% 20% 20% 48%;background:linear-gradient(#f4ce72,#9e611c);border:2px solid #61370f;box-shadow:0 2px 3px rgba(0,0,0,.35);}
-.tuner-l1{left:-25px;top:90px}.tuner-l2{left:-25px;top:180px}.tuner-l3{left:-25px;top:270px}
-.tuner-r1{right:-25px;top:90px}.tuner-r2{right:-25px;top:180px}.tuner-r3{right:-25px;top:270px}
-.tuner-l1 .tuner-key,.tuner-l2 .tuner-key,.tuner-l3 .tuner-key{right:29px;transform:rotate(180deg)}
-.tuner-r1 .tuner-key,.tuner-r2 .tuner-key,.tuner-r3 .tuner-key{left:29px}
-#tuningKey{transform-origin:left center;transform:scaleX(var(--key-width,1));transition:transform .12s;box-shadow:0 0 0 3px rgba(232,255,71,.35),0 2px 3px rgba(0,0,0,.35);}
-.guitar-strings{position:absolute;z-index:2;left:0;top:0;width:210px;height:403px;overflow:visible;pointer-events:none;}
-.guitar-string{stroke:#d6a751;stroke-width:2;filter:drop-shadow(0 0 1px rgba(255,240,185,.7));transition:stroke-dasharray .15s;}
-.string-6{stroke-width:3.4}.string-5{stroke-width:3}.string-4{stroke-width:2.6}.string-3{stroke-width:2.2}.string-2{stroke-width:1.8}.string-1{stroke-width:1.4}
-.string-1.broken{stroke-dasharray:42 38 1000;}
-.guitar-nut{position:absolute;z-index:4;left:45px;right:45px;bottom:12px;height:13px;border-radius:3px;background:linear-gradient(#fff9dc,#b9ab83);border:1px solid #756647;}
+.duel-playfield{min-height:430px;display:flex;align-items:center;justify-content:center;}
+.tension-panel{width:min(560px,94%);padding:26px 28px 24px;border:1px solid var(--border);border-radius:18px;background:linear-gradient(145deg,var(--surface),color-mix(in srgb,var(--surface2) 45%,var(--surface)));box-shadow:0 16px 40px rgba(0,0,0,.09);}
+.tension-heading{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;}
+.tension-heading>span{font-size:13px;font-weight:700;color:var(--text2);letter-spacing:.5px;}
+.tension-heading strong{font-family:'Space Mono',monospace;font-size:48px;line-height:.85;color:var(--text);}
+.tension-heading small{font-size:15px;color:var(--text3);margin-left:3px;}
+.tension-track{position:relative;height:56px;border-radius:15px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;box-shadow:inset 0 2px 8px rgba(0,0,0,.12);}
+.tension-zone{position:absolute;inset-block:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;letter-spacing:.7px;color:rgba(0,0,0,.45);}
+.tension-zone.safe{left:0;width:50%;background:rgba(92,158,0,.14)}.tension-zone.warning{left:50%;width:30%;background:rgba(200,118,10,.17)}.tension-zone.break{right:0;width:20%;background:rgba(217,48,37,.18)}
+.tension-fill{position:absolute;inset:0 auto 0 0;width:29%;background:linear-gradient(90deg,rgba(92,158,0,.7),rgba(200,118,10,.78),rgba(217,48,37,.85));transition:width .1s;mix-blend-mode:multiply;}
+body.dark .tension-fill{mix-blend-mode:screen;opacity:.65;}
+.tension-marker{position:absolute;top:5px;bottom:5px;left:29%;width:5px;border-radius:5px;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.25),0 0 12px rgba(255,255,255,.8);transform:translateX(-50%);transition:left .1s;}
+.tension-scale{display:flex;justify-content:space-between;margin-top:8px;font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);}
 .role-overlay{position:absolute;inset:0;z-index:5;background:color-mix(in srgb,var(--bg) 90%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;}
 .role-spinner{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;animation:role-flip .18s infinite alternate;color:var(--warn);}
 @keyframes role-flip{from{transform:rotate(-4deg) scale(.95)}to{transform:rotate(4deg) scale(1.05)}}
 .role-overlay h2{font-size:32px;}
 .role-overlay p{font-size:17px;color:var(--text2);}
-.duel-controls{display:none;position:absolute;left:0;right:0;bottom:14%;grid-template-columns:1fr 1fr;gap:12px;}
-.duel-action{height:82px;border-radius:12px;border:2px solid var(--border);font-family:inherit;font-size:24px;font-weight:900;cursor:pointer;touch-action:manipulation;}
-.duel-action.loosen{background:var(--accent2);color:#fff;}
-.duel-action.wind{background:var(--danger);color:#fff;}
-.duel-action:disabled{opacity:.2;cursor:not-allowed;}
+.duel-controls{display:none;position:absolute;left:0;right:0;bottom:8%;grid-template-columns:1fr 1fr;gap:14px;}
+.duel-action{height:94px;border-radius:18px;border:1px solid transparent;color:#fff;display:flex;align-items:center;justify-content:center;gap:13px;cursor:pointer;touch-action:manipulation;box-shadow:0 12px 24px rgba(0,0,0,.16);transition:transform .09s,filter .12s,opacity .12s;}
+.duel-action:active:not(:disabled){transform:translateY(3px) scale(.98);filter:brightness(.9);}
+.duel-action.loosen{background:linear-gradient(145deg,#168fd4,#0065a8);border-color:#49b5f2;}
+.duel-action.wind{background:linear-gradient(145deg,#ee5148,#b9231b);border-color:#ff827b;}
+.duel-action-icon{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.18);font-family:'Space Mono',monospace;font-size:35px;font-weight:700;line-height:1;}
+.duel-action>span:last-child{display:flex;flex-direction:column;align-items:flex-start;gap:1px;}
+.duel-action strong{font-size:22px;line-height:1.1}.duel-action small{font-size:10px;font-weight:500;opacity:.75;}
+.duel-action:disabled{opacity:.18;cursor:not-allowed;box-shadow:none;filter:grayscale(.5);}
 .duel-result{display:none;position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--bg) 92%,transparent);flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;}
 .duel-result h2{font-size:35px;}
 .duel-result p{color:var(--text2);font-size:16px;}
@@ -119,9 +116,14 @@ body{min-height:100vh;min-height:100svh;overflow-x:hidden;font-family:'Noto Sans
   .result-card{padding:22px 18px;}
   .submit-row{flex-direction:column;}
   .duel-screen,.duel-arena{min-height:calc(100svh - var(--hh) - 60px);}
-  .guitar-head{height:52svh;}
-  .headstock{transform:scale(.88);}
-  .duel-controls{bottom:8%;}
+  .duel-playfield{min-height:55svh;}
+  .tension-panel{padding:21px 17px 19px;}
+  .tension-heading strong{font-size:42px;}
+  .tension-track{height:50px;}
+  .duel-controls{bottom:5%;gap:8px;}
+  .duel-action{height:82px;border-radius:14px;gap:8px;}
+  .duel-action-icon{width:38px;height:38px;font-size:28px;}
+  .duel-action strong{font-size:19px}.duel-action small{display:none;}
   .word-screen{min-height:calc(100svh - var(--hh) - 60px);}
   .word-grid{gap:3px;}
   .word-cell{border-radius:5px;font-size:17px;}

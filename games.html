@@ -6,7 +6,7 @@
 <title>미니게임 | 그루터기</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/index.css">
-<link rel="stylesheet" href="css/games.css?v=20260614-4">
+<link rel="stylesheet" href="css/games.css?v=20260614-5">
 </head>
 <body>
 <header>
@@ -104,28 +104,20 @@
         <span>방 <strong id="duelRoomCode">—</strong></span>
         <span>남은 시간 <strong id="duelTime">10.0</strong></span>
       </div>
-      <div class="tension-panel">
-        <span>줄 장력</span>
-        <div class="tension-track"><div class="tension-fill" id="tensionFill"></div></div>
-      </div>
-      <div class="guitar-head">
-        <div class="headstock">
-          <div class="headstock-logo">G</div>
-          <div class="tuner tuner-l1"><span class="tuner-post"></span><span class="tuner-key"></span></div>
-          <div class="tuner tuner-l2"><span class="tuner-post"></span><span class="tuner-key"></span></div>
-          <div class="tuner tuner-l3"><span class="tuner-post"></span><span class="tuner-key"></span></div>
-          <div class="tuner tuner-r1"><span class="tuner-post"></span><span class="tuner-key"></span></div>
-          <div class="tuner tuner-r2"><span class="tuner-post"></span><span class="tuner-key"></span></div>
-          <div class="tuner tuner-r3"><span class="tuner-post"></span><span class="tuner-key active-key" id="tuningKey"></span></div>
-          <svg class="guitar-strings" viewBox="0 0 210 403" aria-hidden="true">
-            <line class="guitar-string string-6" x1="68" y1="403" x2="-1" y2="294"/>
-            <line class="guitar-string string-5" x1="82" y1="403" x2="-1" y2="204"/>
-            <line class="guitar-string string-4" x1="96" y1="403" x2="-1" y2="114"/>
-            <line class="guitar-string string-3" x1="114" y1="403" x2="211" y2="114"/>
-            <line class="guitar-string string-2" x1="128" y1="403" x2="211" y2="204"/>
-            <line class="guitar-string string-1" id="guitarString" x1="142" y1="403" x2="211" y2="294"/>
-          </svg>
-          <div class="guitar-nut"></div>
+      <div class="duel-playfield">
+        <div class="tension-panel">
+          <div class="tension-heading">
+            <span>줄 장력</span>
+            <strong><span id="tensionValue">29</span><small>%</small></strong>
+          </div>
+          <div class="tension-track">
+            <div class="tension-zone safe">안전</div>
+            <div class="tension-zone warning">위험</div>
+            <div class="tension-zone break">끊어짐</div>
+            <div class="tension-fill" id="tensionFill"></div>
+            <div class="tension-marker" id="tensionMarker"></div>
+          </div>
+          <div class="tension-scale"><span>0</span><span>50</span><span>100</span></div>
         </div>
       </div>
       <div class="role-overlay" id="roleOverlay">
@@ -134,8 +126,8 @@
         <p id="roleInstruction"></p>
       </div>
       <div class="duel-controls" id="duelControls">
-        <button class="duel-action loosen" data-action="defend">풀기</button>
-        <button class="duel-action wind" data-action="attack">감기</button>
+        <button class="duel-action loosen" data-action="defend"><span class="duel-action-icon">−</span><span><strong>풀기</strong><small>장력을 낮춥니다</small></span></button>
+        <button class="duel-action wind" data-action="attack"><span class="duel-action-icon">+</span><span><strong>감기</strong><small>장력을 높입니다</small></span></button>
       </div>
       <div class="duel-result" id="duelResult">
         <h2 id="duelResultTitle"></h2>
@@ -180,6 +172,6 @@
   </div>
 </div>
 
-<script type="module" src="js/games/main.js?v=20260614-4"></script>
+<script type="module" src="js/games/main.js?v=20260614-5"></script>
 </body>
 </html>

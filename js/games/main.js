@@ -221,9 +221,8 @@ function renderDuel(room){
   duelPhase=room.status;
   const tension=Math.max(0,Math.min(100,room.tension));
   document.getElementById('tensionFill').style.width=`${tension}%`;
-  const keyPhase=(tension-29)*Math.PI/12;
-  document.getElementById('tuningKey').style.setProperty('--key-width',(1+Math.abs(Math.sin(keyPhase))*2.4).toFixed(2));
-  document.getElementById('guitarString').classList.toggle('broken',room.winner==='attack');
+  document.getElementById('tensionMarker').style.left=`${tension}%`;
+  document.getElementById('tensionValue').textContent=tension;
   clearInterval(duelClock);
   const overlay=document.getElementById('roleOverlay');
   const spinner=document.getElementById('roleSpinner');
