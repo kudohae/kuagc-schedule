@@ -60,12 +60,23 @@ body{min-height:100vh;min-height:100svh;overflow-x:hidden;}
 .tension-panel{margin:20px auto 0;width:min(440px,90%);text-align:center;font-size:12px;color:var(--text2);}
 .tension-track{height:18px;margin-top:7px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;}
 .tension-fill{height:100%;width:29%;background:linear-gradient(90deg,var(--accent),var(--warn),var(--danger));transition:width .1s;}
-.guitar-head{height:390px;display:grid;place-items:center;}
-.headstock{position:relative;width:180px;height:330px;border-radius:70px 70px 35px 35px;background:linear-gradient(90deg,#8c4f22,#c87b38 48%,#8c4f22);border:5px solid #673719;transform:rotate(-7deg);box-shadow:0 14px 25px rgba(0,0,0,.25);}
-.tuning-post{position:absolute;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle,#eee 0 18%,#999 20% 48%,#555 50%);right:-22px;top:85px;border:4px solid #444;}
-.tuning-key{position:absolute;width:105px;height:40px;border-radius:14px;background:linear-gradient(#eee,#888);right:-95px;top:103px;border:3px solid #555;transform-origin:left center;transition:transform .12s;}
-.guitar-string{position:absolute;width:3px;height:280px;background:#ddd;right:16px;top:-90px;transform:rotate(7deg);transform-origin:bottom;box-shadow:0 0 3px #fff;}
-.guitar-string.broken{height:125px;transform:rotate(24deg);}
+.guitar-head{height:410px;display:grid;place-items:center;overflow:visible;}
+.headstock{position:relative;width:210px;height:365px;border-radius:34px 34px 62px 62px;background:repeating-linear-gradient(92deg,#351b13 0 15px,#48271b 16px 31px,#2d1711 32px 45px);border:5px solid #d5af68;outline:3px solid #5d341e;box-shadow:0 16px 28px rgba(0,0,0,.3);}
+.headstock::after{content:'';position:absolute;inset:5px;border:1px solid rgba(255,226,164,.38);border-radius:26px 26px 54px 54px;pointer-events:none;}
+.headstock-logo{position:absolute;left:0;right:0;top:35px;text-align:center;color:#e7d4a8;font-family:Georgia,serif;font-size:56px;font-weight:700;font-style:italic;text-shadow:0 2px #4b2a18;}
+.tuner{position:absolute;width:48px;height:48px;z-index:3;}
+.tuner-post{position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff3b0 0 12%,#bf7b20 30%,#6f3b0d 58%,#e8b84d 65%,#5f310c 78%);border:2px solid #4f2b12;box-shadow:0 2px 4px rgba(0,0,0,.45);}
+.tuner-key{position:absolute;top:14px;width:53px;height:21px;border-radius:48% 20% 20% 48%;background:linear-gradient(#f4ce72,#9e611c);border:2px solid #61370f;box-shadow:0 2px 3px rgba(0,0,0,.35);}
+.tuner-l1{left:-25px;top:90px}.tuner-l2{left:-25px;top:180px}.tuner-l3{left:-25px;top:270px}
+.tuner-r1{right:-25px;top:90px}.tuner-r2{right:-25px;top:180px}.tuner-r3{right:-25px;top:270px}
+.tuner-l1 .tuner-key,.tuner-l2 .tuner-key,.tuner-l3 .tuner-key{right:29px;transform:rotate(180deg)}
+.tuner-r1 .tuner-key,.tuner-r2 .tuner-key,.tuner-r3 .tuner-key{left:29px}
+.active-key{transform-origin:left center;transition:transform .12s;box-shadow:0 0 0 3px rgba(232,255,71,.35),0 2px 3px rgba(0,0,0,.35);}
+.guitar-string{position:absolute;z-index:2;bottom:-38px;width:2px;height:275px;background:linear-gradient(90deg,#755021,#f5d78d,#755021);transform-origin:bottom;box-shadow:0 0 2px rgba(255,240,185,.6);transition:height .15s,transform .15s;}
+.string-6{left:68px;height:250px;transform:rotate(-11deg)}.string-5{left:82px;height:320px;transform:rotate(-7deg)}.string-4{left:96px;height:350px;transform:rotate(-3deg)}
+.string-3{right:96px;height:350px;transform:rotate(3deg)}.string-2{right:82px;height:320px;transform:rotate(7deg)}.string-1{right:68px;height:250px;transform:rotate(11deg)}
+.string-1.broken{height:105px;transform:rotate(35deg);}
+.guitar-nut{position:absolute;z-index:4;left:45px;right:45px;bottom:12px;height:13px;border-radius:3px;background:linear-gradient(#fff9dc,#b9ab83);border:1px solid #756647;}
 .role-overlay{position:absolute;inset:0;z-index:5;background:color-mix(in srgb,var(--bg) 90%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;}
 .role-spinner{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;animation:role-flip .18s infinite alternate;color:var(--warn);}
 @keyframes role-flip{from{transform:rotate(-4deg) scale(.95)}to{transform:rotate(4deg) scale(1.05)}}
@@ -94,6 +105,6 @@ body{min-height:100vh;min-height:100svh;overflow-x:hidden;}
   .submit-row{flex-direction:column;}
   .duel-screen,.duel-arena{min-height:calc(100svh - var(--hh) - 60px);}
   .guitar-head{height:52svh;}
-  .headstock{transform:rotate(-7deg) scale(.88);}
+  .headstock{transform:scale(.88);}
   .duel-controls{bottom:8%;}
 }
