@@ -1385,6 +1385,7 @@ window.addTeam=async function(){
 
 // ── APPLY ─────────────────────────────────────────────────────────────
 function renderApply(){
+  const isDiscarded=round&&round.status==='discarded';
   const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date();
   const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date());
   const isFin=round&&round.status==='finished'&&!round.draft_approved;
@@ -1393,7 +1394,7 @@ function renderApply(){
 
   let statusCls=isOpen?'open':isFin?'finished':'closed';
   let statusIcon=isOpen?'🟢':isFin?'🔵':isScheduled?'⏳':isClosed?'🟡':'⭕';
-  let statusTitle=isOpen?'신청 진행 중':isFin?'배정 완료':isScheduled?'신청 예약됨':isClosed?'신청 마감됨 — 배정 대기':'신청 기간 아님';
+  let statusTitle=isOpen?'신청 진행 중':isFin?'배정 완료':isScheduled?'신청 예약됨':isClosed?'신청 마감됨 — 배정 대기':isDiscarded?'신청 폐기됨':'신청 기간 아님';
   let statusSub=isScheduled?`${fmtScheduled(round.open_at)}에 신청 시작`:isOpen&&round.close_at?'마감: '+new Date(round.close_at).toLocaleString('ko-KR'):'';
 
   let html=`<div class="apply-status ${statusCls}">
@@ -1406,7 +1407,7 @@ function renderApply(){
     </div>
     <div class="apply-status-actions">`;
 
-  if(!round||round.draft_approved){
+  if(!round||round.draft_approved||isDiscarded){
     html+=`<button class="btn btn-p btn-xs" onclick="openNewRoundModal()">새 신청 설정</button>`;
   } else if(isScheduled){
     html+=`<button class="btn btn-s btn-xs" onclick="openChangeScheduleModal()">예약 변경</button>
@@ -1585,7 +1586,7 @@ window.discardRound=async function(){
   try{
     if(round){
       await supabase.from('time_applications').delete().eq('round_id',round.id);
-      await updateRound(round.id,{status:'closed',draft_approved:true});
+      await updateRound(round.id,{status:'discarded',draft_approved:false});
     }
     round=null; applications=[]; closeModal(); toast('신청이 폐기되었습니다','ok'); renderApply();
   }catch(e){toast(errMsg(e),'err');}
@@ -3170,11 +3171,14 @@ function showModal(title,body,foot){
   if(isMobile()){
     const modal=document.querySelector('#modalBd .modal');
     if(!modal) return;
-    let startY=0,isDragging=false;
+    modal._swipeState={startY:0,isDragging:false};
     modal.style.transform='';
-    modal.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;isDragging=true;modal.style.transition='none';},{passive:true,once:false});
-    modal.addEventListener('touchmove',e=>{if(!isDragging)return;const dy=e.touches[0].clientY-startY;if(dy>0)modal.style.transform=`translateY(${dy}px)`;},{passive:true,once:false});
-    modal.addEventListener('touchend',e=>{if(!isDragging)return;isDragging=false;const dy=e.changedTouches[0].clientY-startY;modal.style.transition='transform .2s';if(dy>100){modal.style.transform=`translateY(100%)`;setTimeout(closeModal,200);}else{modal.style.transform='';}},{once:false});
+    if(!modal._swipeInit){
+      modal._swipeInit=true;
+      modal.addEventListener('touchstart',e=>{modal._swipeState.startY=e.touches[0].clientY;modal._swipeState.isDragging=true;modal.style.transition='none';},{passive:true});
+      modal.addEventListener('touchmove',e=>{if(!modal._swipeState.isDragging)return;const dy=e.touches[0].clientY-modal._swipeState.startY;if(dy>0)modal.style.transform=`translateY(${dy}px)`;},{passive:true});
+      modal.addEventListener('touchend',e=>{if(!modal._swipeState.isDragging)return;modal._swipeState.isDragging=false;const dy=e.changedTouches[0].clientY-modal._swipeState.startY;modal.style.transition='transform .2s';if(dy>100){modal.style.transform=`translateY(100%)`;setTimeout(closeModal,200);}else{modal.style.transform='';}});
+    }
   }
 }
 window.closeModal=()=>{document.getElementById('modalBd').style.display='none';document.body.style.overflow='';};

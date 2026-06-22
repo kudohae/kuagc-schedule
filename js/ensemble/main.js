@@ -20,7 +20,7 @@ let _presenceCount = 0;
 let manualEntries={regular:[],busking:[]};
 
 function broadcastRefresh(){
-  _bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});
+  _bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});
 }
 function updatePresenceBadge(){const el=document.getElementById('presenceCount');if(el)el.textContent=`현재 접속자 ${_presenceCount}명`;}
 
@@ -68,8 +68,14 @@ export async function init(outerContainer) {
       .subscribe();
 
     _bcChannel=supabase.channel('ens-pub')
-      .on('broadcast',{event:'update'},()=>loadAll(true))
-      .on('broadcast',{event:'songUpdate'},()=>loadAll(true))
+      .on('broadcast',{event:'update'},payload=>{
+        if(payload?.payload?.scope==='applications') refreshList();
+        else loadAll(true);
+      })
+      .on('broadcast',{event:'songUpdate'},payload=>{
+        if(payload?.payload?.scope==='applications') refreshList();
+        else loadAll(true);
+      })
       .subscribe();
 
     _presenceCh=supabase.channel('presence-ens')
@@ -334,7 +340,7 @@ function render(){
           ${SESSIONS.map(s=>`<input type="checkbox" class="session-chk" id="ms_${s.replace(/\s/g,'_')}" value="${s}" disabled/><label class="session-label" for="ms_${s.replace(/\s/g,'_')}">${s}</label>`).join('')}
         </div>
       </div>
-      <div class="form-footer"><button class="btn btn-p" onclick="submitSong()">곡 신청</button></div>
+      <div class="form-footer"><button class="btn btn-p" id="submitSongBtn" onclick="submitSong()">곡 신청</button></div>
     </div>`;
   }
 
@@ -705,19 +711,24 @@ window.submitSong=async function(){
   if(myCount>=r.max_songs_per_person){window.toast(`인당 최대 ${r.max_songs_per_person}곡까지 신청 가능합니다`,'err');return;}
   const totalCount=songs[currentType].filter(s=>s.status!=='rejected').length;
   if(totalCount>=r.max_songs){window.toast('신청 가능한 곡 수가 초과됐습니다','err');return;}
+  const btn=document.getElementById('submitSongBtn');
+  if(btn){btn.disabled=true;btn.textContent='처리 중...';}
+  let songData=null;
   try{
-    const {data:songData,error:sErr}=await supabase.from('song_applications').insert({
+    const {data,error:sErr}=await supabase.from('song_applications').insert({
       round_id:r.id,applicant_name:name,student_id:sid,title,artist,sessions,status:'confirmed'
     }).select().single();
     if(sErr) throw sErr;
+    songData=data;
     // ensure confirmed even if a DB trigger overrides the status on insert
     if(songData.status!=='confirmed'){
-      await supabase.from('song_applications').update({status:'confirmed'}).eq('id',songData.id);
+      const {error:statusErr}=await supabase.from('song_applications').update({status:'confirmed'}).eq('id',songData.id);
+      if(statusErr) throw statusErr;
     }
     const {error:sessErr}=await supabase.from('session_applications').insert({
       song_id:songData.id,round_id:r.id,applicant_name:name,student_id:sid,sessions:mySessions,status:'pending',session_round:1
     });
-    if(sessErr) console.error('신청자 세션 등록 실패:',sessErr.message);
+    if(sessErr) throw sessErr;
     _pendingSongs.set(songData.id, songData);
     setTimeout(()=>_pendingSongs.delete(songData.id), 5000);
     songs[currentType]=[...songs[currentType],songData];
@@ -732,7 +743,13 @@ window.submitSong=async function(){
     window.toast('곡 신청이 완료됐습니다','ok');
     broadcastRefresh();
     render();
-  }catch(e){window.toast(errMsg(e),'err');}
+  }catch(e){
+    if(songData?.id){
+      await supabase.from('song_applications').delete().eq('id',songData.id).catch(()=>{});
+    }
+    window.toast(errMsg(e),'err');
+    if(btn){btn.disabled=false;btn.textContent='곡 신청';}
+  }
 };
 
 window.submitSession=async function(){
@@ -858,13 +875,13 @@ function showModal(title,body,foot){
   modalBd.style.display='flex';
   document.body.style.overflow='hidden';
   if(window.innerWidth<=700&&modal){
-    let startY=0,isDragging=false;
-    const onStart=e=>{startY=e.touches[0].clientY;isDragging=true;modal.style.transition='none';};
-    const onMove=e=>{if(!isDragging)return;const dy=e.touches[0].clientY-startY;if(dy>0)modal.style.transform=`translateY(${dy}px)`;};
-    const onEnd=e=>{if(!isDragging)return;isDragging=false;const dy=e.changedTouches[0].clientY-startY;modal.style.transition='transform .2s';if(dy>100){modal.style.transform=`translateY(100%)`;setTimeout(()=>window.closeModal?.(),200);}else{modal.style.transform='';}};
-    modal.addEventListener('touchstart',onStart,{passive:true});
-    modal.addEventListener('touchmove',onMove,{passive:true});
-    modal.addEventListener('touchend',onEnd);
+    modal._swipeState={startY:0,isDragging:false};
+    if(!modal._swipeInit){
+      modal._swipeInit=true;
+      modal.addEventListener('touchstart',e=>{modal._swipeState.startY=e.touches[0].clientY;modal._swipeState.isDragging=true;modal.style.transition='none';},{passive:true});
+      modal.addEventListener('touchmove',e=>{if(!modal._swipeState.isDragging)return;const dy=e.touches[0].clientY-modal._swipeState.startY;if(dy>0)modal.style.transform=`translateY(${dy}px)`;},{passive:true});
+      modal.addEventListener('touchend',e=>{if(!modal._swipeState.isDragging)return;modal._swipeState.isDragging=false;const dy=e.changedTouches[0].clientY-modal._swipeState.startY;modal.style.transition='transform .2s';if(dy>100){modal.style.transform=`translateY(100%)`;setTimeout(()=>window.closeModal?.(),200);}else{modal.style.transform='';}});
+    }
   }
 }
 
