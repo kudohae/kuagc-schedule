@@ -13,10 +13,40 @@ let _outerContainer=null;
 let _lastSchoolSubmitTs=0;
 let _pollTimer=null;
 
-function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});}
+function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});}
 function updatePresenceBadge(){const el=document.getElementById('presenceCount');if(el)el.textContent=`현재 접속자 ${_presenceCount}명`;}
 
 function escHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function captureOpenFormState(){
+  const active=document.activeElement;
+  const ids=['applyName','applySid','applyPref1','applyPref2'];
+  const values={};
+  ids.forEach(id=>{const el=document.getElementById(id); if(el) values[id]=el.value;});
+  return {
+    values,
+    activeId: ids.includes(active?.id) ? active.id : null,
+    selectionStart: typeof active?.selectionStart==='number' ? active.selectionStart : null,
+    selectionEnd: typeof active?.selectionEnd==='number' ? active.selectionEnd : null,
+  };
+}
+
+function restoreOpenFormState(state){
+  if(!state) return;
+  Object.entries(state.values||{}).forEach(([id,value])=>{
+    const el=document.getElementById(id);
+    if(el) el.value=value;
+  });
+  if(state.activeId){
+    const el=document.getElementById(state.activeId);
+    if(el){
+      try{el.focus({preventScroll:true});}catch(e){el.focus();}
+      if(typeof el.setSelectionRange==='function'&&state.selectionStart!=null){
+        el.setSelectionRange(state.selectionStart,state.selectionEnd);
+      }
+    }
+  }
+}
 
 function stopCd(){if(cdTimer){clearInterval(cdTimer);cdTimer=null;}}
 
@@ -191,6 +221,7 @@ async function autoOpen(){
 function renderOpen(){
   const el=document.getElementById('container');
   if(!el) return;
+  const formState=captureOpenFormState();
   const name=getRoundName();
   const closeAt=round.close_at;
   if(closeAt&&new Date(closeAt)<=serverNow()){autoClose();return;}
@@ -226,6 +257,7 @@ function renderOpen(){
 
   html+=renderClassCards(true);
   el.innerHTML=html;
+  restoreOpenFormState(formState);
   updatePresenceBadge();
   if(closeAt) startCd(closeAt,autoClose);
 }
@@ -377,7 +409,7 @@ window.submitApply=async function(){
   const pref2=pref2Raw?parseInt(pref2Raw):null;
   if(pref2&&pref2===pref1){window.toast('1지망과 2지망이 같습니다','err');return;}
 
-  const existing=apps.find(a=>a.student_id===sid);
+  const existing=apps.find(a=>a.round_id===round.id&&a.student_id===sid);
   if(existing){
     if(!confirm('이미 신청한 내역이 있습니다.\n기존 신청이 철회되고 새로 신청됩니다. 계속하시겠습니까?')) return;
   }
@@ -386,36 +418,24 @@ window.submitApply=async function(){
   const btn=document.getElementById('applySubmitBtn');
   if(btn){btn.disabled=true;btn.textContent='처리 중...';}
   try{
-    const returning=isReturning(sid);
-    let assignedId=null, status;
-    if(returning){
-      status='pending';
-    } else {
-      // B5: 기존 신청을 제외한 정원 계산으로 올바른 배정 결정
-      assignedId=pickClass(pref1,pref2,existing?.id);
-      status=assignedId?'assigned':'unassigned';
-    }
-
-    // B5: insert 먼저 — 실패해도 기존 신청이 그대로 남음
-    const {error}=await supabase.from('school_applications').insert({
-      round_id:round.id,applicant_name:name,student_id:sid,
-      pref1_school_id:pref1,pref2_school_id:pref2||null,
-      assigned_school_id:assignedId,is_returning:returning,status
+    const {data:app,error}=await supabase.rpc('submit_school_application',{
+      p_round_id:round.id,
+      p_applicant_name:name,
+      p_student_id:sid,
+      p_pref1_school_id:pref1,
+      p_pref2_school_id:pref2||null
     });
     if(error) throw error;
 
-    // insert 성공 후 기존 신청 삭제
-    if(existing){
-      const {error:eDel}=await supabase.from('school_applications').delete().eq('id',existing.id);
-      if(eDel) console.warn('기존 신청 삭제 실패(새 신청은 등록됨):', eDel);
-      apps=apps.filter(a=>a.id!==existing.id);
-    }
-
+    apps=apps.filter(a=>!(a.round_id===round.id&&a.student_id===sid));
+    if(app) apps.push(app);
+    ['applyName','applySid','applyPref1','applyPref2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     broadcastRefresh();
-    if(returning){
+    render();
+    if(app?.status==='pending'){
       window.toast('신청 등록 완료. 이전 회차 수강자로, 마감 후 남은 자리에 배정될 예정입니다.','ok');
-    } else if(assignedId){
-      const c=classes.find(x=>x.id===assignedId);
+    } else if(app?.assigned_school_id){
+      const c=classes.find(x=>x.id===app.assigned_school_id);
       window.toast(`${c?.name||'반'}에 배정됐습니다!`,'ok');
     } else {
       window.toast('신청 등록 완료. 현재 모든 반이 만석입니다.','');

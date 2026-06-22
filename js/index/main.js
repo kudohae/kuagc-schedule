@@ -52,7 +52,7 @@ async function loadAll(){
     const [t,bs,ex,rq,nt,ct,roundRes,ensRes,schoolRes] = await Promise.all([
       fetchTeams(), fetchBaseSlots(season), fetchExceptions(weekOff),
       fetchRequests(weekOff), fetchNotices(), fetchContacts(),
-      import('../supabase.js').then(({supabase})=>supabase.from('application_rounds').select('*').in('status',['open','closed']).order('created_at',{ascending:false}).limit(1).maybeSingle()),
+      import('../supabase.js').then(({supabase})=>supabase.from('application_rounds').select('*').order('created_at',{ascending:false}).limit(1).maybeSingle()),
       import('../supabase.js').then(({supabase})=>supabase.from('ensemble_rounds').select('*').not('phase','eq','closed').order('created_at',{ascending:false}).limit(1).maybeSingle()),
       import('../supabase.js').then(({supabase})=>supabase.from('school_rounds').select('*').in('status',['draft','open']).order('created_at',{ascending:false}).limit(1).maybeSingle())
     ]);

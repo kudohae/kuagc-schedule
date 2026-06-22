@@ -41,7 +41,7 @@ let _presenceCount=0;
 let _lastTaSubmitTs=0;
 let _pollTimer=null;
 
-function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{}}).catch(()=>{});}
+function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});}
 function updatePresenceBadge(){const el=document.getElementById('presenceCount');if(el)el.textContent=`현재 접속자 ${_presenceCount}명`;}
 
 // ── EXPORTED INIT ─────────────────────────────────────────────────────
@@ -91,9 +91,8 @@ export async function init(outerContainer) {
     _bcChannel=supabase.channel('ta-pub')
       .on('broadcast',{event:'update'},async()=>{
         if(!document.getElementById('applyContent')) return;
-        round=await fetchActiveRound(season).catch(()=>round);
         if(round) applications=await fetchApplications(round.id);
-        render();
+        renderList();
       })
       .subscribe();
 
@@ -151,6 +150,23 @@ function render(){
   // If close_at has passed while status is still 'open', auto-close immediately
   if(round&&round.status==='open'&&round.close_at&&new Date(round.close_at)<=serverNow()){
     autoCloseRound(); return;
+  }
+
+  if(!round||round.status==='discarded'){
+    contentEl.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <h2 style="font-size:15px;font-weight:700">📅 시간 배정 신청</h2>
+        <span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span>
+      </div>
+      <div class="apply-status closed">
+        <div class="apply-status-icon">⭕</div>
+        <div class="apply-status-texts">
+          <div class="apply-status-title">진행 중 회차 없음</div>
+          <div class="apply-status-sub">관리자가 신청을 열면 여기서 신청할 수 있습니다.</div>
+        </div>
+      </div>`;
+    updatePresenceBadge();
+    return;
   }
 
   const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date(serverNow());
