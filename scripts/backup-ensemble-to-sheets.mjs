@@ -1,9 +1,8 @@
-import crypto from 'node:crypto';
-
 const SUPABASE_URL = requiredEnv('SUPABASE_URL').replace(/\/+$/, '');
 const SUPABASE_KEY = requiredEnv('SUPABASE_ANON_KEY');
-const GOOGLE_SHEET_ID = requiredEnv('GOOGLE_SHEET_ID');
-const GOOGLE_SERVICE_ACCOUNT_JSON = requiredEnv('GOOGLE_SERVICE_ACCOUNT_JSON');
+const APPS_SCRIPT_WEBAPP_URL = process.env.GOOGLE_SHEETS_WEBAPP_URL || '';
+const APPS_SCRIPT_SHARED_SECRET = process.env.GOOGLE_SHEETS_WEBAPP_SECRET || '';
+const DRY_RUN = process.env.BACKUP_DRY_RUN === '1';
 
 const BACKUP_TABLES = [
   { name: 'ensemble_rounds', order: 'created_at.asc' },
@@ -38,19 +37,23 @@ main().catch(error => {
 });
 
 async function main() {
-  const accessToken = await getGoogleAccessToken(parseServiceAccount(GOOGLE_SERVICE_ACCOUNT_JSON));
+  if (!DRY_RUN) {
+    if (!APPS_SCRIPT_WEBAPP_URL) throw new Error('Missing required environment variable: GOOGLE_SHEETS_WEBAPP_URL');
+    if (!APPS_SCRIPT_SHARED_SECRET) throw new Error('Missing required environment variable: GOOGLE_SHEETS_WEBAPP_SECRET');
+  }
+
   const tables = Object.fromEntries(
     await Promise.all(BACKUP_TABLES.map(async table => [table.name, await fetchSupabaseRows(table)]))
   );
 
-  const now = new Date().toISOString();
-  const sheetData = [
+  const syncedAt = new Date().toISOString();
+  const sheets = [
     {
       title: 'backup_status',
       rows: [
         SHEET_COLUMNS.backup_status,
         [
-          now,
+          syncedAt,
           'Supabase KUAGC Schedule',
           tables.ensemble_rounds.length,
           tables.song_applications.length,
@@ -69,29 +72,47 @@ async function main() {
     },
   ];
 
-  await ensureSheets(accessToken, sheetData.map(sheet => sheet.title));
-  await clearSheets(accessToken, sheetData.map(sheet => sheet.title));
-  await writeSheets(accessToken, sheetData);
+  const payload = {
+    secret: APPS_SCRIPT_SHARED_SECRET,
+    synced_at: syncedAt,
+    source: 'kuagc-schedule',
+    sheets,
+  };
 
-  console.log(`Backed up ${tables.song_applications.length} songs and ${tables.session_applications.length} session applications at ${now}.`);
+  if (DRY_RUN) {
+    console.log(`Dry run built ${sheets.length} sheets from ${tables.song_applications.length} songs and ${tables.session_applications.length} session applications.`);
+    return;
+  }
+
+  const response = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Apps Script backup failed: ${response.status} ${await response.text()}`);
+  }
+
+  const resultText = await response.text();
+  let result = {};
+  try {
+    result = resultText ? JSON.parse(resultText) : {};
+  } catch {
+    throw new Error(`Apps Script returned non-JSON response: ${resultText.slice(0, 200)}`);
+  }
+
+  if (result.ok !== true) {
+    throw new Error(`Apps Script rejected backup: ${JSON.stringify(result)}`);
+  }
+
+  console.log(`Backed up ${tables.song_applications.length} songs and ${tables.session_applications.length} session applications at ${syncedAt}.`);
 }
 
 function requiredEnv(name) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
-}
-
-function parseServiceAccount(raw) {
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed.client_email || !parsed.private_key) {
-      throw new Error('service account JSON must include client_email and private_key');
-    }
-    return parsed;
-  } catch (error) {
-    throw new Error(`GOOGLE_SERVICE_ACCOUNT_JSON is not valid service account JSON: ${error.message}`);
-  }
 }
 
 async function fetchSupabaseRows({ name, order }) {
@@ -184,106 +205,4 @@ function sortHeaders(a, b) {
 
 function uniqueSorted(values) {
   return [...new Set(values.filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'ko'));
-}
-
-async function getGoogleAccessToken(serviceAccount) {
-  const now = Math.floor(Date.now() / 1000);
-  const assertion = signJwt(
-    { alg: 'RS256', typ: 'JWT' },
-    {
-      iss: serviceAccount.client_email,
-      scope: 'https://www.googleapis.com/auth/spreadsheets',
-      aud: 'https://oauth2.googleapis.com/token',
-      iat: now,
-      exp: now + 3600,
-    },
-    serviceAccount.private_key
-  );
-
-  const body = new URLSearchParams({
-    grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-    assertion,
-  });
-
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Google token request failed: ${response.status} ${await response.text()}`);
-  }
-
-  const json = await response.json();
-  return json.access_token;
-}
-
-function signJwt(header, payload, privateKey) {
-  const encodedHeader = base64url(JSON.stringify(header));
-  const encodedPayload = base64url(JSON.stringify(payload));
-  const input = `${encodedHeader}.${encodedPayload}`;
-  const signature = crypto.sign('RSA-SHA256', Buffer.from(input), privateKey);
-  return `${input}.${base64url(signature)}`;
-}
-
-function base64url(value) {
-  return Buffer.from(value)
-    .toString('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-}
-
-async function ensureSheets(accessToken, titles) {
-  const metadata = await sheetsFetch(accessToken, '', { method: 'GET' });
-  const existing = new Set((metadata.sheets || []).map(sheet => sheet.properties.title));
-  const missing = titles.filter(title => !existing.has(title));
-  if (!missing.length) return;
-
-  await sheetsFetch(accessToken, ':batchUpdate', {
-    method: 'POST',
-    body: JSON.stringify({
-      requests: missing.map(title => ({ addSheet: { properties: { title } } })),
-    }),
-  });
-}
-
-async function clearSheets(accessToken, titles) {
-  await sheetsFetch(accessToken, '/values:batchClear', {
-    method: 'POST',
-    body: JSON.stringify({ ranges: titles.map(title => `'${title.replace(/'/g, "''")}'!A:ZZZ`) }),
-  });
-}
-
-async function writeSheets(accessToken, sheets) {
-  await sheetsFetch(accessToken, '/values:batchUpdate', {
-    method: 'POST',
-    body: JSON.stringify({
-      valueInputOption: 'RAW',
-      data: sheets.map(sheet => ({
-        range: `'${sheet.title.replace(/'/g, "''")}'!A1`,
-        values: sheet.rows,
-      })),
-    }),
-  });
-}
-
-async function sheetsFetch(accessToken, path, init) {
-  const separator = path.startsWith('/') || path.startsWith(':') ? '' : '/';
-  const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}${separator}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'content-type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Google Sheets request failed: ${response.status} ${await response.text()}`);
-  }
-
-  const text = await response.text();
-  return text ? JSON.parse(text) : {};
 }
