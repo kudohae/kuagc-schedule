@@ -25,6 +25,10 @@ jobs:
           cp -r *.html css js .nojekyll CNAME /tmp/site/
           [ -d guides ] && cp -r guides /tmp/site/
 
+          rm -rf /tmp/current-gh-pages
+          git clone --depth 1 --branch gh-pages "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" /tmp/current-gh-pages || true
+          [ -d /tmp/current-gh-pages/data ] && cp -r /tmp/current-gh-pages/data /tmp/site/
+
           cd /tmp/site
           git init -b gh-pages
           git add .

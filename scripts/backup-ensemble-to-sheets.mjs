@@ -1,8 +1,12 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
+
 const SUPABASE_URL = requiredEnv('SUPABASE_URL').replace(/\/+$/, '');
 const SUPABASE_KEY = requiredEnv('SUPABASE_ANON_KEY');
 const APPS_SCRIPT_WEBAPP_URL = process.env.GOOGLE_SHEETS_WEBAPP_URL || '';
 const APPS_SCRIPT_SHARED_SECRET = process.env.GOOGLE_SHEETS_WEBAPP_SECRET || '';
 const DRY_RUN = process.env.BACKUP_DRY_RUN === '1';
+const BACKUP_OUTPUT_FILE = process.env.BACKUP_OUTPUT_FILE || '';
 
 const COLORS = {
   green: '#D5E8D4',
@@ -19,6 +23,7 @@ const TABLES = [
   { key: 'ensembleRounds', name: 'ensemble_rounds', order: 'created_at.asc' },
   { key: 'songApplications', name: 'song_applications', order: 'created_at.asc' },
   { key: 'sessionApplications', name: 'session_applications', order: 'created_at.asc' },
+  { key: 'manualEntries', name: 'manual_entries', order: 'round_id.asc,team_no.asc,sort_key.asc' },
 ];
 
 main().catch(error => {
@@ -27,7 +32,7 @@ main().catch(error => {
 });
 
 async function main() {
-  if (!DRY_RUN) {
+  if (!DRY_RUN && !BACKUP_OUTPUT_FILE) {
     if (!APPS_SCRIPT_WEBAPP_URL) throw new Error('Missing required environment variable: GOOGLE_SHEETS_WEBAPP_URL');
     if (!APPS_SCRIPT_SHARED_SECRET) throw new Error('Missing required environment variable: GOOGLE_SHEETS_WEBAPP_SECRET');
   }
@@ -37,6 +42,13 @@ async function main() {
   );
   const syncedAt = new Date().toISOString();
   const sheets = buildAdminBackupSheets(tables);
+  const snapshot = buildBackupSnapshot(tables, sheets, syncedAt);
+
+  if (BACKUP_OUTPUT_FILE) {
+    await mkdir(dirname(BACKUP_OUTPUT_FILE), { recursive: true });
+    await writeFile(BACKUP_OUTPUT_FILE, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+  }
+
   const payload = {
     secret: APPS_SCRIPT_SHARED_SECRET,
     synced_at: syncedAt,
@@ -59,6 +71,9 @@ async function main() {
     );
     return;
   }
+
+  if (!APPS_SCRIPT_WEBAPP_URL) throw new Error('Missing required environment variable: GOOGLE_SHEETS_WEBAPP_URL');
+  if (!APPS_SCRIPT_SHARED_SECRET) throw new Error('Missing required environment variable: GOOGLE_SHEETS_WEBAPP_SECRET');
 
   const response = await fetch(APPS_SCRIPT_WEBAPP_URL, {
     method: 'POST',
@@ -85,6 +100,187 @@ async function main() {
   console.log(
     `Backed up admin-format sheets at ${syncedAt}: ${tables.timeApplications.length} time, ${tables.schoolApplications.length} school, ${tables.songApplications.length} songs, ${tables.sessionApplications.length} session applications.`
   );
+}
+
+function buildBackupSnapshot(tables, sheets, generatedAt) {
+  return {
+    schema_version: 1,
+    generated_at: generatedAt,
+    generated_at_kst: formatTimestamp(generatedAt),
+    source: 'Supabase KUAGC Schedule',
+    purpose: 'latest readable static backup for kuagc.kro.kr/backups.html',
+    counts: {
+      time_rounds: tables.timeRounds.length,
+      time_applications: tables.timeApplications.length,
+      school_rounds: tables.schoolRounds.length,
+      schools: tables.schools.length,
+      school_applications: tables.schoolApplications.length,
+      ensemble_rounds: tables.ensembleRounds.length,
+      song_applications: tables.songApplications.length,
+      session_applications: tables.sessionApplications.length,
+      manual_entries: tables.manualEntries.length,
+    },
+    latest_timestamps: collectLatestTimestamps(tables),
+    admin_sheets: sheets.map(sheet => ({
+      title: sheet.title,
+      rows: sheet.rows,
+    })),
+    time: buildTimeSnapshot(tables),
+    school: buildSchoolSnapshot(tables),
+    ensemble: buildEnsembleSnapshot(tables),
+  };
+}
+
+function buildTimeSnapshot({ timeRounds, timeApplications }) {
+  const applicationsByRound = groupBy(timeApplications, application => application.round_id);
+
+  return {
+    rounds: (timeRounds || []).map(round => ({
+      id: round.id,
+      name: round.name || `${round.season || ''} 회차`.trim() || '시간 신청',
+      season: round.season || '',
+      status: round.status || '',
+      created_at: round.created_at || '',
+      open_at: round.open_at || '',
+      close_at: round.close_at || '',
+      applications: (applicationsByRound.get(round.id) || []).map(application => ({
+        id: application.id,
+        submitted_at: application.submitted_at || '',
+        team_name: application.teams?.name || '',
+        team_name_short: (application.teams?.name || '').replace(/팀$/, ''),
+        team_info: application.teams?.info || '',
+        pref1: dayStr(application.pref1_day, application.pref1_hour),
+        pref2: application.pref2_day != null ? dayStr(application.pref2_day, application.pref2_hour) : '—',
+        pref3: application.pref3_day != null ? dayStr(application.pref3_day, application.pref3_hour) : '—',
+        raw: application,
+      })),
+      raw: round,
+    })),
+  };
+}
+
+function buildSchoolSnapshot({ schoolRounds, schoolApplications, schools }) {
+  const schoolNameById = new Map((schools || []).map(school => [school.id, school.name]));
+  const schoolsByRound = groupBy(schools, school => school.round_id);
+  const applicationsByRound = groupBy(schoolApplications, application => application.round_id);
+
+  return {
+    rounds: (schoolRounds || []).map(round => ({
+      id: round.id,
+      name: round.name || '스쿨 신청',
+      status: round.status || '',
+      created_at: round.created_at || '',
+      open_at: round.open_at || '',
+      close_at: round.close_at || '',
+      prioritize_returning: Boolean(round.prioritize_returning),
+      schools: (schoolsByRound.get(round.id) || []).map(school => ({
+        id: school.id,
+        name: school.name || '',
+        teacher_name: school.teacher_name || '',
+        capacity: school.capacity ?? '',
+        schedule: dayStr(school.schedule_day, school.schedule_hour),
+        description: school.description || '',
+        raw: school,
+      })),
+      applications: (applicationsByRound.get(round.id) || []).map(application => ({
+        id: application.id,
+        created_at: application.created_at || '',
+        applicant_name: application.applicant_name || '',
+        student_id: application.student_id || '',
+        pref1_school: schoolNameById.get(application.pref1_school_id) || '—',
+        pref2_school: application.pref2_school_id ? schoolNameById.get(application.pref2_school_id) || '—' : '—',
+        assigned_school: application.assigned_school_id ? schoolNameById.get(application.assigned_school_id) || '—' : '',
+        status: application.status || '',
+        is_returning: Boolean(application.is_returning),
+        raw: application,
+      })),
+      raw: round,
+    })),
+  };
+}
+
+function buildEnsembleSnapshot({ ensembleRounds, songApplications, sessionApplications, manualEntries }) {
+  const songById = new Map((songApplications || []).map(song => [song.id, song]));
+  const songsByRound = groupBy(songApplications, song => song.round_id);
+  const sessionApplicationsByRound = groupBy(sessionApplications, application => application.round_id);
+  const manualEntriesByRound = groupBy(manualEntries, entry => entry.round_id);
+
+  return {
+    rounds: (ensembleRounds || []).map(round => ({
+      id: round.id,
+      name: round.name || (round.type === 'busking' ? '버스킹합주' : '일반합주'),
+      type: round.type || '',
+      phase: round.phase || '',
+      status: round.status || '',
+      created_at: round.created_at || '',
+      song_close_at: round.song_close_at || '',
+      session_close_at: round.session_close_at || '',
+      session2_close_at: round.session2_close_at || '',
+      has_session2: Boolean(round.has_session2),
+      is_sheet_public: Boolean(round.is_sheet_public),
+      songs: (songsByRound.get(round.id) || []).map(song => ({
+        id: song.id,
+        created_at: song.created_at || '',
+        title: song.title || '',
+        artist: song.artist || '',
+        applicant_name: song.applicant_name || '',
+        student_id: song.student_id || '',
+        sessions: song.sessions || [],
+        status: song.status || '',
+        public_note: song.public_note || '',
+        raw: song,
+      })),
+      session_applications: (sessionApplicationsByRound.get(round.id) || []).map(application => {
+        const song = songById.get(application.song_id);
+        return {
+          id: application.id,
+          created_at: application.created_at || '',
+          song_id: application.song_id || '',
+          song_title: song?.title || '—',
+          artist: song?.artist || '—',
+          applicant_name: application.applicant_name || '',
+          student_id: application.student_id || '',
+          sessions: application.sessions || [],
+          session_round: application.session_round || 1,
+          status: application.status || '',
+          is_manual: Boolean(application.is_manual),
+          raw: application,
+        };
+      }),
+      manual_entries: (manualEntriesByRound.get(round.id) || []).map(entry => ({
+        id: entry.id,
+        team_no: entry.team_no ?? '',
+        sort_key: entry.sort_key ?? '',
+        song_name: entry.song_name || '',
+        artist_name: entry.artist_name || '',
+        session_name: entry.session_name || '',
+        member_name: entry.member_name || '',
+        raw: entry,
+      })),
+      raw: round,
+    })),
+  };
+}
+
+function collectLatestTimestamps(tables) {
+  return {
+    time_application: latestTimestamp(tables.timeApplications, ['submitted_at', 'created_at']),
+    school_application: latestTimestamp(tables.schoolApplications, ['created_at']),
+    song_application: latestTimestamp(tables.songApplications, ['updated_at', 'created_at']),
+    session_application: latestTimestamp(tables.sessionApplications, ['updated_at', 'created_at']),
+    manual_entry: latestTimestamp(tables.manualEntries, ['updated_at', 'created_at']),
+  };
+}
+
+function latestTimestamp(rows, fields) {
+  let latest = '';
+  for (const row of rows || []) {
+    for (const field of fields) {
+      const value = row[field];
+      if (value && (!latest || new Date(value) > new Date(latest))) latest = value;
+    }
+  }
+  return latest;
 }
 
 function buildAdminBackupSheets(tables) {
