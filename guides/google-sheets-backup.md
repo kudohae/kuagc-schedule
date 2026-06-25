@@ -1,6 +1,6 @@
 # Google Sheets ensemble backup
 
-This repository includes a GitHub Actions workflow that backs up ensemble data from Supabase to Google Sheets every 10 minutes.
+This repository includes a GitHub Actions workflow that backs up ensemble data from Supabase to Google Sheets every 10 minutes through a Google Apps Script web app.
 
 ## What gets backed up
 
@@ -15,26 +15,84 @@ The backup is one-way: Supabase remains the source of truth, and Google Sheets i
 
 ## Required GitHub Secrets
 
-Add these in GitHub repository settings:
+These are already set:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `GOOGLE_SHEET_ID`
-- `GOOGLE_SERVICE_ACCOUNT_JSON`
 
-`SUPABASE_ANON_KEY` is enough because the backed-up tables are publicly readable in this app. If table read policies become private later, replace the workflow secret value with a service-role key and keep it only in GitHub Secrets.
+The site operator still needs to add:
 
-`SUPABASE_URL` and `SUPABASE_ANON_KEY` were set when this workflow was added. In normal operation, only the two Google secrets need to be added by the site operator.
+- `GOOGLE_SHEETS_WEBAPP_URL`
+- `GOOGLE_SHEETS_WEBAPP_SECRET`
 
-## Google setup
+`GOOGLE_SHEETS_WEBAPP_SECRET` can be any long random string. Put the same value in the Apps Script `BACKUP_SECRET` script property.
 
-1. Create a Google Cloud service account.
-2. Create a JSON key for that service account.
-3. Create the target Google Sheet.
-4. Share the Google Sheet with the service account `client_email` as an editor.
-5. Put the full JSON key contents into `GOOGLE_SERVICE_ACCOUNT_JSON`.
-6. Put the spreadsheet id from the sheet URL into `GOOGLE_SHEET_ID`.
+## Apps Script setup
+
+1. Create or open the target Google Sheet.
+2. Open `Extensions` > `Apps Script`.
+3. Paste the code below into `Code.gs`.
+4. Open `Project Settings` > `Script properties`.
+5. Add `BACKUP_SECRET` with the same value as the GitHub secret `GOOGLE_SHEETS_WEBAPP_SECRET`.
+6. Deploy as a web app:
+   - Execute as: `Me`
+   - Who has access: `Anyone`
+7. Copy the web app URL into the GitHub secret `GOOGLE_SHEETS_WEBAPP_URL`.
+
+```javascript
+function doPost(e) {
+  const expectedSecret = PropertiesService.getScriptProperties().getProperty('BACKUP_SECRET');
+  const payload = JSON.parse(e.postData.contents || '{}');
+
+  if (!expectedSecret || payload.secret !== expectedSecret) {
+    return jsonResponse({ ok: false, error: 'unauthorized' });
+  }
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    for (const sheetData of payload.sheets || []) {
+      const sheet = getOrCreateSheet_(spreadsheet, sheetData.title);
+      sheet.clearContents();
+
+      const rows = sheetData.rows || [];
+      if (rows.length > 0) {
+        const width = Math.max.apply(null, rows.map(row => row.length));
+        const normalizedRows = rows.map(row => {
+          const next = row.slice();
+          while (next.length < width) next.push('');
+          return next;
+        });
+
+        sheet.getRange(1, 1, normalizedRows.length, width).setValues(normalizedRows);
+        sheet.setFrozenRows(1);
+        sheet.autoResizeColumns(1, Math.min(width, 20));
+      }
+    }
+
+    return jsonResponse({
+      ok: true,
+      synced_at: payload.synced_at,
+      sheet_count: (payload.sheets || []).length,
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getOrCreateSheet_(spreadsheet, title) {
+  return spreadsheet.getSheetByName(title) || spreadsheet.insertSheet(title);
+}
+
+function jsonResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+```
 
 ## Manual run
 
-After setting the secrets, open GitHub Actions, choose `Backup ensemble to Google Sheets`, and run it manually once. If it succeeds, the scheduled backup will continue every 10 minutes.
+After setting the two Google-related GitHub secrets, open GitHub Actions, choose `Backup ensemble to Google Sheets`, and run it manually once. If it succeeds, the scheduled backup will continue every 10 minutes.
