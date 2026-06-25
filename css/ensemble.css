@@ -52,8 +52,14 @@ body.dark .status-card.session{background:rgba(71,197,255,.06);border-color:rgba
 .song-item-hdr{display:flex;align-items:flex-start;gap:8px;}
 .song-num{font-family:'Space Mono',monospace;font-size:12px;color:var(--text3);flex-shrink:0;min-width:24px;padding-top:2px;}
 .song-info{flex:1;min-width:0;}
+.song-title-line{display:flex;align-items:center;gap:8px;min-width:0;}
 .song-title{font-size:14px;font-weight:700;}
 .song-artist{font-size:13px;color:var(--text2);}
+.song-note-wrap{display:flex;align-items:center;gap:4px;flex:0 1 260px;min-width:150px;}
+.song-note-input{width:100%;height:28px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:12px;outline:none;}
+.song-note-input:focus{border-color:var(--accent);}
+.song-note-input::placeholder{color:var(--text3);}
+.song-note-state{min-width:34px;font-size:10px;color:var(--text3);white-space:nowrap;}
 .song-status{font-size:11px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;}
 .song-status.confirmed{background:rgba(92,158,0,.12);color:var(--accent);}
 body.dark .song-status.confirmed{background:rgba(232,255,71,.15);}
@@ -105,8 +111,11 @@ body.dark .sess-tag.confirmed{background:rgba(232,255,71,.1);border-color:rgba(2
   .modal::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;}
 
   .song-item{padding:16px 14px;gap:10px;}
+  .song-title-line{align-items:flex-start;flex-direction:column;gap:6px;}
   .song-title{font-size:16px;}
   .song-artist{font-size:14px;}
+  .song-note-wrap{width:100%;min-width:0;flex:none;}
+  .song-note-input{height:40px;font-size:14px;padding:8px 10px;}
   .song-applicant,.song-ts{font-size:12px;}
   .sneed{font-size:12px;padding:3px 9px;min-height:28px;}
   .sessions-needed{gap:6px;}

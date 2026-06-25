@@ -5,6 +5,7 @@ import { syncServerTime, serverNow } from '../utils/serverTime.js';
 
 const SESSIONS = ['보컬1','보컬2','기타1','기타2','베이스','키보드1','키보드2','드럼','이외 악기'];
 const FIXED_BADGE=`<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;background:rgba(0,119,204,.12);color:var(--accent2);margin-left:4px">FIXED</span>`;
+const PUBLIC_NOTE_MAX_LEN = 80;
 
 let currentType = 'regular';
 let rounds = {regular:null, busking:null};
@@ -23,6 +24,7 @@ let _rtReplacing = false;
 let _bcReplacing = false;
 let _destroyed = false;
 let manualEntries={regular:[],busking:[]};
+let publicNoteDrafts = new Map();
 
 function broadcastRefresh(){
   _bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});
@@ -108,6 +110,7 @@ export async function init(outerContainer) {
   _destroyed=false;
   currentType='regular'; rounds={regular:null,busking:null};
   songs={regular:[],busking:[]}; sessionMap={}; searchQ='';
+  publicNoteDrafts=new Map();
   Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
 
   outerContainer.innerHTML='';
@@ -596,6 +599,7 @@ function render(){
 }
 
 function renderList(){
+  if(document.activeElement?.classList?.contains('song-note-input')) return;
   const r=rounds[currentType];
   const phase=r?.phase||'closed';
   const songList=songs[currentType]||[];
@@ -652,7 +656,10 @@ function renderSongItem(s,num,phase){
     <div class="song-item-hdr">
       <span class="song-num">${String(num).padStart(2,'0')}</span>
       <div class="song-info">
-        <div class="song-title">${esc(s.title)}${s.is_fixed?FIXED_BADGE:''}</div>
+        <div class="song-title-line">
+          <div class="song-title">${esc(s.title)}${s.is_fixed?FIXED_BADGE:''}</div>
+          ${renderPublicNoteInput(s,phase)}
+        </div>
         <div class="song-artist">${esc(s.artist)}</div>
       </div>
     </div>
@@ -668,6 +675,71 @@ function renderSongItem(s,num,phase){
        </div>`:''}
   </div>`;
 }
+
+function renderPublicNoteInput(song,phase){
+  if(!['song','session','session2'].includes(phase)) return '';
+  const value=publicNoteDrafts.has(song.id)?publicNoteDrafts.get(song.id):(song.public_note||'');
+  return `<div class="song-note-wrap">
+    <input class="song-note-input" value="${esc(value)}" maxlength="${PUBLIC_NOTE_MAX_LEN}" placeholder="메모"
+      oninput="onSongPublicNoteInput(${song.id},this.value)"
+      onkeydown="onSongPublicNoteKeydown(event,${song.id},this)"
+      onblur="saveSongPublicNote(${song.id},this.value)"/>
+    <span class="song-note-state" id="songNoteState-${song.id}"></span>
+  </div>`;
+}
+
+function findSongById(songId){
+  return [...songs.regular,...songs.busking].find(s=>s.id===songId);
+}
+
+window.onSongPublicNoteInput=function(songId,value){
+  publicNoteDrafts.set(songId,String(value||'').slice(0,PUBLIC_NOTE_MAX_LEN));
+  const state=document.getElementById(`songNoteState-${songId}`);
+  if(state) state.textContent='';
+};
+
+window.onSongPublicNoteKeydown=function(event,songId,input){
+  if(event.key==='Enter'){
+    event.preventDefault();
+    input.blur();
+    return;
+  }
+  if(event.key==='Escape'){
+    const song=findSongById(songId);
+    input.value=song?.public_note||'';
+    publicNoteDrafts.delete(songId);
+    input.blur();
+  }
+};
+
+window.saveSongPublicNote=async function(songId,value){
+  const song=findSongById(songId);
+  if(!song) return;
+  const next=String(value||'').trim().slice(0,PUBLIC_NOTE_MAX_LEN);
+  const prev=song.public_note||'';
+  const state=document.getElementById(`songNoteState-${songId}`);
+  if(next===prev){
+    publicNoteDrafts.delete(songId);
+    if(state) state.textContent='';
+    return;
+  }
+  if(state) state.textContent='저장 중';
+  try{
+    const {error}=await supabase.from('song_applications').update({public_note:next}).eq('id',songId);
+    if(error) throw error;
+    song.public_note=next;
+    publicNoteDrafts.delete(songId);
+    if(state){
+      state.textContent='저장됨';
+      setTimeout(()=>{ if(state.textContent==='저장됨') state.textContent=''; },1200);
+    }
+    broadcastRefresh();
+    scheduleApplicationsRefresh(0);
+  }catch(e){
+    if(state) state.textContent='실패';
+    window.toast(errMsg(e),'err');
+  }
+};
 
 window.onSongSelect=function(){
   const sel=document.getElementById('ssSong');
