@@ -36,13 +36,10 @@ let applyPrefs={}, applyTeamId=null, applyTeamName='';
 let taCountdownTimer=null;
 let _rtChannel=null;
 let _bcChannel=null;
-let _presenceCh=null;
-let _presenceCount=0;
 let _lastTaSubmitTs=0;
 let _pollTimer=null;
 
 function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});}
-function updatePresenceBadge(){const el=document.getElementById('presenceCount');if(el)el.textContent=`현재 접속자 ${_presenceCount}명`;}
 
 // ── EXPORTED INIT ─────────────────────────────────────────────────────
 export async function init(outerContainer) {
@@ -96,15 +93,6 @@ export async function init(outerContainer) {
       })
       .subscribe();
 
-    _presenceCh=supabase.channel('presence-ta')
-      .on('presence',{event:'sync'},()=>{
-        _presenceCount=Object.keys(_presenceCh.presenceState()).length;
-        updatePresenceBadge();
-      })
-      .subscribe(async status=>{
-        if(status==='SUBSCRIBED') await _presenceCh.track({t:Date.now()});
-      });
-
     _pollTimer=setInterval(async()=>{
       if(!document.getElementById('applyContent')) return;
       const fresh=await fetchActiveRound(season).catch(()=>null);
@@ -125,8 +113,6 @@ export async function init(outerContainer) {
     if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
-    if(_presenceCh){ supabase.removeChannel(_presenceCh); _presenceCh=null; }
-    _presenceCount=0;
   };
 }
 
@@ -156,7 +142,6 @@ function render(){
     contentEl.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <h2 style="font-size:15px;font-weight:700">📅 시간 배정 신청</h2>
-        <span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span>
       </div>
       <div class="apply-status closed">
         <div class="apply-status-icon">⭕</div>
@@ -165,7 +150,6 @@ function render(){
           <div class="apply-status-sub">관리자가 신청을 열면 여기서 신청할 수 있습니다.</div>
         </div>
       </div>`;
-    updatePresenceBadge();
     return;
   }
 
@@ -177,7 +161,6 @@ function render(){
   let html=`
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <h2 style="font-size:15px;font-weight:700">📅 시간 배정 신청</h2>
-      <span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span>
     </div>`;
 
   if(isScheduled){
@@ -279,7 +262,6 @@ function render(){
 
   contentEl.innerHTML=html;
   renderList();
-  updatePresenceBadge();
 }
 
 function renderList(){

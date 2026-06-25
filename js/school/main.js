@@ -7,14 +7,11 @@ let round=null, prevRound=null, classes=[], apps=[], prevApps=[];
 let cdTimer=null;
 let _rtChannel=null;
 let _bcChannel=null;
-let _presenceCh=null;
-let _presenceCount=0;
 let _outerContainer=null;
 let _lastSchoolSubmitTs=0;
 let _pollTimer=null;
 
 function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});}
-function updatePresenceBadge(){const el=document.getElementById('presenceCount');if(el)el.textContent=`현재 접속자 ${_presenceCount}명`;}
 
 function escHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -98,15 +95,6 @@ export async function init(outerContainer) {
     })
     .subscribe();
 
-  _presenceCh=supabase.channel('presence-school')
-    .on('presence',{event:'sync'},()=>{
-      _presenceCount=Object.keys(_presenceCh.presenceState()).length;
-      updatePresenceBadge();
-    })
-    .subscribe(async status=>{
-      if(status==='SUBSCRIBED') await _presenceCh.track({t:Date.now()});
-    });
-
   _pollTimer=setInterval(async()=>{
     if(!document.getElementById('container')) return;
     const{data}=await supabase.from('school_rounds').select('id,status,open_at,close_at').order('created_at',{ascending:false}).limit(1).maybeSingle();
@@ -119,8 +107,6 @@ export async function init(outerContainer) {
     if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
-    if(_presenceCh){ supabase.removeChannel(_presenceCh); _presenceCh=null; }
-    _presenceCount=0;
     _outerContainer = null;
   };
 }
@@ -180,8 +166,7 @@ function render(){
   const el=document.getElementById('container');
   if(!el) return;
   if(!round){
-    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div><div class="empty-state">스쿨 신청 기간이 아닙니다.</div>';
-    updatePresenceBadge();
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2></div><div class="empty-state">스쿨 신청 기간이 아닙니다.</div>';
     return;
   }
   const {status}=round;
@@ -195,7 +180,7 @@ function renderDraft(){
   if(!el) return;
   const name=getRoundName();
   const openAt=round.open_at;
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div>
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2></div>
   <div class="round-status draft">
     <div class="rs-icon">⏳</div>
     <div class="rs-texts">
@@ -205,7 +190,6 @@ function renderDraft(){
     </div>
   </div>`;
   el.innerHTML=html;
-  updatePresenceBadge();
   if(openAt){
     if(new Date(openAt)<=serverNow()){autoOpen();}
     else startCd(openAt,autoOpen);
@@ -226,7 +210,7 @@ function renderOpen(){
   const closeAt=round.close_at;
   if(closeAt&&new Date(closeAt)<=serverNow()){autoClose();return;}
 
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div>
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2></div>
   <div class="round-status open">
     <div class="rs-icon">📋</div>
     <div class="rs-texts">
@@ -258,7 +242,6 @@ function renderOpen(){
   html+=renderClassCards(true);
   el.innerHTML=html;
   restoreOpenFormState(formState);
-  updatePresenceBadge();
   if(closeAt) startCd(closeAt,autoClose);
 }
 
@@ -300,7 +283,7 @@ function renderClosed(){
   const el=document.getElementById('container');
   if(!el) return;
   const name=getRoundName();
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div>
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🏫 스쿨 신청</h2></div>
   <div class="round-status closed">
     <div class="rs-icon">🔒</div>
     <div class="rs-texts">
@@ -310,7 +293,6 @@ function renderClosed(){
   </div>`;
   html+=renderClassCards(false);
   el.innerHTML=html;
-  updatePresenceBadge();
 }
 
 function renderClassCards(isOpen){
