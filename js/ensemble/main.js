@@ -15,14 +15,11 @@ let countdownTimers = {};
 let _rtChannel = null;
 let _pollTimer = null;
 let _bcChannel = null;
-let _presenceCh = null;
-let _presenceCount = 0;
 let manualEntries={regular:[],busking:[]};
 
 function broadcastRefresh(){
   _bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});
 }
-function updatePresenceBadge(){const el=document.getElementById('presenceCount');if(el)el.textContent=`현재 접속자 ${_presenceCount}명`;}
 
 function fmtTime(ts){
   if(!ts) return '';
@@ -78,15 +75,6 @@ export async function init(outerContainer) {
       })
       .subscribe();
 
-    _presenceCh=supabase.channel('presence-ens')
-      .on('presence',{event:'sync'},()=>{
-        _presenceCount=Object.keys(_presenceCh.presenceState()).length;
-        updatePresenceBadge();
-      })
-      .subscribe(async status=>{
-        if(status==='SUBSCRIBED') await _presenceCh.track({t:Date.now()});
-      });
-
     _pollTimer=setInterval(pollRoundState,5000);
     document.addEventListener('visibilitychange',onVisibilityChange);
 
@@ -105,9 +93,7 @@ export async function init(outerContainer) {
     Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
-    if(_presenceCh){ supabase.removeChannel(_presenceCh); _presenceCh=null; }
     if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; }
-    _presenceCount=0;
     document.removeEventListener('visibilitychange',onVisibilityChange);
   };
 }
@@ -238,7 +224,7 @@ function render(){
 
   Object.keys(countdownTimers).filter(k=>k===type||k.startsWith(type+'-')).forEach(k=>{clearInterval(countdownTimers[k]);delete countdownTimers[k];});
 
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🎸 합주 신청</h2><span class="rt-badge"><span class="rt-dot"></span><span id="presenceCount">현재 접속자 —명</span></span></div>`;
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 style="font-size:15px;font-weight:700">🎸 합주 신청</h2></div>`;
 
   html+=`<div class="search-bar">
     <span class="search-icon">🔍</span>
@@ -250,7 +236,6 @@ function render(){
     html+=renderManualPublicHtml(r,type);
     html+=`<div id="songListEl"></div>`;
     el.innerHTML=html;
-    updatePresenceBadge();
     return;
   }
 
@@ -268,7 +253,6 @@ function render(){
           </div>
         </div>`;
         el.innerHTML=html;
-        updatePresenceBadge();
         startCountdown(type,target,async()=>{
           if(rounds[type]?.id===r.id&&rounds[type]?.phase==='draft'){rounds[type].phase='song';rounds[type].song_scheduled_at=null;}
           try{await supabase.from('ensemble_rounds').update({phase:'song',song_scheduled_at:null}).eq('id',r.id).eq('phase','draft');}catch(e){}
@@ -543,7 +527,6 @@ function render(){
 
   html+=`<div id="songListEl"></div>`;
   el.innerHTML=html;
-  updatePresenceBadge();
   renderList();
 }
 
