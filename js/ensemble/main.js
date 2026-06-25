@@ -14,11 +14,74 @@ let searchQ = '';
 let countdownTimers = {};
 let _rtChannel = null;
 let _pollTimer = null;
+let _appPollTimer = null;
 let _bcChannel = null;
+let _refreshTimer = null;
+let _rtReconnectTimer = null;
+let _bcReconnectTimer = null;
+let _rtReplacing = false;
+let _bcReplacing = false;
+let _destroyed = false;
 let manualEntries={regular:[],busking:[]};
 
 function broadcastRefresh(){
   _bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});
+}
+
+function scheduleApplicationsRefresh(delay=400){
+  if(_destroyed) return;
+  if(_refreshTimer) clearTimeout(_refreshTimer);
+  _refreshTimer=setTimeout(()=>{ _refreshTimer=null; refreshList(); },delay);
+}
+
+function handleChannelStatus(label,reconnect,isReplacing,status,err){
+  if(status==='CLOSED'&&isReplacing()) return;
+  if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+    if(_destroyed) return;
+    console.warn(`${label} realtime ${status}`,err||'');
+    scheduleApplicationsRefresh(0);
+    reconnect();
+  }
+}
+
+function scheduleRtReconnect(){
+  if(_rtReconnectTimer) clearTimeout(_rtReconnectTimer);
+  _rtReconnectTimer=setTimeout(()=>{ _rtReconnectTimer=null; if(!_destroyed) subscribeRealtime(); },2000);
+}
+
+function scheduleBcReconnect(){
+  if(_bcReconnectTimer) clearTimeout(_bcReconnectTimer);
+  _bcReconnectTimer=setTimeout(()=>{ _bcReconnectTimer=null; if(!_destroyed) subscribeBroadcast(); },2000);
+}
+
+function subscribeRealtime(){
+  if(_rtChannel){
+    const old=_rtChannel; _rtChannel=null; _rtReplacing=true;
+    supabase.removeChannel(old).finally(()=>setTimeout(()=>{ _rtReplacing=false; },1000));
+  }
+  _rtChannel=supabase.channel('ens-rt-'+Date.now())
+    .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},()=>scheduleApplicationsRefresh())
+    .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},()=>scheduleApplicationsRefresh())
+    .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},()=>loadAll(true))
+    .on('postgres_changes',{event:'*',schema:'public',table:'manual_entries'},()=>loadAll(true))
+    .subscribe((status,err)=>handleChannelStatus('ensemble',scheduleRtReconnect,()=>_rtReplacing,status,err));
+}
+
+function subscribeBroadcast(){
+  if(_bcChannel){
+    const old=_bcChannel; _bcChannel=null; _bcReplacing=true;
+    supabase.removeChannel(old).finally(()=>setTimeout(()=>{ _bcReplacing=false; },1000));
+  }
+  _bcChannel=supabase.channel('ens-pub')
+    .on('broadcast',{event:'update'},payload=>{
+      if(payload?.payload?.scope==='applications') scheduleApplicationsRefresh(0);
+      else loadAll(true);
+    })
+    .on('broadcast',{event:'songUpdate'},payload=>{
+      if(payload?.payload?.scope==='applications') scheduleApplicationsRefresh(0);
+      else loadAll(true);
+    })
+    .subscribe((status,err)=>handleChannelStatus('ensemble broadcast',scheduleBcReconnect,()=>_bcReplacing,status,err));
 }
 
 function fmtTime(ts){
@@ -42,6 +105,7 @@ const errMsg=e=>{const m=e?.message||'';if(m.includes('unique')||m.includes('dup
 
 // ── EXPORTED INIT ─────────────────────────────────────────────────────
 export async function init(outerContainer) {
+  _destroyed=false;
   currentType='regular'; rounds={regular:null,busking:null};
   songs={regular:[],busking:[]}; sessionMap={}; searchQ='';
   Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
@@ -57,26 +121,14 @@ export async function init(outerContainer) {
     await syncServerTime(supabase);
     await loadAll(true);
 
-    _rtChannel=supabase.channel('ens-rt-'+Date.now())
-      .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},refreshList)
-      .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},refreshList)
-      .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},()=>loadAll(true))
-      .on('postgres_changes',{event:'*',schema:'public',table:'manual_entries'},()=>loadAll(true))
-      .subscribe();
-
-    _bcChannel=supabase.channel('ens-pub')
-      .on('broadcast',{event:'update'},payload=>{
-        if(payload?.payload?.scope==='applications') refreshList();
-        else loadAll(true);
-      })
-      .on('broadcast',{event:'songUpdate'},payload=>{
-        if(payload?.payload?.scope==='applications') refreshList();
-        else loadAll(true);
-      })
-      .subscribe();
+    subscribeRealtime();
+    subscribeBroadcast();
 
     _pollTimer=setInterval(pollRoundState,5000);
+    _appPollTimer=setInterval(()=>{ if(!document.hidden) scheduleApplicationsRefresh(0); },10000);
     document.addEventListener('visibilitychange',onVisibilityChange);
+    window.addEventListener('online',onVisibilityChange);
+    window.addEventListener('pageshow',onVisibilityChange);
 
     // sync type-toggle header buttons
     syncTypeToggle();
@@ -90,16 +142,25 @@ export async function init(outerContainer) {
   }
 
   return function destroy(){
+    _destroyed=true;
     Object.values(countdownTimers).forEach(t=>clearInterval(t)); countdownTimers={};
+    if(_refreshTimer){ clearTimeout(_refreshTimer); _refreshTimer=null; }
+    if(_rtReconnectTimer){ clearTimeout(_rtReconnectTimer); _rtReconnectTimer=null; }
+    if(_bcReconnectTimer){ clearTimeout(_bcReconnectTimer); _bcReconnectTimer=null; }
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
     if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; }
+    if(_appPollTimer){ clearInterval(_appPollTimer); _appPollTimer=null; }
     document.removeEventListener('visibilitychange',onVisibilityChange);
+    window.removeEventListener('online',onVisibilityChange);
+    window.removeEventListener('pageshow',onVisibilityChange);
   };
 }
 
 function onVisibilityChange(){
-  if(!document.hidden&&document.getElementById('mainContainer')) loadAll();
+  if(!document.hidden&&document.getElementById('mainContainer')){
+    loadAll().catch(e=>console.warn('ensemble resume refresh failed',e));
+  }
 }
 
 async function pollRoundState(){
@@ -128,25 +189,29 @@ const _pendingSessApps = new Map(); // `${songId}_${sid}_${round}` → sessAppDa
 
 async function refreshList(){
   const gen = ++_refreshGen;
+  const nextSongs={regular:[],busking:[]};
   for(const type of ['regular','busking']){
     const r=rounds[type];
-    if(!r){songs[type]=[];continue;}
-    const {data:s}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
+    if(!r){nextSongs[type]=[];continue;}
+    const {data:s,error:sErr}=await supabase.from('song_applications').select('*').eq('round_id',r.id).order('created_at');
+    if(sErr){console.warn('ensemble songs refresh failed',sErr);return;}
     if(gen!==_refreshGen) return;
-    songs[type]=s||[];
+    nextSongs[type]=s||[];
     // Keep any locally-inserted songs that DB hasn't replicated yet
     for(const [id,pending] of _pendingSongs){
-      if(pending.round_id===r.id&&!songs[type].find(x=>x.id===id)) songs[type].push(pending);
+      if(pending.round_id===r.id&&!nextSongs[type].find(x=>x.id===id)) nextSongs[type].push(pending);
     }
   }
-  const allIds=[...songs.regular,...songs.busking].map(s=>s.id);
+  const allIds=[...nextSongs.regular,...nextSongs.busking].map(s=>s.id);
   const newMap={};
   if(allIds.length){
-    const {data:sess}=await supabase.from('session_applications').select('*').in('song_id',allIds).order('created_at');
+    const {data:sess,error:sessErr}=await supabase.from('session_applications').select('*').in('song_id',allIds).order('created_at');
+    if(sessErr){console.warn('ensemble sessions refresh failed',sessErr);return;}
     if(gen!==_refreshGen) return;
     (sess||[]).forEach(s=>{ if(!newMap[s.song_id]) newMap[s.song_id]=[]; newMap[s.song_id].push(s); });
   }
   if(gen!==_refreshGen) return;
+  songs=nextSongs;
   sessionMap=newMap;
   // Keep any locally-inserted session apps that DB hasn't replicated yet
   for(const [,pending] of _pendingSessApps){
@@ -725,6 +790,7 @@ window.submitSong=async function(){
     }
     window.toast('곡 신청이 완료됐습니다','ok');
     broadcastRefresh();
+    scheduleApplicationsRefresh(0);
     render();
   }catch(e){
     if(songData?.id){
@@ -842,6 +908,7 @@ async function doSubmitSession(songId,r,name,sid,sessions,sessionRound=1){
     sessionMap[songId].push(sa);
     window.toast('세션 신청이 완료됐습니다','ok');
     broadcastRefresh();
+    scheduleApplicationsRefresh(0);
     window.closeModal?.(); render(); return true;
   }catch(e){window.toast(errMsg(e),'err');return false;}
 }

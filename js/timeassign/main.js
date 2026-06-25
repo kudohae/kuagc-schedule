@@ -38,12 +38,100 @@ let _rtChannel=null;
 let _bcChannel=null;
 let _lastTaSubmitTs=0;
 let _pollTimer=null;
+let _appPollTimer=null;
+let _refreshTimer=null;
+let _refreshGen=0;
+let _rtReconnectTimer=null;
+let _bcReconnectTimer=null;
+let _rtReplacing=false;
+let _bcReplacing=false;
+let _destroyed=false;
 
 function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});}
+
+function scheduleApplicationsRefresh(delay=400){
+  if(_destroyed) return;
+  if(_refreshTimer) clearTimeout(_refreshTimer);
+  _refreshTimer=setTimeout(()=>{ _refreshTimer=null; refreshApplications(); },delay);
+}
+
+async function refreshApplications(){
+  if(_destroyed||!round||!document.getElementById('applyContent')) return;
+  const gen=++_refreshGen;
+  try{
+    const next=await fetchApplications(round.id);
+    if(gen!==_refreshGen||_destroyed||!document.getElementById('applyContent')) return;
+    applications=next||[];
+    renderList();
+  }catch(e){
+    console.warn('time applications refresh failed',e);
+  }
+}
+
+function handleChannelStatus(label,reconnect,isReplacing,status,err){
+  if(status==='CLOSED'&&isReplacing()) return;
+  if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+    if(_destroyed) return;
+    console.warn(`${label} realtime ${status}`,err||'');
+    scheduleApplicationsRefresh(0);
+    reconnect();
+  }
+}
+
+function scheduleRtReconnect(){
+  if(_rtReconnectTimer) clearTimeout(_rtReconnectTimer);
+  _rtReconnectTimer=setTimeout(()=>{ _rtReconnectTimer=null; if(!_destroyed) subscribeRealtime(); },2000);
+}
+
+function scheduleBcReconnect(){
+  if(_bcReconnectTimer) clearTimeout(_bcReconnectTimer);
+  _bcReconnectTimer=setTimeout(()=>{ _bcReconnectTimer=null; if(!_destroyed) subscribeBroadcast(); },2000);
+}
+
+function subscribeRealtime(){
+  if(_rtChannel){
+    const old=_rtChannel; _rtChannel=null; _rtReplacing=true;
+    supabase.removeChannel(old).finally(()=>setTimeout(()=>{ _rtReplacing=false; },1000));
+  }
+  _rtChannel = supabase.channel('ta-rt-' + Date.now())
+    .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},()=>{
+      scheduleApplicationsRefresh();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'application_rounds'},async()=>{
+      if(!document.getElementById('applyContent')) return;
+      try{
+        round=await fetchActiveRound(season);
+        if(round) applications=await fetchApplications(round.id);
+        render();
+      }catch(e){
+        console.warn('time round refresh failed',e);
+      }
+    })
+    .subscribe((status,err)=>handleChannelStatus('timeassign',scheduleRtReconnect,()=>_rtReplacing,status,err));
+}
+
+function subscribeBroadcast(){
+  if(_bcChannel){
+    const old=_bcChannel; _bcChannel=null; _bcReplacing=true;
+    supabase.removeChannel(old).finally(()=>setTimeout(()=>{ _bcReplacing=false; },1000));
+  }
+  _bcChannel=supabase.channel('ta-pub')
+    .on('broadcast',{event:'update'},()=>{
+      if(!document.getElementById('applyContent')) return;
+      scheduleApplicationsRefresh(0);
+    })
+    .subscribe((status,err)=>handleChannelStatus('timeassign broadcast',scheduleBcReconnect,()=>_bcReplacing,status,err));
+}
+
+function handleResume(){
+  if(document.hidden) return;
+  scheduleApplicationsRefresh(0);
+}
 
 // ── EXPORTED INIT ─────────────────────────────────────────────────────
 export async function init(outerContainer) {
   // reset state
+  _destroyed=false;
   season='1학기'; teams=[]; baseSlots=[]; exceptions=[]; merged=[];
   round=null; applications=[];
   applyPrefs={}; applyTeamId=null; applyTeamName='';
@@ -70,35 +158,27 @@ export async function init(outerContainer) {
 
     render();
 
-    _rtChannel = supabase.channel('ta-rt-' + Date.now())
-      .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},async()=>{
-        if(round && document.getElementById('applyContent')){
-          applications=await fetchApplications(round.id);
-          renderList();
-        }
-      })
-      .on('postgres_changes',{event:'*',schema:'public',table:'application_rounds'},async()=>{
-        if(!document.getElementById('applyContent')) return;
-        round=await fetchActiveRound(season);
-        if(round) applications=await fetchApplications(round.id);
-        render();
-      })
-      .subscribe();
-
-    _bcChannel=supabase.channel('ta-pub')
-      .on('broadcast',{event:'update'},async()=>{
-        if(!document.getElementById('applyContent')) return;
-        if(round) applications=await fetchApplications(round.id);
-        renderList();
-      })
-      .subscribe();
+    subscribeRealtime();
+    subscribeBroadcast();
 
     _pollTimer=setInterval(async()=>{
       if(!document.getElementById('applyContent')) return;
       const fresh=await fetchActiveRound(season).catch(()=>null);
       const chg=fresh?.id!==round?.id||fresh?.status!==round?.status||fresh?.open_at!==round?.open_at||fresh?.close_at!==round?.close_at;
-      if(chg){round=fresh;if(round)applications=await fetchApplications(round.id);render();}
+      if(chg){
+        try{
+          round=fresh;
+          if(round) applications=await fetchApplications(round.id);
+          render();
+        }catch(e){
+          console.warn('time poll refresh failed',e);
+        }
+      }
     },3000);
+    _appPollTimer=setInterval(()=>{ if(!document.hidden) scheduleApplicationsRefresh(0); },10000);
+    document.addEventListener('visibilitychange',handleResume);
+    window.addEventListener('online',handleResume);
+    window.addEventListener('pageshow',handleResume);
   } catch(e) {
     outerContainer.innerHTML=`
       <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px">
@@ -109,10 +189,18 @@ export async function init(outerContainer) {
   }
 
   return function destroy() {
+    _destroyed=true;
     if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
+    if(_refreshTimer){ clearTimeout(_refreshTimer); _refreshTimer=null; }
+    if(_rtReconnectTimer){ clearTimeout(_rtReconnectTimer); _rtReconnectTimer=null; }
+    if(_bcReconnectTimer){ clearTimeout(_bcReconnectTimer); _bcReconnectTimer=null; }
     if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
+    if(_appPollTimer){clearInterval(_appPollTimer);_appPollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
+    document.removeEventListener('visibilitychange',handleResume);
+    window.removeEventListener('online',handleResume);
+    window.removeEventListener('pageshow',handleResume);
   };
 }
 
@@ -367,6 +455,7 @@ window.submitApply=async function(){
     applyPrefs={}; applyTeamId=null; applyTeamName='';
     window.toast('신청이 제출됐습니다','ok');
     broadcastRefresh();
+    scheduleApplicationsRefresh(0);
     render();
   }catch(e){_lastTaSubmitTs=0;window.toast(errMsg(e),'err');}
 };
