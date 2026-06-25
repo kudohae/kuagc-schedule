@@ -312,7 +312,7 @@ function renderOpen(){
   </div>`;
 
   html+=`<div class="apply-form-card">
-    <div class="apply-form-title">스쿨 신청</div>
+    <div class="apply-form-title">스쿨 신청(재응답시 기존 신청 삭제)</div>
     <div style="display:flex;flex-direction:column;gap:10px">
       <div class="form-grid">
         <div><div class="fl">성명 *</div><input class="fi" id="applyName" placeholder="허우진" autocomplete="off"/></div>
