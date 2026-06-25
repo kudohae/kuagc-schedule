@@ -1,15 +1,14 @@
-# Google Sheets ensemble backup
+# Google Sheets backup
 
-This repository includes a GitHub Actions workflow that backs up ensemble data from Supabase to Google Sheets every 10 minutes through a Google Apps Script web app.
+This repository includes a GitHub Actions workflow that backs up request data from Supabase to Google Sheets every 10 minutes through a Google Apps Script web app.
 
 ## What gets backed up
 
-- `ensemble_rounds`
-- `song_applications`, including `public_note`
-- `session_applications`
-- `manual_entries`
-- `latest_song_status`, a readable joined summary
-- `backup_status`, the latest sync timestamp and row counts
+The automated backup follows the same workbook shape as the backup file from `/admin.html`.
+
+- `시간 신청`
+- `스쿨 신청`
+- `합주 신청`
 
 The backup is one-way: Supabase remains the source of truth, and Google Sheets is a read/backup destination.
 
@@ -40,6 +39,8 @@ The site operator still needs to add:
 7. Copy the web app URL into the GitHub secret `GOOGLE_SHEETS_WEBAPP_URL`.
 
 ```javascript
+const SPREADSHEET_ID = '1Kvv180Aobwz-u9z_6ZBxVUQMarg_mWdt-yC-ZEdSRr0';
+
 function doPost(e) {
   const expectedSecret = PropertiesService.getScriptProperties().getProperty('BACKUP_SECRET');
   const payload = JSON.parse(e.postData.contents || '{}');
@@ -48,14 +49,17 @@ function doPost(e) {
     return jsonResponse({ ok: false, error: 'unauthorized' });
   }
 
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
 
   try {
+    const writtenTitles = [];
+
     for (const sheetData of payload.sheets || []) {
       const sheet = getOrCreateSheet_(spreadsheet, sheetData.title);
-      sheet.clearContents();
+      writtenTitles.push(sheetData.title);
+      sheet.clear();
 
       const rows = sheetData.rows || [];
       if (rows.length > 0) {
@@ -66,11 +70,23 @@ function doPost(e) {
           return next;
         });
 
-        sheet.getRange(1, 1, normalizedRows.length, width).setValues(normalizedRows);
-        sheet.setFrozenRows(1);
+        const range = sheet.getRange(1, 1, normalizedRows.length, width);
+        range.setValues(normalizedRows);
+
+        if (Array.isArray(sheetData.backgrounds) && sheetData.backgrounds.length > 0) {
+          const normalizedBackgrounds = sheetData.backgrounds.map(row => {
+            const next = row.slice();
+            while (next.length < width) next.push(null);
+            return next.map(color => color || null);
+          });
+          range.setBackgrounds(normalizedBackgrounds);
+        }
+
         sheet.autoResizeColumns(1, Math.min(width, 20));
       }
     }
+
+    cleanupGeneratedSheets_(spreadsheet, payload.cleanup_sheet_titles || [], writtenTitles);
 
     return jsonResponse({
       ok: true,
@@ -84,6 +100,17 @@ function doPost(e) {
 
 function getOrCreateSheet_(spreadsheet, title) {
   return spreadsheet.getSheetByName(title) || spreadsheet.insertSheet(title);
+}
+
+function cleanupGeneratedSheets_(spreadsheet, titlesToRemove, titlesToKeep) {
+  const keep = new Set(titlesToKeep || []);
+  for (const title of titlesToRemove || []) {
+    if (keep.has(title)) continue;
+    const sheet = spreadsheet.getSheetByName(title);
+    if (sheet && spreadsheet.getSheets().length > 1) {
+      spreadsheet.deleteSheet(sheet);
+    }
+  }
 }
 
 function jsonResponse(data) {

@@ -4,32 +4,22 @@ const APPS_SCRIPT_WEBAPP_URL = process.env.GOOGLE_SHEETS_WEBAPP_URL || '';
 const APPS_SCRIPT_SHARED_SECRET = process.env.GOOGLE_SHEETS_WEBAPP_SECRET || '';
 const DRY_RUN = process.env.BACKUP_DRY_RUN === '1';
 
-const BACKUP_TABLES = [
-  { name: 'ensemble_rounds', order: 'created_at.asc' },
-  { name: 'song_applications', order: 'created_at.asc' },
-  { name: 'session_applications', order: 'created_at.asc' },
-  { name: 'manual_entries', order: 'round_id.asc,team_no.asc,sort_key.asc' },
-];
-
-const SHEET_COLUMNS = {
-  backup_status: ['synced_at', 'source', 'round_count', 'song_count', 'session_count', 'manual_entry_count'],
-  latest_song_status: [
-    'round_id',
-    'round_name',
-    'round_type',
-    'phase',
-    'song_id',
-    'song_title',
-    'artist',
-    'public_note',
-    'applicant_name',
-    'student_id',
-    'needed_sessions',
-    'filled_sessions',
-    'pending_sessions',
-    'created_at',
-  ],
+const COLORS = {
+  green: '#D5E8D4',
+  gray: '#E0E0E0',
+  blue: '#DAE8FC',
 };
+const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
+const TABLES = [
+  { key: 'timeRounds', name: 'application_rounds', order: 'created_at.asc' },
+  { key: 'timeApplications', name: 'time_applications', order: 'submitted_at.asc', select: '*,teams(name,info)' },
+  { key: 'schoolRounds', name: 'school_rounds', order: 'created_at.asc' },
+  { key: 'schoolApplications', name: 'school_applications', order: 'created_at.asc' },
+  { key: 'schools', name: 'schools', select: 'id,name,round_id' },
+  { key: 'ensembleRounds', name: 'ensemble_rounds', order: 'created_at.asc' },
+  { key: 'songApplications', name: 'song_applications', order: 'created_at.asc' },
+  { key: 'sessionApplications', name: 'session_applications', order: 'created_at.asc' },
+];
 
 main().catch(error => {
   console.error(error?.stack || error?.message || error);
@@ -43,44 +33,30 @@ async function main() {
   }
 
   const tables = Object.fromEntries(
-    await Promise.all(BACKUP_TABLES.map(async table => [table.name, await fetchSupabaseRows(table)]))
+    await Promise.all(TABLES.map(async table => [table.key, await fetchSupabaseRows(table)]))
   );
-
   const syncedAt = new Date().toISOString();
-  const sheets = [
-    {
-      title: 'backup_status',
-      rows: [
-        SHEET_COLUMNS.backup_status,
-        [
-          syncedAt,
-          'Supabase KUAGC Schedule',
-          tables.ensemble_rounds.length,
-          tables.song_applications.length,
-          tables.session_applications.length,
-          tables.manual_entries.length,
-        ],
-      ],
-    },
-    ...BACKUP_TABLES.map(table => ({
-      title: table.name,
-      rows: rowsToSheetValues(tables[table.name]),
-    })),
-    {
-      title: 'latest_song_status',
-      rows: buildLatestSongStatusRows(tables),
-    },
-  ];
-
+  const sheets = buildAdminBackupSheets(tables);
   const payload = {
     secret: APPS_SCRIPT_SHARED_SECRET,
     synced_at: syncedAt,
     source: 'kuagc-schedule',
+    format: 'admin-backup',
+    cleanup_sheet_titles: [
+      'backup_status',
+      'ensemble_rounds',
+      'song_applications',
+      'session_applications',
+      'manual_entries',
+      'latest_song_status',
+    ],
     sheets,
   };
 
   if (DRY_RUN) {
-    console.log(`Dry run built ${sheets.length} sheets from ${tables.song_applications.length} songs and ${tables.session_applications.length} session applications.`);
+    console.log(
+      `Dry run built admin-format sheets: ${sheets.map(sheet => `${sheet.title} ${sheet.rows.length} rows`).join(', ')}.`
+    );
     return;
   }
 
@@ -106,7 +82,245 @@ async function main() {
     throw new Error(`Apps Script rejected backup: ${JSON.stringify(result)}`);
   }
 
-  console.log(`Backed up ${tables.song_applications.length} songs and ${tables.session_applications.length} session applications at ${syncedAt}.`);
+  console.log(
+    `Backed up admin-format sheets at ${syncedAt}: ${tables.timeApplications.length} time, ${tables.schoolApplications.length} school, ${tables.songApplications.length} songs, ${tables.sessionApplications.length} session applications.`
+  );
+}
+
+function buildAdminBackupSheets(tables) {
+  return [
+    { title: '시간 신청', ...buildTimeSheet(tables) },
+    { title: '스쿨 신청', ...buildSchoolSheet(tables) },
+    { title: '합주 신청', ...buildEnsembleSheet(tables) },
+  ];
+}
+
+function buildTimeSheet({ timeRounds, timeApplications }) {
+  const rows = [];
+  const backgrounds = [];
+  const applicationsByRound = groupBy(timeApplications, application => application.round_id);
+
+  for (const round of timeRounds || []) {
+    const roundApplications = applicationsByRound.get(round.id) || [];
+    if (roundApplications.length === 0 && !round.created_at) continue;
+
+    pushMergedRow(rows, backgrounds, `${formatTimestamp(round.created_at)} 회차 시작`, 6, COLORS.green);
+    for (const application of roundApplications) {
+      pushRow(rows, backgrounds, [
+        formatTimestamp(application.submitted_at) || '—',
+        (application.teams?.name || '').replace(/팀$/, ''),
+        application.teams?.info || '',
+        dayStr(application.pref1_day, application.pref1_hour),
+        application.pref2_day != null ? dayStr(application.pref2_day, application.pref2_hour) : '—',
+        application.pref3_day != null ? dayStr(application.pref3_day, application.pref3_hour) : '—',
+      ]);
+    }
+    pushMergedRow(
+      rows,
+      backgrounds,
+      `${round.close_at ? formatTimestamp(round.close_at) : '(마감 일시 미기록)'} 회차 마감`,
+      6,
+      COLORS.gray
+    );
+  }
+
+  return ensureRows(rows, backgrounds);
+}
+
+function buildSchoolSheet({ schoolRounds, schoolApplications, schools }) {
+  const rows = [];
+  const backgrounds = [];
+  const schoolNameById = new Map((schools || []).map(school => [school.id, school.name]));
+  const applicationsByRound = groupBy(schoolApplications, application => application.round_id);
+
+  for (const round of schoolRounds || []) {
+    const roundName = round.name || '스쿨 신청';
+    const roundApplications = applicationsByRound.get(round.id) || [];
+    if (roundApplications.length === 0 && !round.created_at) continue;
+
+    pushMergedRow(rows, backgrounds, `${formatTimestamp(round.created_at)} '${roundName}' 시작`, 5, COLORS.green);
+    for (const application of roundApplications) {
+      pushRow(rows, backgrounds, [
+        formatTimestamp(application.created_at) || '—',
+        application.applicant_name || '',
+        application.student_id || '',
+        schoolNameById.get(application.pref1_school_id) || '—',
+        application.pref2_school_id ? schoolNameById.get(application.pref2_school_id) || '—' : '—',
+      ]);
+    }
+    pushMergedRow(
+      rows,
+      backgrounds,
+      `${round.close_at ? formatTimestamp(round.close_at) : '(마감 일시 미기록)'} '${roundName}' 마감`,
+      5,
+      COLORS.gray
+    );
+  }
+
+  return ensureRows(rows, backgrounds);
+}
+
+function buildEnsembleSheet({ ensembleRounds, songApplications, sessionApplications }) {
+  const rows = [];
+  const backgrounds = [];
+  const songById = new Map((songApplications || []).map(song => [song.id, song]));
+  const songsByRound = groupBy(songApplications, song => song.round_id);
+  const sessionApplicationsBySong = groupBy(sessionApplications, application => application.song_id);
+  const sessionApplicationsByRound = groupBy(sessionApplications, application => application.round_id);
+
+  for (const type of ['regular', 'busking']) {
+    for (const round of (ensembleRounds || []).filter(item => item.type === type)) {
+      const typeName = type === 'regular' ? '일반합주' : '버스킹합주';
+      const roundName = round.name || typeName;
+      const roundSongs = (songsByRound.get(round.id) || []).filter(song => song.status !== 'rejected');
+      const roundSession1 = (sessionApplicationsByRound.get(round.id) || []).filter(
+        application => (application.session_round || 1) === 1
+      );
+      const roundSession2 = round.has_session2
+        ? (sessionApplicationsByRound.get(round.id) || []).filter(application => (application.session_round || 1) === 2)
+        : [];
+
+      if (roundSongs.length === 0 && roundSession1.length === 0 && roundSession2.length === 0 && !round.created_at) continue;
+
+      pushMergedRow(rows, backgrounds, `${formatTimestamp(round.created_at)} '${roundName}' 시작`, 7, COLORS.green);
+
+      pushMergedRow(rows, backgrounds, '[곡 신청]', 7, COLORS.blue);
+      for (const song of roundSongs) {
+        const ownSessionApplication = (sessionApplicationsBySong.get(song.id) || []).find(
+          application => application.student_id === song.student_id && (application.session_round || 1) === 1
+        );
+        pushRow(rows, backgrounds, [
+          formatTimestamp(song.created_at) || '—',
+          song.title || '',
+          song.artist || '',
+          song.applicant_name || '',
+          song.student_id || '',
+          joinArray(song.sessions),
+          joinArray(ownSessionApplication?.sessions),
+        ]);
+      }
+      pushMergedRow(
+        rows,
+        backgrounds,
+        `${round.song_close_at ? formatTimestamp(round.song_close_at) : '(미기록)'} '${roundName}' 곡 신청 마감`,
+        7,
+        COLORS.gray
+      );
+
+      pushMergedRow(rows, backgrounds, '[세션 신청]', 7, COLORS.blue);
+      for (const application of roundSession1) {
+        const song = songById.get(application.song_id);
+        pushRow(rows, backgrounds, [
+          formatTimestamp(application.created_at) || '—',
+          song?.title || '—',
+          song?.artist || '—',
+          application.applicant_name || '',
+          application.student_id || '',
+          joinArray(application.sessions),
+          '1차',
+        ]);
+      }
+      pushMergedRow(
+        rows,
+        backgrounds,
+        `${round.session_close_at ? formatTimestamp(round.session_close_at) : '(미기록)'} '${roundName}' 세션 신청 마감`,
+        7,
+        COLORS.gray
+      );
+
+      if (round.has_session2) {
+        pushMergedRow(rows, backgrounds, '[세션 2차 신청]', 7, COLORS.blue);
+        for (const application of roundSession2) {
+          const song = songById.get(application.song_id);
+          pushRow(rows, backgrounds, [
+            formatTimestamp(application.created_at) || '—',
+            song?.title || '—',
+            song?.artist || '—',
+            application.applicant_name || '',
+            application.student_id || '',
+            joinArray(application.sessions),
+            '2차',
+          ]);
+        }
+        pushMergedRow(
+          rows,
+          backgrounds,
+          `${round.session2_close_at ? formatTimestamp(round.session2_close_at) : '(미기록)'} '${roundName}' 2차 세션 신청 마감`,
+          7,
+          COLORS.gray
+        );
+      }
+    }
+  }
+
+  return ensureRows(rows, backgrounds);
+}
+
+function ensureRows(rows, backgrounds) {
+  if (rows.length > 0) return { rows, backgrounds };
+  return {
+    rows: [['데이터 없음']],
+    backgrounds: [[null]],
+  };
+}
+
+function pushMergedRow(rows, backgrounds, text, width, color) {
+  rows.push([text || '', ...Array(width - 1).fill('')]);
+  backgrounds.push(Array(width).fill(color || null));
+}
+
+function pushRow(rows, backgrounds, values) {
+  rows.push(values.map(value => stringifyCell(value)));
+  backgrounds.push(values.map(() => null));
+}
+
+function dayStr(day, hour) {
+  return day != null ? `${DAYS[day] || day} ${hour ?? ''}`.trim() : '—';
+}
+
+function formatTimestamp(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    })
+      .formatToParts(date)
+      .filter(part => part.type !== 'literal')
+      .map(part => [part.type, part.value])
+  );
+
+  return `${Number(parts.year)}년 ${Number(parts.month)}월 ${Number(parts.day)}일 ${Number(parts.hour)}시 ${parts.minute}분 ${parts.second}초`;
+}
+
+function joinArray(value) {
+  return Array.isArray(value) ? value.join(', ') : '';
+}
+
+function groupBy(rows, getKey) {
+  const grouped = new Map();
+  for (const row of rows || []) {
+    const key = getKey(row);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(row);
+  }
+  return grouped;
+}
+
+function stringifyCell(value) {
+  if (value == null) return '';
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return value;
 }
 
 function requiredEnv(name) {
@@ -115,14 +329,14 @@ function requiredEnv(name) {
   return value;
 }
 
-async function fetchSupabaseRows({ name, order }) {
+async function fetchSupabaseRows({ name, order, select = '*' }) {
   const pageSize = 1000;
   const rows = [];
 
   for (let from = 0; ; from += pageSize) {
     const to = from + pageSize - 1;
     const url = new URL(`${SUPABASE_URL}/rest/v1/${name}`);
-    url.searchParams.set('select', '*');
+    url.searchParams.set('select', select);
     if (order) url.searchParams.set('order', order);
 
     const response = await fetch(url, {
@@ -142,67 +356,4 @@ async function fetchSupabaseRows({ name, order }) {
     rows.push(...batch);
     if (batch.length < pageSize) return rows;
   }
-}
-
-function rowsToSheetValues(rows) {
-  if (!rows.length) return [['id']];
-  const headers = [...new Set(rows.flatMap(row => Object.keys(row)))].sort(sortHeaders);
-  return [headers, ...rows.map(row => headers.map(header => stringifyCell(row[header])))];
-}
-
-function buildLatestSongStatusRows(tables) {
-  const roundsById = new Map(tables.ensemble_rounds.map(round => [round.id, round]));
-  const sessionBySongId = new Map();
-
-  for (const application of tables.session_applications) {
-    if (!sessionBySongId.has(application.song_id)) sessionBySongId.set(application.song_id, []);
-    sessionBySongId.get(application.song_id).push(application);
-  }
-
-  const dataRows = tables.song_applications
-    .filter(song => song.status !== 'rejected')
-    .map(song => {
-      const round = roundsById.get(song.round_id) || {};
-      const applications = sessionBySongId.get(song.id) || [];
-      const filledSessions = uniqueSorted(applications.filter(app => app.status === 'confirmed').flatMap(app => app.sessions || []));
-      const pendingSessions = uniqueSorted(applications.filter(app => app.status !== 'rejected' && app.status !== 'confirmed').flatMap(app => app.sessions || []));
-
-      return [
-        song.round_id,
-        round.name || '',
-        round.type || '',
-        round.phase || '',
-        song.id,
-        song.title || '',
-        song.artist || '',
-        song.public_note || '',
-        song.applicant_name || '',
-        song.student_id || '',
-        (song.sessions || []).join(', '),
-        filledSessions.join(', '),
-        pendingSessions.join(', '),
-        song.created_at || '',
-      ];
-    });
-
-  return [SHEET_COLUMNS.latest_song_status, ...dataRows];
-}
-
-function stringifyCell(value) {
-  if (value == null) return '';
-  if (Array.isArray(value)) return value.join(', ');
-  if (typeof value === 'object') return JSON.stringify(value);
-  return value;
-}
-
-function sortHeaders(a, b) {
-  const preferred = ['id', 'round_id', 'song_id', 'type', 'name', 'phase', 'title', 'artist', 'public_note', 'applicant_name', 'student_id', 'sessions', 'status', 'created_at'];
-  const ai = preferred.indexOf(a);
-  const bi = preferred.indexOf(b);
-  if (ai !== -1 || bi !== -1) return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-  return a.localeCompare(b);
-}
-
-function uniqueSorted(values) {
-  return [...new Set(values.filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'ko'));
 }

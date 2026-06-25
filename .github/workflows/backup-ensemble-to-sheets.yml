@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Backup ensemble data
+      - name: Backup request data
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
