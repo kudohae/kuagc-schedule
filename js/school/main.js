@@ -440,7 +440,7 @@ function renderClassCards(isOpen){
         ${pending.map(a=>{const p1=classes.find(c=>c.id===a.pref1_school_id);const p2=classes.find(c=>c.id===a.pref2_school_id);return`<div class="applicant-row">
           <span class="applicant-name">${escHtml(a.applicant_name)}</span>
           <span class="applicant-sid">···${escHtml(a.student_id.slice(-3))}</span>
-          <span style="font-size:10px;color:var(--text3)">${p1?'1지: '+escHtml(p1.name):''}${p2?' · 2지: '+escHtml(p2.name):''}</span>
+          <span style="font-size:10px;color:var(--text3)">${p1?'1지망: '+escHtml(p1.name):''}${p2?' · 2지망: '+escHtml(p2.name):''}</span>
         </div>`}).join('')}
       </div></div>
     </div>`;
