@@ -456,7 +456,7 @@ function renderClassCards(isOpen){
         ${unassigned.map(a=>{const p1=classes.find(c=>c.id===a.pref1_school_id);const p2=classes.find(c=>c.id===a.pref2_school_id);return`<div class="applicant-row">
           <span class="applicant-name">${escHtml(a.applicant_name)}</span>
           <span class="applicant-sid">···${escHtml(a.student_id.slice(-3))}</span>
-          <span style="font-size:10px;color:var(--text3)">${p1?'1지: '+escHtml(p1.name):''}${p2?' · 2지: '+escHtml(p2.name):''}</span>
+          <span style="font-size:10px;color:var(--text3)">${p1?'1지망: '+escHtml(p1.name):''}${p2?' · 2지망: '+escHtml(p2.name):''}</span>
         </div>`}).join('')}
       </div></div>
     </div>`;
@@ -512,7 +512,7 @@ window.submitApply=async function(){
       const c=classes.find(x=>x.id===app.assigned_school_id);
       window.toast(`${c?.name||'반'}에 배정됐습니다!`,'ok');
     } else {
-      window.toast('신청 등록 완료. 현재 모든 반이 만석입니다.','');
+      window.toast('만석입니다. 대기열에 등록되었습니다.','');
     }
   }catch(e){
     _lastSchoolSubmitTs=0; // reset on error so user can retry
