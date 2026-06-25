@@ -1,7 +1,10 @@
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml } from '../utils/html.js';
 
-const BACKUP_URL = 'data/backups/latest.json';
+const BACKUP_URLS = [
+  'data/backups/latest.json',
+  'https://raw.githubusercontent.com/kudohae/kuagc-schedule/gh-pages/data/backups/latest.json',
+];
 const STALE_AFTER_MS = 30 * 60 * 1000;
 
 const state = {
@@ -33,10 +36,10 @@ async function loadBackup() {
   content().innerHTML = '<div class="empty-state">백업 파일을 불러오고 있습니다.</div>';
 
   try {
-    const response = await fetch(`${BACKUP_URL}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-
-    state.backup = await response.json();
+    const loaded = await fetchBackupJson();
+    state.backup = loaded.backup;
+    const jsonLink = document.getElementById('jsonLink');
+    if (jsonLink) jsonLink.href = loaded.url;
     renderSummary();
     renderContent();
 
@@ -57,6 +60,20 @@ async function loadBackup() {
       </div>
     `;
   }
+}
+
+async function fetchBackupJson() {
+  const errors = [];
+  for (const url of BACKUP_URLS) {
+    try {
+      const response = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      return { backup: await response.json(), url };
+    } catch (error) {
+      errors.push(`${url}: ${error.message || error}`);
+    }
+  }
+  throw new Error(errors.join(' / '));
 }
 
 function renderSummary() {
