@@ -3,6 +3,7 @@
 const VIEW_CSS = {
   timeassign: 'css/timeassign.css',
   school:     'css/school.css',
+  'school-test': 'css/school.css',
   ensemble:   'css/ensemble.css',
 };
 
@@ -30,6 +31,7 @@ function updateActiveStates(view) {
     teams:      'tb-teams',
     timeassign: 'tb-apply',
     school:     'tb-school',
+    'school-test': 'tb-school',
     ensemble:   'tb-ensemble',
   };
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -37,7 +39,7 @@ function updateActiveStates(view) {
 
   document.querySelectorAll('.hdr-apply-btn,.hdr-school-btn,.hdr-ensemble-btn')
     .forEach(el => el.classList.remove('active'));
-  const hdrMap = { timeassign: '.hdr-apply-btn', school: '.hdr-school-btn', ensemble: '.hdr-ensemble-btn' };
+  const hdrMap = { timeassign: '.hdr-apply-btn', school: '.hdr-school-btn', 'school-test': '.hdr-school-btn', ensemble: '.hdr-ensemble-btn' };
   if (hdrMap[view]) document.querySelector(hdrMap[view])?.classList.add('active');
 
   document.getElementById('nb-schedule')?.classList.toggle('active', view === 'schedule' || view === 'teams');
@@ -105,7 +107,7 @@ export async function navigate(view) {
 
 function getHashView() {
   const h = location.hash.slice(1);
-  return ['timeassign', 'school', 'ensemble', 'teams'].includes(h) ? h : 'schedule';
+  return ['timeassign', 'school', 'school-test', 'ensemble', 'teams'].includes(h) ? h : 'schedule';
 }
 
 export function initRouter() {
