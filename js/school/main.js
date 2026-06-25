@@ -10,8 +10,99 @@ let _bcChannel=null;
 let _outerContainer=null;
 let _lastSchoolSubmitTs=0;
 let _pollTimer=null;
+let _appPollTimer=null;
+let _refreshTimer=null;
+let _refreshGen=0;
+let _rtReconnectTimer=null;
+let _bcReconnectTimer=null;
+let _rtReplacing=false;
+let _bcReplacing=false;
+let _destroyed=false;
 
 function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});}
+
+function scheduleApplicationsRefresh(delay=400){
+  if(_destroyed) return;
+  if(_refreshTimer) clearTimeout(_refreshTimer);
+  _refreshTimer=setTimeout(()=>{ _refreshTimer=null; refreshApplications(); },delay);
+}
+
+async function refreshApplications(){
+  if(_destroyed||!round||!document.getElementById('container')) return;
+  const gen=++_refreshGen;
+  try{
+    const {data,error}=await supabase.from('school_applications').select('*').eq('round_id',round.id).order('created_at');
+    if(error) throw error;
+    if(gen!==_refreshGen||_destroyed||!document.getElementById('container')) return;
+    apps=data||[];
+    render();
+  }catch(e){
+    console.warn('school applications refresh failed',e);
+  }
+}
+
+async function safeLoad(){
+  try{ await load(); }
+  catch(e){ console.warn('school load failed',e); }
+}
+
+function handleChannelStatus(label,reconnect,isReplacing,status,err){
+  if(status==='CLOSED'&&isReplacing()) return;
+  if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+    if(_destroyed) return;
+    console.warn(`${label} realtime ${status}`,err||'');
+    scheduleApplicationsRefresh(0);
+    reconnect();
+  }
+}
+
+function scheduleRtReconnect(){
+  if(_rtReconnectTimer) clearTimeout(_rtReconnectTimer);
+  _rtReconnectTimer=setTimeout(()=>{ _rtReconnectTimer=null; if(!_destroyed) subscribeRealtime(); },2000);
+}
+
+function scheduleBcReconnect(){
+  if(_bcReconnectTimer) clearTimeout(_bcReconnectTimer);
+  _bcReconnectTimer=setTimeout(()=>{ _bcReconnectTimer=null; if(!_destroyed) subscribeBroadcast(); },2000);
+}
+
+function subscribeRealtime(){
+  if(_rtChannel){
+    const old=_rtChannel; _rtChannel=null; _rtReplacing=true;
+    supabase.removeChannel(old).finally(()=>setTimeout(()=>{ _rtReplacing=false; },1000));
+  }
+  _rtChannel = supabase.channel('school-public-rt-' + Date.now())
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},()=>{
+      if(document.getElementById('container')) safeLoad();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'schools'},()=>{
+      if(document.getElementById('container')) safeLoad();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},()=>{
+      if(!round||!document.getElementById('container')) return;
+      scheduleApplicationsRefresh();
+    })
+    .subscribe((status,err)=>handleChannelStatus('school',scheduleRtReconnect,()=>_rtReplacing,status,err));
+}
+
+function subscribeBroadcast(){
+  if(_bcChannel){
+    const old=_bcChannel; _bcChannel=null; _bcReplacing=true;
+    supabase.removeChannel(old).finally(()=>setTimeout(()=>{ _bcReplacing=false; },1000));
+  }
+  _bcChannel=supabase.channel('school-pub')
+    .on('broadcast',{event:'update'},payload=>{
+      if(!document.getElementById('container')) return;
+      if(payload?.payload?.scope==='applications') scheduleApplicationsRefresh(0);
+      else safeLoad();
+    })
+    .subscribe((status,err)=>handleChannelStatus('school broadcast',scheduleBcReconnect,()=>_bcReplacing,status,err));
+}
+
+function handleResume(){
+  if(document.hidden) return;
+  scheduleApplicationsRefresh(0);
+}
 
 function escHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -61,6 +152,7 @@ function startCd(targetTs,onExpired){
 
 // ── EXPORTED INIT ─────────────────────────────────────────────────────
 export async function init(outerContainer) {
+  _destroyed=false;
   _outerContainer = outerContainer;
   round=null; prevRound=null; classes=[]; apps=[]; prevApps=[];
 
@@ -74,61 +166,60 @@ export async function init(outerContainer) {
   await syncServerTime(supabase);
   await load();
 
-  _rtChannel = supabase.channel('school-public-rt-' + Date.now())
-    .on('postgres_changes',{event:'*',schema:'public',table:'school_rounds'},()=>{
-      if(document.getElementById('container')) load();
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'schools'},()=>{
-      if(document.getElementById('container')) load();
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'school_applications'},async()=>{
-      if(!round||!document.getElementById('container')) return;
-      const {data}=await supabase.from('school_applications').select('*').eq('round_id',round.id).order('created_at');
-      apps=data||[];
-      render();
-    })
-    .subscribe();
-
-  _bcChannel=supabase.channel('school-pub')
-    .on('broadcast',{event:'update'},()=>{
-      if(document.getElementById('container')) load();
-    })
-    .subscribe();
+  subscribeRealtime();
+  subscribeBroadcast();
 
   _pollTimer=setInterval(async()=>{
     if(!document.getElementById('container')) return;
     const{data}=await supabase.from('school_rounds').select('id,status,open_at,close_at').order('created_at',{ascending:false}).limit(1).maybeSingle();
     const chg=(!data&&round)||(data&&(!round||data.status!==round.status||data.open_at!==round.open_at||data.close_at!==round.close_at));
-    if(chg) await load();
+    if(chg) await safeLoad();
   },3000);
+  _appPollTimer=setInterval(()=>{ if(!document.hidden) scheduleApplicationsRefresh(0); },10000);
+  document.addEventListener('visibilitychange',handleResume);
+  window.addEventListener('online',handleResume);
+  window.addEventListener('pageshow',handleResume);
 
   return function destroy() {
+    _destroyed=true;
     stopCd();
+    if(_refreshTimer){ clearTimeout(_refreshTimer); _refreshTimer=null; }
+    if(_rtReconnectTimer){ clearTimeout(_rtReconnectTimer); _rtReconnectTimer=null; }
+    if(_bcReconnectTimer){ clearTimeout(_bcReconnectTimer); _bcReconnectTimer=null; }
     if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
+    if(_appPollTimer){clearInterval(_appPollTimer);_appPollTimer=null;}
     if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
     if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
+    document.removeEventListener('visibilitychange',handleResume);
+    window.removeEventListener('online',handleResume);
+    window.removeEventListener('pageshow',handleResume);
     _outerContainer = null;
   };
 }
 
 async function load(){
-  const {data:rds}=await supabase.from('school_rounds').select('*').order('created_at',{ascending:false}).limit(2);
+  const {data:rds,error:rdsErr}=await supabase.from('school_rounds').select('*').order('created_at',{ascending:false}).limit(2);
+  if(rdsErr) throw rdsErr;
   round=(rds||[])[0]||null;
 
   if(round){
-    const {data:prev}=await supabase.from('school_rounds').select('*').eq('status','closed').neq('id',round.id).order('created_at',{ascending:false}).limit(1);
+    const {data:prev,error:prevErr}=await supabase.from('school_rounds').select('*').eq('status','closed').neq('id',round.id).order('created_at',{ascending:false}).limit(1);
+    if(prevErr) throw prevErr;
     prevRound=prev?.[0]||null;
 
-    const [{data:sc},{data:ap}]=await Promise.all([
+    const [{data:sc,error:scErr},{data:ap,error:apErr}]=await Promise.all([
       supabase.from('schools').select('*').eq('round_id',round.id).order('created_at'),
       supabase.from('school_applications').select('*').eq('round_id',round.id).order('created_at')
     ]);
+    if(scErr) throw scErr;
+    if(apErr) throw apErr;
     classes=sc||[];
     apps=ap||[];
 
     if(prevRound&&round.prioritize_returning){
-      const {data:pa}=await supabase.from('school_applications').select('student_id')
+      const {data:pa,error:paErr}=await supabase.from('school_applications').select('student_id')
         .eq('round_id',prevRound.id).eq('status','assigned');
+      if(paErr) throw paErr;
       prevApps=pa||[];
     } else {
       prevApps=[];
@@ -413,6 +504,7 @@ window.submitApply=async function(){
     if(app) apps.push(app);
     ['applyName','applySid','applyPref1','applyPref2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     broadcastRefresh();
+    scheduleApplicationsRefresh(0);
     render();
     if(app?.status==='pending'){
       window.toast('신청 등록 완료. 이전 회차 수강자로, 마감 후 남은 자리에 배정될 예정입니다.','ok');
