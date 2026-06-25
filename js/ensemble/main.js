@@ -627,6 +627,7 @@ function renderList(){
   }
   html+=`</div>`;
   el.innerHTML=html;
+  resizeSongPublicNoteTextareas();
 }
 
 function renderSongItem(s,num,phase){
@@ -680,16 +681,27 @@ function renderPublicNoteInput(song,phase){
   if(!['song','session','session2'].includes(phase)) return '';
   const value=publicNoteDrafts.has(song.id)?publicNoteDrafts.get(song.id):(song.public_note||'');
   return `<div class="song-note-wrap">
-    <input class="song-note-input" value="${esc(value)}" maxlength="${PUBLIC_NOTE_MAX_LEN}" placeholder="메모"
-      oninput="onSongPublicNoteInput(${song.id},this.value)"
+    <textarea class="song-note-input" rows="1" maxlength="${PUBLIC_NOTE_MAX_LEN}" placeholder="메모"
+      oninput="onSongPublicNoteInput(${song.id},this.value);resizeSongPublicNoteInput(this)"
       onkeydown="onSongPublicNoteKeydown(event,${song.id},this)"
-      onblur="saveSongPublicNote(${song.id},this.value)"/>
+      onfocus="resizeSongPublicNoteInput(this)"
+      onblur="saveSongPublicNote(${song.id},this.value)">${esc(value)}</textarea>
     <span class="song-note-state" id="songNoteState-${song.id}"></span>
   </div>`;
 }
 
 function findSongById(songId){
   return [...songs.regular,...songs.busking].find(s=>s.id===songId);
+}
+
+window.resizeSongPublicNoteInput=function(el){
+  if(!el) return;
+  el.style.height='0px';
+  el.style.height=`${el.scrollHeight}px`;
+};
+
+function resizeSongPublicNoteTextareas(){
+  document.querySelectorAll('.song-note-input').forEach(el=>window.resizeSongPublicNoteInput(el));
 }
 
 window.onSongPublicNoteInput=function(songId,value){
