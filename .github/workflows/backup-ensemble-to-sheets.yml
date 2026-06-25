@@ -6,7 +6,7 @@ on:
     - cron: '*/10 * * * *'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   backup:
@@ -18,10 +18,43 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Backup request data
+      - name: Build and send backup data
+        id: backup
+        continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           GOOGLE_SHEETS_WEBAPP_URL: ${{ secrets.GOOGLE_SHEETS_WEBAPP_URL }}
           GOOGLE_SHEETS_WEBAPP_SECRET: ${{ secrets.GOOGLE_SHEETS_WEBAPP_SECRET }}
+          BACKUP_OUTPUT_FILE: backup/latest.json
         run: node scripts/backup-ensemble-to-sheets.mjs
+
+      - name: Publish static backup JSON
+        if: ${{ hashFiles('backup/latest.json') != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          rm -rf /tmp/backup-site
+          git clone --depth 1 --branch gh-pages "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" /tmp/backup-site || {
+            mkdir -p /tmp/backup-site
+            cd /tmp/backup-site
+            git init -b gh-pages
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+            cd -
+          }
+
+          mkdir -p /tmp/backup-site/data/backups
+          cp backup/latest.json /tmp/backup-site/data/backups/latest.json
+
+          cd /tmp/backup-site
+          git add data/backups/latest.json
+          git diff --cached --quiet && echo "No backup JSON changes" || git commit -m "update backup snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push origin gh-pages
+
+      - name: Fail if Sheets backup failed
+        if: ${{ steps.backup.outcome == 'failure' }}
+        run: exit 1
