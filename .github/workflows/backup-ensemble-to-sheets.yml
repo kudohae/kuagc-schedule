@@ -2,8 +2,6 @@ name: Backup ensemble to Google Sheets
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/30 * * * *'
 
 permissions:
   contents: write
