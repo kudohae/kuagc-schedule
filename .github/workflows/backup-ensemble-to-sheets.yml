@@ -3,7 +3,7 @@ name: Backup ensemble to Google Sheets
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '7 * * * *'
 
 permissions:
   contents: write
@@ -47,11 +47,52 @@ jobs:
             cd -
           }
 
-          mkdir -p /tmp/backup-site/data/backups
+          mkdir -p /tmp/backup-site/data/backups/snapshots
+          SNAPSHOT_NAME="$(node -e "const b=require('./backup/latest.json'); console.log(b.generated_at.replace(/[:.]/g,'-'))")"
+          SNAPSHOT_PATH="data/backups/snapshots/${SNAPSHOT_NAME}.json"
+          cp backup/latest.json "/tmp/backup-site/${SNAPSHOT_PATH}"
           cp backup/latest.json /tmp/backup-site/data/backups/latest.json
 
+          node - "$SNAPSHOT_PATH" <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const snapshotPath = process.argv[2];
+          const root = '/tmp/backup-site';
+          const indexPath = path.join(root, 'data/backups/index.json');
+          const snapshot = JSON.parse(fs.readFileSync(path.join(root, snapshotPath), 'utf8'));
+          let index = [];
+          if (fs.existsSync(indexPath)) {
+            index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+          }
+
+          const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+          index = index
+            .filter(item => item?.generated_at && Date.parse(item.generated_at) >= cutoff)
+            .filter(item => item.path !== snapshotPath);
+          index.push({
+            generated_at: snapshot.generated_at,
+            generated_at_kst: snapshot.generated_at_kst,
+            path: snapshotPath,
+            counts: snapshot.counts,
+          });
+          index.sort((a, b) => Date.parse(b.generated_at) - Date.parse(a.generated_at));
+
+          fs.mkdirSync(path.dirname(indexPath), { recursive: true });
+          fs.writeFileSync(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+
+          const keep = new Set(index.map(item => path.join(root, item.path)));
+          const snapshotsDir = path.join(root, 'data/backups/snapshots');
+          for (const file of fs.readdirSync(snapshotsDir)) {
+            const fullPath = path.join(snapshotsDir, file);
+            if (file.endsWith('.json') && !keep.has(fullPath)) {
+              fs.unlinkSync(fullPath);
+            }
+          }
+          NODE
+
           cd /tmp/backup-site
-          git add data/backups/latest.json
+          git add data/backups
           git diff --cached --quiet && echo "No backup JSON changes" || git commit -m "update backup snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push origin gh-pages
 

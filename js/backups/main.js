@@ -1,14 +1,24 @@
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml } from '../utils/html.js';
+import { supabase } from '../supabase.js';
 
 const BACKUP_URLS = [
   'data/backups/latest.json',
   'https://raw.githubusercontent.com/kudohae/kuagc-schedule/gh-pages/data/backups/latest.json',
 ];
-const STALE_AFTER_MS = 30 * 60 * 1000;
+const BACKUP_INDEX_URLS = [
+  'data/backups/index.json',
+  'https://raw.githubusercontent.com/kudohae/kuagc-schedule/gh-pages/data/backups/index.json',
+];
+const RAW_BACKUP_BASE = 'https://raw.githubusercontent.com/kudohae/kuagc-schedule/gh-pages/';
+const STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
 const state = {
   backup: null,
+  backupUrl: '',
+  index: [],
+  indexBaseUrl: '',
+  selectedAt: '',
   activeTab: 'overview',
   query: '',
 };
@@ -17,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   document.getElementById('themeBtn')?.addEventListener('click', toggleTheme);
   document.getElementById('reloadBtn')?.addEventListener('click', loadBackup);
+  document.getElementById('compareBtn')?.addEventListener('click', compareWithLiveData);
+  document.getElementById('snapshotAt')?.addEventListener('change', event => {
+    loadSnapshotForTime(event.target.value);
+  });
   document.getElementById('backupSearch')?.addEventListener('input', event => {
     state.query = event.target.value.trim().toLowerCase();
     renderContent();
@@ -36,10 +50,16 @@ async function loadBackup() {
   content().innerHTML = '<div class="empty-state">백업 파일을 불러오고 있습니다.</div>';
 
   try {
+    await loadBackupIndex();
     const loaded = await fetchBackupJson();
     state.backup = loaded.backup;
+    state.backupUrl = loaded.url;
+    state.selectedAt = '';
+    const snapshotInput = document.getElementById('snapshotAt');
+    if (snapshotInput) snapshotInput.value = '';
     const jsonLink = document.getElementById('jsonLink');
     if (jsonLink) jsonLink.href = loaded.url;
+    updateSnapshotNote();
     renderSummary();
     renderContent();
 
@@ -62,18 +82,84 @@ async function loadBackup() {
   }
 }
 
+async function loadBackupIndex() {
+  try {
+    const loaded = await fetchJsonFromUrls(BACKUP_INDEX_URLS);
+    state.index = Array.isArray(loaded.data) ? loaded.data : [];
+    state.indexBaseUrl = loaded.url.replace(/data\/backups\/index\.json(?:\?.*)?$/, '');
+  } catch {
+    state.index = [];
+    state.indexBaseUrl = '';
+  }
+}
+
 async function fetchBackupJson() {
+  const loaded = await fetchJsonFromUrls(BACKUP_URLS);
+  return { backup: loaded.data, url: loaded.url };
+}
+
+async function fetchJsonFromUrls(urls) {
   const errors = [];
-  for (const url of BACKUP_URLS) {
+  for (const url of urls) {
     try {
       const response = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-      return { backup: await response.json(), url };
+      return { data: await response.json(), url };
     } catch (error) {
       errors.push(`${url}: ${error.message || error}`);
     }
   }
   throw new Error(errors.join(' / '));
+}
+
+async function loadSnapshotForTime(localValue) {
+  if (!localValue) return loadBackup();
+  if (!state.index.length) await loadBackupIndex();
+  if (!state.index.length) {
+    toastLike('시점별 백업 목록을 찾을 수 없습니다.');
+    return;
+  }
+
+  const selectedTime = new Date(localValue).getTime();
+  const snapshots = [...state.index]
+    .filter(item => item?.generated_at && item?.path)
+    .sort((a, b) => Date.parse(a.generated_at) - Date.parse(b.generated_at));
+  const target = snapshots.filter(item => Date.parse(item.generated_at) <= selectedTime).pop() || snapshots[0];
+  const url = resolveBackupPath(target.path);
+
+  setStatus('pending', '선택 시점 백업 확인 중');
+  try {
+    const loaded = await fetchJsonFromUrls([url]);
+    state.backup = loaded.data;
+    state.backupUrl = loaded.url;
+    state.selectedAt = localValue;
+    const jsonLink = document.getElementById('jsonLink');
+    if (jsonLink) jsonLink.href = loaded.url;
+    updateSnapshotNote();
+    renderSummary();
+    renderContent();
+    setStatus('ok', `표시 중: ${formatDateTime(state.backup.generated_at)}`);
+  } catch (error) {
+    setStatus('err', '선택 백업을 읽지 못함');
+    content().innerHTML = `<div class="error-box">선택한 시점의 백업을 불러오지 못했습니다.<br>${escapeHtml(error.message || error)}</div>`;
+  }
+}
+
+function resolveBackupPath(path) {
+  if (/^https?:\/\//.test(path)) return path;
+  if (state.indexBaseUrl) return `${state.indexBaseUrl}${path}`;
+  return `${RAW_BACKUP_BASE}${path}`;
+}
+
+function updateSnapshotNote() {
+  const note = document.getElementById('snapshotNote');
+  if (!note || !state.backup) return;
+  const selectedText = state.selectedAt ? `선택 시점 ${formatDateTime(new Date(state.selectedAt).toISOString())}` : '최신 백업';
+  note.textContent = `${selectedText} · 표시 백업 ${formatDateTime(state.backup.generated_at)} 기준`;
+}
+
+function toastLike(message) {
+  content().insertAdjacentHTML('afterbegin', `<div class="error-box">${escapeHtml(message)}</div>`);
 }
 
 function renderSummary() {
@@ -416,6 +502,219 @@ function summaryCard(key, value, detail) {
       <div class="summary-d">${escapeHtml(detail)}</div>
     </div>
   `;
+}
+
+async function compareWithLiveData() {
+  if (!state.backup) return;
+  const popup = window.open('', '_blank', 'width=1100,height=760');
+  if (!popup) {
+    alert('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 눌러주세요.');
+    return;
+  }
+  popup.document.write(buildCompareShell('실시간 데이터를 불러오는 중입니다.'));
+  popup.document.close();
+
+  try {
+    const live = await fetchLiveRows();
+    const diff = buildDiff(state.backup, live);
+    popup.document.open();
+    popup.document.write(renderComparePopup(diff));
+    popup.document.close();
+  } catch (error) {
+    popup.document.open();
+    popup.document.write(buildCompareShell(`대조 실패: ${escapeHtml(error.message || error)}`));
+    popup.document.close();
+  }
+}
+
+async function fetchLiveRows() {
+  const specs = [
+    ['timeRounds', 'application_rounds', '*', 'created_at'],
+    ['timeApplications', 'time_applications', '*,teams(name,info)', 'submitted_at'],
+    ['schoolRounds', 'school_rounds', '*', 'created_at'],
+    ['schoolApplications', 'school_applications', '*', 'created_at'],
+    ['schools', 'schools', '*', 'created_at'],
+    ['ensembleRounds', 'ensemble_rounds', '*', 'created_at'],
+    ['songApplications', 'song_applications', '*', 'created_at'],
+    ['sessionApplications', 'session_applications', '*', 'created_at'],
+    ['manualEntries', 'manual_entries', '*', 'sort_key'],
+  ];
+  const entries = await Promise.all(
+    specs.map(async ([key, table, select, order]) => [key, await fetchSupabaseRows(table, select, order)])
+  );
+  return Object.fromEntries(entries);
+}
+
+async function fetchSupabaseRows(table, select, order) {
+  const pageSize = 1000;
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1;
+    let query = supabase.from(table).select(select).range(from, to);
+    if (order) query = query.order(order, { ascending: true });
+    const { data, error } = await query;
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
+function buildDiff(backup, live) {
+  const specs = [
+    ['timeRounds', '시간 회차', backup.time?.rounds?.map(row => row.raw) || [], live.timeRounds],
+    ['timeApplications', '시간배정 신청', (backup.time?.rounds || []).flatMap(round => round.applications || []).map(row => row.raw), live.timeApplications],
+    ['schoolRounds', '스쿨 회차', backup.school?.rounds?.map(row => row.raw) || [], live.schoolRounds],
+    ['schools', '스쿨 반', (backup.school?.rounds || []).flatMap(round => round.schools || []).map(row => row.raw), live.schools],
+    ['schoolApplications', '스쿨 신청', (backup.school?.rounds || []).flatMap(round => round.applications || []).map(row => row.raw), live.schoolApplications],
+    ['ensembleRounds', '합주 회차', backup.ensemble?.rounds?.map(row => row.raw) || [], live.ensembleRounds],
+    ['songApplications', '합주 곡 신청', (backup.ensemble?.rounds || []).flatMap(round => round.songs || []).map(row => row.raw), live.songApplications],
+    ['sessionApplications', '합주 세션 신청', (backup.ensemble?.rounds || []).flatMap(round => round.session_applications || []).map(row => row.raw), live.sessionApplications],
+    ['manualEntries', '수동 편성', (backup.ensemble?.rounds || []).flatMap(round => round.manual_entries || []).map(row => row.raw), live.manualEntries],
+  ];
+
+  const sections = specs.map(([key, label, backupRows, liveRows]) => compareRows(key, label, backupRows, liveRows || []));
+  return {
+    generatedAt: backup.generated_at,
+    selectedAt: state.selectedAt,
+    comparedAt: new Date().toISOString(),
+    sections,
+    totals: sections.reduce(
+      (acc, section) => ({
+        added: acc.added + section.added.length,
+        removed: acc.removed + section.removed.length,
+        changed: acc.changed + section.changed.length,
+      }),
+      { added: 0, removed: 0, changed: 0 }
+    ),
+  };
+}
+
+function compareRows(key, label, backupRows, liveRows) {
+  const backupMap = new Map((backupRows || []).filter(Boolean).map(row => [rowKey(row), row]));
+  const liveMap = new Map((liveRows || []).filter(Boolean).map(row => [rowKey(row), row]));
+  const added = [];
+  const removed = [];
+  const changed = [];
+
+  for (const [id, row] of liveMap.entries()) {
+    if (!backupMap.has(id)) added.push({ id, row });
+    else {
+      const before = normalizeRow(backupMap.get(id));
+      const after = normalizeRow(row);
+      if (JSON.stringify(before) !== JSON.stringify(after)) {
+        changed.push({ id, before: backupMap.get(id), after: row, fields: changedFields(before, after) });
+      }
+    }
+  }
+  for (const [id, row] of backupMap.entries()) {
+    if (!liveMap.has(id)) removed.push({ id, row });
+  }
+
+  return { key, label, backupCount: backupMap.size, liveCount: liveMap.size, added, removed, changed };
+}
+
+function rowKey(row) {
+  return String(row?.id ?? `${row?.round_id || ''}:${row?.team_no || ''}:${row?.sort_key || ''}:${JSON.stringify(row)}`);
+}
+
+function normalizeRow(row) {
+  return sortObject(stripVolatile(row || {}));
+}
+
+function stripVolatile(value) {
+  if (Array.isArray(value)) return value.map(stripVolatile);
+  if (!value || typeof value !== 'object') return value;
+  const next = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (key === '__rowNum__') continue;
+    next[key] = stripVolatile(val);
+  }
+  return next;
+}
+
+function sortObject(value) {
+  if (Array.isArray(value)) return value.map(sortObject);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.keys(value).sort().map(key => [key, sortObject(value[key])]));
+}
+
+function changedFields(before, after) {
+  const keys = [...new Set([...Object.keys(before || {}), ...Object.keys(after || {})])].sort();
+  return keys.filter(key => JSON.stringify(before?.[key]) !== JSON.stringify(after?.[key]));
+}
+
+function renderComparePopup(diff) {
+  const total = diff.totals.added + diff.totals.removed + diff.totals.changed;
+  const sections = diff.sections.filter(section => section.added.length || section.removed.length || section.changed.length);
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>실시간 데이터 대조</title>
+${comparePopupStyle()}
+</head>
+<body>
+  <main>
+    <h1>실시간 데이터 대조</h1>
+    <p class="meta">백업 기준: ${escapeHtml(formatDateTime(diff.generatedAt))} · 대조 시각: ${escapeHtml(formatDateTime(diff.comparedAt))}</p>
+    <div class="summary">
+      <div><b>${total}</b><span>전체 차이</span></div>
+      <div><b>${diff.totals.added}</b><span>현재에만 있음</span></div>
+      <div><b>${diff.totals.removed}</b><span>백업에만 있음</span></div>
+      <div><b>${diff.totals.changed}</b><span>내용 변경</span></div>
+    </div>
+    ${sections.length ? sections.map(renderDiffSection).join('') : '<section class="ok">차이점이 없습니다.</section>'}
+  </main>
+</body>
+</html>`;
+}
+
+function buildCompareShell(message) {
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>실시간 데이터 대조</title>${comparePopupStyle()}</head><body><main><h1>실시간 데이터 대조</h1><section class="ok">${message}</section></main></body></html>`;
+}
+
+function renderDiffSection(section) {
+  return `<section>
+    <h2>${escapeHtml(section.label)}</h2>
+    <p class="meta">백업 ${section.backupCount}개 · 현재 ${section.liveCount}개</p>
+    ${renderDiffGroup('현재에만 있음', section.added, item => summarizeRow(item.row))}
+    ${renderDiffGroup('백업에만 있음', section.removed, item => summarizeRow(item.row))}
+    ${renderDiffGroup('내용 변경', section.changed, item => `${summarizeRow(item.after)}<br><small>변경 필드: ${escapeHtml(item.fields.join(', ') || '알 수 없음')}</small>`)}
+  </section>`;
+}
+
+function renderDiffGroup(title, items, render) {
+  if (!items.length) return '';
+  return `<h3>${escapeHtml(title)} ${items.length}건</h3>
+    <div class="table-wrap"><table><tbody>
+      ${items.slice(0, 200).map(item => `<tr><td>${render(item)}</td></tr>`).join('')}
+    </tbody></table></div>
+    ${items.length > 200 ? `<p class="meta">처음 200건만 표시했습니다.</p>` : ''}`;
+}
+
+function summarizeRow(row) {
+  const primary = row?.title || row?.name || row?.applicant_name || row?.song_name || row?.team_name || `ID ${row?.id || '—'}`;
+  const secondary = [
+    row?.artist,
+    row?.student_id,
+    row?.round_id ? `round ${row.round_id}` : '',
+    row?.status,
+    row?.created_at ? formatDateTime(row.created_at) : '',
+    row?.submitted_at ? formatDateTime(row.submitted_at) : '',
+  ].filter(Boolean).join(' · ');
+  return `<b>${escapeHtml(primary)}</b>${secondary ? `<br><small>${escapeHtml(secondary)}</small>` : ''}`;
+}
+
+function comparePopupStyle() {
+  return `<style>
+    body{margin:0;background:#f4f4f5;color:#111;font-family:Arial,'Noto Sans KR',sans-serif;font-size:14px}
+    main{max-width:1040px;margin:0 auto;padding:24px}
+    h1{font-size:24px;margin:0 0 8px} h2{font-size:18px;margin:24px 0 4px} h3{font-size:14px;margin:16px 0 8px}
+    .meta{color:#666;font-size:12px;margin:0 0 12px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
+    .summary div,.ok,section{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px}.summary b{display:block;font-size:24px}.summary span{color:#666;font-size:12px}
+    section{margin-top:12px}.table-wrap{border:1px solid #ddd;border-radius:6px;overflow:auto;background:#fff}table{border-collapse:collapse;width:100%}td{border-bottom:1px solid #eee;padding:8px 10px;line-height:1.45}tr:last-child td{border-bottom:0}small{color:#666}
+  </style>`;
 }
 
 function setStatus(kind, text) {
