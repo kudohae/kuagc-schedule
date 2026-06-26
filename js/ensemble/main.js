@@ -658,10 +658,11 @@ function renderSongItem(s,num,phase){
       <span class="song-num">${String(num).padStart(2,'0')}</span>
       <div class="song-info">
         <div class="song-title-line">
-          <div class="song-title">${esc(s.title)}${s.is_fixed?FIXED_BADGE:''}</div>
-          ${renderPublicNoteInput(s,phase)}
+          <span class="song-title">${esc(s.title)}</span>
+          <span class="song-artist">${esc(s.artist)}</span>
+          ${s.is_fixed?FIXED_BADGE:''}
         </div>
-        <div class="song-artist">${esc(s.artist)}</div>
+        ${renderPublicNoteInput(s,phase)}
       </div>
     </div>
     <div class="song-meta">
@@ -678,7 +679,7 @@ function renderSongItem(s,num,phase){
 }
 
 function renderPublicNoteInput(song,phase){
-  if(!['song','session','session2'].includes(phase)) return '';
+  if(!['song','song_end','session','session_end','session2'].includes(phase)) return '';
   const value=publicNoteDrafts.has(song.id)?publicNoteDrafts.get(song.id):(song.public_note||'');
   return `<div class="song-note-wrap">
     <textarea class="song-note-input" rows="1" maxlength="${PUBLIC_NOTE_MAX_LEN}" placeholder="메모"
