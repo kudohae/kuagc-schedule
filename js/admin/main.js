@@ -1932,6 +1932,9 @@ function renderEnsemble(){
             :phase==='song'&&!s.is_fixed
               ?`<button class="btn btn-d btn-xs" style="flex-shrink:0;margin-left:4px" onclick="rejectSong(${s.id})">삭제</button>`
               :'';
+          const editBtn=phase==='song'
+            ?`<button class="btn btn-s btn-xs" style="flex-shrink:0;margin-left:4px" onclick="openEditSongModal(${s.id})">수정</button>`
+            :'';
           return `<div class="e-song-item">
             <div class="e-song-hdr">
               <span class="e-song-num">${String(i+1).padStart(2,'0')}</span>
@@ -1939,6 +1942,7 @@ function renderEnsemble(){
                 <div class="e-song-title">${esc(s.title)}${fixedBadge}</div>
                 <div class="e-song-artist">${esc(s.artist)}</div>
               </div>
+              ${editBtn}
               ${deleteBtn}
             </div>
             <div class="e-song-meta">
@@ -2149,6 +2153,66 @@ window.deleteFixedSong=async function(songId){
     if(error) throw error;
     toast('삭제됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
+};
+
+window.openEditSongModal=function(songId){
+  const song=Object.values(eSongs).flat().find(s=>s.id===songId);
+  if(!song){toast('곡 정보를 찾을 수 없습니다','err');return;}
+  const selected=new Set(song.sessions||[]);
+  const sessionHtml=SESSIONS.map(sess=>`
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+      <input type="checkbox" name="editSongSession" value="${esc(sess)}" ${selected.has(sess)?'checked':''} style="margin:0">
+      ${esc(sess)}
+    </label>
+  `).join('');
+  showModal('곡 정보 수정',
+    `<div style="display:flex;flex-direction:column;gap:12px">
+       <div>
+         <div class="fl">곡 제목</div>
+         <input class="fi" id="editSongTitle" value="${esc(song.title||'')}" placeholder="곡 제목"/>
+       </div>
+       <div>
+         <div class="fl">아티스트</div>
+         <input class="fi" id="editSongArtist" value="${esc(song.artist||'')}" placeholder="아티스트"/>
+       </div>
+       <div>
+         <div class="fl">필요 세션</div>
+         <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px">
+           ${sessionHtml}
+         </div>
+       </div>
+     </div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="editSongSaveBtn" onclick="saveEditSong(${songId})">저장</button>`
+  );
+};
+
+window.saveEditSong=async function(songId){
+  const song=Object.values(eSongs).flat().find(s=>s.id===songId);
+  if(!song){toast('곡 정보를 찾을 수 없습니다','err');return;}
+  const title=(document.getElementById('editSongTitle')?.value||'').trim();
+  const artist=(document.getElementById('editSongArtist')?.value||'').trim();
+  const sessions=[...document.querySelectorAll('input[name="editSongSession"]:checked')].map(cb=>cb.value);
+  if(!title){toast('곡 제목을 입력해주세요','err');return;}
+  if(!artist){toast('아티스트를 입력해주세요','err');return;}
+  if(!sessions.length){toast('필요 세션을 1개 이상 선택해주세요','err');return;}
+  const btn=document.getElementById('editSongSaveBtn');
+  if(btn) btn.disabled=true;
+  try{
+    const {data:round,error:roundErr}=await supabase.from('ensemble_rounds').select('phase').eq('id',song.round_id).single();
+    if(roundErr) throw roundErr;
+    if(round?.phase!=='song'){
+      toast('곡 신청 단계에서만 수정할 수 있습니다','err');
+      if(btn) btn.disabled=false;
+      return;
+    }
+    const {error}=await supabase.from('song_applications').update({title,artist,sessions}).eq('id',songId);
+    if(error) throw error;
+    toast('수정되었습니다','ok'); closeModal(); await ensUpdated();
+  }catch(e){
+    toast(errMsg(e),'err');
+    if(btn) btn.disabled=false;
+  }
 };
 
 window.addManualTeam=async function(roundId,type){
