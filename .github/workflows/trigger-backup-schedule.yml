@@ -1,0 +1,19 @@
+name: Trigger scheduled backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger backup workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run "Backup ensemble to Google Sheets" --repo "${{ github.repository }}" --ref main
