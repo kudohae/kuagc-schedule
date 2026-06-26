@@ -466,7 +466,7 @@ function render(){
       <div id="sessionSelectArea">
         <div class="no-song-selected">곡을 선택하면 신청 가능한 세션이 표시됩니다.</div>
       </div>
-      <div class="form-footer"><button class="btn btn-p" onclick="submitSession()">세션 신청</button></div>
+      <div class="form-footer" data-session-manager-anchor="1"><button class="btn btn-p" onclick="submitSession()">세션 신청</button></div>
     </div>`;
   }
 
@@ -557,7 +557,7 @@ function render(){
       <div id="sessionSelectArea">
         <div class="no-song-selected">곡을 선택하면 신청 가능한 세션이 표시됩니다.</div>
       </div>
-      <div class="form-footer"><button class="btn btn-p" onclick="submitSession2()">세션 신청</button></div>
+      <div class="form-footer" data-session-manager-anchor="1"><button class="btn btn-p" onclick="submitSession2()">세션 신청</button></div>
     </div>`;
   }
 
