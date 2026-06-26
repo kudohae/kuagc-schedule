@@ -44,10 +44,13 @@ body.dark .status-card.session{background:rgba(71,197,255,.06);border-color:rgba
 
 /* SONG LIST */
 .list-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);}
-.list-card-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.list-card-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.list-card-heading{display:flex;align-items:center;gap:8px;min-width:0;}
 .list-card-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;}
+.list-card-phase{font-size:10px;font-weight:800;color:var(--accent2);background:rgba(0,119,204,.08);border:1px solid rgba(0,119,204,.18);border-radius:999px;padding:2px 7px;white-space:nowrap;}
+body.dark .list-card-phase{background:rgba(71,197,255,.08);border-color:rgba(71,197,255,.2);}
 .list-card-count{font-size:12px;color:var(--text3);}
-.song-item{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.song-item{padding:13px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
 .song-item:last-child{border-bottom:none;}
 .song-item-hdr{display:flex;align-items:flex-start;gap:8px;}
 .song-num{font-family:'Space Mono',monospace;font-size:12px;color:var(--text3);flex-shrink:0;min-width:24px;padding-top:2px;}
@@ -56,8 +59,8 @@ body.dark .status-card.session{background:rgba(71,197,255,.06);border-color:rgba
 .song-title{font-size:14px;font-weight:700;}
 .song-artist{font-size:13px;color:var(--text2);}
 .song-note-wrap{display:flex;align-items:center;gap:4px;width:min(100%,520px);margin-top:6px;}
-.song-note-input{width:100%;min-height:28px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:12px;line-height:18px;outline:none;resize:none;overflow:hidden;}
-.song-note-input:focus{border-color:var(--accent);}
+.song-note-input{width:100%;min-height:28px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:12px;line-height:18px;outline:none;resize:none;overflow:hidden;transition:border-color .12s,background-color .12s;}
+.song-note-input:focus{border-color:var(--accent);background:var(--surface);}
 .song-note-input::placeholder{color:var(--text3);}
 .song-note-state{min-width:34px;font-size:10px;color:var(--text3);white-space:nowrap;}
 .song-status{font-size:11px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;}
@@ -67,17 +70,18 @@ body.dark .song-status.confirmed{background:rgba(232,255,71,.15);}
 body.dark .song-status.pending{background:rgba(255,170,71,.1);}
 .song-status.rejected{background:rgba(217,48,37,.1);color:var(--danger);}
 body.dark .song-status.rejected{background:rgba(255,71,71,.1);}
-.song-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.song-meta{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;}
+.song-submeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .song-applicant{font-size:12px;color:var(--text3);}
 .song-ts{font-size:11px;color:var(--text3);}
 .sessions-needed{display:flex;flex-wrap:wrap;gap:4px;}
 .sneed{font-size:11px;padding:2px 7px;border-radius:3px;border:1px solid var(--border);color:var(--text2);background:var(--surface2);}
 .sneed.filled{border-color:var(--accent);color:var(--accent);background:rgba(92,158,0,.08);}
 body.dark .sneed.filled{background:rgba(232,255,71,.08);}
-.session-list{background:var(--surface2);border-radius:4px;padding:8px 11px;display:flex;flex-direction:column;gap:5px;}
-.session-row{display:flex;align-items:center;gap:8px;font-size:13px;}
-.session-row-name{font-weight:600;flex:1;}
-.session-row-right{display:flex;align-items:center;gap:6px;}
+.session-list{background:var(--surface2);border-radius:4px;padding:8px 11px;display:flex;flex-direction:column;gap:6px;}
+.session-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;}
+.session-person{display:flex;align-items:center;gap:6px;min-width:0;flex:1;}
+.session-row-name{font-weight:600;min-width:0;}
 .session-row-sessions{display:flex;gap:3px;flex-wrap:wrap;}
 .sess-tag{font-size:11px;padding:2px 6px;border-radius:3px;background:rgba(0,119,204,.1);border:1px solid rgba(0,119,204,.2);color:var(--accent2);}
 body.dark .sess-tag{background:rgba(71,197,255,.1);border-color:rgba(71,197,255,.2);}
@@ -116,16 +120,23 @@ body.dark .sess-tag.confirmed{background:rgba(232,255,71,.1);border-color:rgba(2
   .song-artist{font-size:14px;}
   .song-note-wrap{width:100%;min-width:0;flex:none;margin-top:8px;}
   .song-note-input{min-height:40px;font-size:14px;line-height:20px;padding:8px 10px;}
+  .song-meta{align-items:flex-start;flex-direction:column;gap:8px;}
+  .song-submeta{gap:6px;}
   .song-applicant,.song-ts{font-size:12px;}
   .sneed{font-size:12px;padding:3px 9px;min-height:28px;}
   .sessions-needed{gap:6px;}
-  .session-list{padding:10px 12px;gap:7px;}
-  .session-row{font-size:13px;}
+  .session-list{padding:10px 12px;gap:8px;}
+  .session-row{align-items:flex-start;font-size:13px;}
+  .session-person{align-items:flex-start;flex-direction:column;gap:2px;}
+  .session-row-sessions{justify-content:flex-end;max-width:48%;}
   .sess-tag{font-size:12px;padding:3px 8px;}
   .sess-ts{font-size:11px;}
+  .song-action-row{justify-content:stretch!important;}
+  .song-action-row .btn{width:100%;justify-content:center;}
   .song-num{font-size:13px;}
   .song-status{font-size:12px;padding:3px 8px;}
   .list-card-hdr{padding:12px 14px;}
+  .list-card-heading{align-items:flex-start;flex-direction:column;gap:5px;}
   .list-card-title{font-size:12px;}
   .list-card-count{font-size:12px;}
   .toast{bottom:16px;}
