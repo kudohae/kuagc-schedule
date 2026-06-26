@@ -1,191 +1,184 @@
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml } from '../utils/html.js';
 
-const BACKUP_URLS = [
-  'data/backups/latest.json',
-  'https://raw.githubusercontent.com/kudohae/kuagc-schedule/gh-pages/data/backups/latest.json',
+const INDEX_URLS = [
+  { url: 'data/backups/index.json', base: '' },
+  { url: 'https://raw.githubusercontent.com/kudohae/kuagc-schedule/gh-pages/data/backups/index.json', base: 'https://raw.githubusercontent.com/kudohae/kuagc-schedule/gh-pages/' },
 ];
-const STALE_AFTER_MS = 30 * 60 * 1000;
 
 const state = {
-  backup: null,
-  activeTab: 'overview',
-  query: '',
+  backups: [],
+  indexBase: '',
+  selectedPath: '',
+  selectedBackup: null,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   document.getElementById('themeBtn')?.addEventListener('click', toggleTheme);
-  document.getElementById('reloadBtn')?.addEventListener('click', loadBackup);
-  document.getElementById('backupSearch')?.addEventListener('input', event => {
-    state.query = event.target.value.trim().toLowerCase();
-    renderContent();
-  });
-  document.querySelectorAll('[data-tab]').forEach(button => {
-    button.addEventListener('click', () => {
-      state.activeTab = button.dataset.tab;
-      document.querySelectorAll('[data-tab]').forEach(tab => tab.classList.toggle('active', tab === button));
-      renderContent();
-    });
-  });
-  loadBackup();
+  loadBackupIndex();
 });
 
-async function loadBackup() {
-  setStatus('pending', '백업 파일 확인 중');
-  content().innerHTML = '<div class="empty-state">백업 파일을 불러오고 있습니다.</div>';
+async function loadBackupIndex() {
+  list().innerHTML = '<div class="empty-state">백업 목록을 불러오고 있습니다.</div>';
+  content().innerHTML = '<div class="empty-state">확인할 백업을 선택하세요.</div>';
 
   try {
-    const loaded = await fetchBackupJson();
-    state.backup = loaded.backup;
-    const jsonLink = document.getElementById('jsonLink');
-    if (jsonLink) jsonLink.href = loaded.url;
-    renderSummary();
-    renderContent();
+    const loaded = await fetchBackupIndex();
+    state.backups = latestFirst(loaded.index, 'generated_at');
+    state.indexBase = loaded.base;
+    renderBackupList();
 
-    const age = Date.now() - Date.parse(state.backup.generated_at || 0);
-    if (Number.isFinite(age) && age > STALE_AFTER_MS) {
-      setStatus('stale', `최근 백업: ${relativeTime(state.backup.generated_at)}`);
+    if (state.backups.length > 0) {
+      await selectBackup(state.backups[0].path);
     } else {
-      setStatus('ok', `최근 백업: ${relativeTime(state.backup.generated_at)}`);
+      content().innerHTML = '<div class="empty-state">저장된 백업 파일이 없습니다.</div>';
     }
   } catch (error) {
-    state.backup = null;
-    document.getElementById('summaryGrid').innerHTML = '';
-    setStatus('err', '백업 파일을 읽지 못함');
-    content().innerHTML = `
+    state.backups = [];
+    list().innerHTML = `
       <div class="error-box">
-        백업 파일을 불러오지 못했습니다. 아직 자동 백업이 한 번도 배포되지 않았거나, 배포 중일 수 있습니다.<br>
+        백업 목록을 불러오지 못했습니다.<br>
         상세 오류: ${escapeHtml(error.message || error)}
       </div>
     `;
   }
 }
 
-async function fetchBackupJson() {
+async function fetchBackupIndex() {
   const errors = [];
-  for (const url of BACKUP_URLS) {
+  for (const candidate of INDEX_URLS) {
     try {
-      const response = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+      const response = await fetch(`${candidate.url}?t=${Date.now()}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-      return { backup: await response.json(), url };
+      return { index: await response.json(), base: candidate.base };
     } catch (error) {
-      errors.push(`${url}: ${error.message || error}`);
+      errors.push(`${candidate.url}: ${error.message || error}`);
     }
   }
   throw new Error(errors.join(' / '));
 }
 
-function renderSummary() {
-  const backup = state.backup;
-  const counts = backup.counts || {};
-  const totalApplications =
-    Number(counts.time_applications || 0) +
-    Number(counts.school_applications || 0) +
-    Number(counts.song_applications || 0) +
-    Number(counts.session_applications || 0);
+function renderBackupList() {
+  if (!state.backups.length) {
+    list().innerHTML = '<div class="empty-state">저장된 백업 파일이 없습니다.</div>';
+    return;
+  }
 
-  document.getElementById('summaryGrid').innerHTML = [
-    summaryCard('백업 생성', formatDateTime(backup.generated_at), `${relativeTime(backup.generated_at)} 저장됨`),
-    summaryCard('신청 기록', `${totalApplications.toLocaleString('ko-KR')}건`, '시간배정, 스쿨, 합주 신청 합계'),
-    summaryCard('합주 데이터', `${counts.song_applications || 0}곡`, `세션 신청 ${counts.session_applications || 0}건`),
-    summaryCard('저장 방식', '정적 JSON', 'DB가 비어도 마지막 배포 백업은 남음'),
-  ].join('');
+  list().innerHTML = state.backups.map(backup => `
+    <button
+      class="backup-item ${backup.path === state.selectedPath ? 'active' : ''}"
+      type="button"
+      data-path="${escapeHtml(backup.path)}"
+    >
+      ${escapeHtml(formatDateTimePlain(backup.generated_at))}의 데이터 백업
+    </button>
+  `).join('');
+
+  list().querySelectorAll('.backup-item').forEach(button => {
+    button.addEventListener('click', () => selectBackup(button.dataset.path));
+  });
 }
 
-function renderContent() {
-  if (!state.backup) return;
-  if (state.activeTab === 'time') return renderTime();
-  if (state.activeTab === 'school') return renderSchool();
-  if (state.activeTab === 'ensemble') return renderEnsemble();
-  return renderOverview();
+async function selectBackup(path) {
+  const entry = state.backups.find(backup => backup.path === path);
+  if (!entry) return;
+
+  state.selectedPath = path;
+  renderBackupList();
+  content().innerHTML = `<div class="empty-state">${escapeHtml(formatDateTimePlain(entry.generated_at))} 백업을 불러오고 있습니다.</div>`;
+
+  try {
+    const backup = await fetchBackupSnapshot(entry.path);
+    state.selectedBackup = backup;
+    renderSelectedBackup(backup);
+  } catch (error) {
+    state.selectedBackup = null;
+    content().innerHTML = `
+      <div class="error-box">
+        선택한 백업 파일을 불러오지 못했습니다.<br>
+        상세 오류: ${escapeHtml(error.message || error)}
+      </div>
+    `;
+  }
 }
 
-function renderOverview() {
-  const backup = state.backup;
-  const events = collectEvents(backup).filter(matches).slice(0, 80);
-  const sheets = backup.admin_sheets || [];
+async function fetchBackupSnapshot(path) {
+  const url = state.indexBase ? `${state.indexBase}${path}` : path;
+  const response = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.json();
+}
 
+function renderSelectedBackup(backup) {
   content().innerHTML = `
-    <div class="section-title">
-      <div>
-        <h2>최근 기록 흐름</h2>
-        <p>백업 파일 안의 신청 기록을 최신순으로 합쳐 보여줍니다.</p>
-      </div>
+    <div class="selected-title">
+      <h2>${escapeHtml(formatDateTimePlain(backup.generated_at))}의 데이터 백업</h2>
     </div>
-    ${events.length ? `<div class="timeline">${events.map(renderEvent).join('')}</div>` : empty('검색 결과가 없습니다.')}
-    <div class="section-title">
-      <div>
-        <h2>관리자 백업 탭</h2>
-        <p>자동 백업 파일이 관리자 페이지의 백업 형식과 맞는지 확인하는 용도입니다.</p>
-      </div>
-    </div>
-    <div class="sheet-grid">
-      ${sheets
-        .map(sheet => `
-          <div class="sheet-card">
-            <div class="sheet-name">${escapeHtml(sheet.title)}</div>
-            <div class="sheet-rows">${Number(sheet.rows?.length || 0).toLocaleString('ko-KR')} rows</div>
-          </div>
-        `)
-        .join('')}
-    </div>
+    ${renderTime()}
+    ${renderSchool()}
+    ${renderEnsemble()}
+    ${renderAdminSheets(backup.admin_sheets || [])}
   `;
 }
 
 function renderTime() {
-  const rounds = latestFirst(state.backup.time?.rounds || [], 'created_at').filter(round =>
-    matches(round) || (round.applications || []).some(matches)
-  );
-
-  content().innerHTML = `
-    <div class="section-title">
-      <div>
-        <h2>시간배정 신청</h2>
-        <p>회차별 팀 신청 기록과 1, 2, 3순위 희망 시간을 확인합니다.</p>
+  const rounds = latestFirst(state.selectedBackup.time?.rounds || [], 'created_at');
+  return `
+    <section class="backup-section">
+      <div class="section-title">
+        <h3>시간배정 신청</h3>
       </div>
-    </div>
-    ${rounds.length ? rounds.map((round, index) => renderTimeRound(round, index)).join('') : empty('시간배정 기록이 없습니다.')}
+      ${rounds.length ? rounds.map((round, index) => renderTimeRound(round, index)).join('') : empty('시간배정 기록이 없습니다.')}
+    </section>
   `;
 }
 
 function renderSchool() {
-  const rounds = latestFirst(state.backup.school?.rounds || [], 'created_at').filter(round =>
-    matches(round) || (round.schools || []).some(matches) || (round.applications || []).some(matches)
-  );
-
-  content().innerHTML = `
-    <div class="section-title">
-      <div>
-        <h2>스쿨 신청</h2>
-        <p>스쿨 회차, 개설 수업, 신청자 선호도와 배정 상태를 확인합니다.</p>
+  const rounds = latestFirst(state.selectedBackup.school?.rounds || [], 'created_at');
+  return `
+    <section class="backup-section">
+      <div class="section-title">
+        <h3>스쿨 신청</h3>
       </div>
-    </div>
-    ${rounds.length ? rounds.map((round, index) => renderSchoolRound(round, index)).join('') : empty('스쿨 기록이 없습니다.')}
+      ${rounds.length ? rounds.map((round, index) => renderSchoolRound(round, index)).join('') : empty('스쿨 기록이 없습니다.')}
+    </section>
   `;
 }
 
 function renderEnsemble() {
-  const rounds = latestFirst(state.backup.ensemble?.rounds || [], 'created_at').filter(round =>
-    matches(round) ||
-    (round.songs || []).some(matches) ||
-    (round.session_applications || []).some(matches) ||
-    (round.manual_entries || []).some(matches)
-  );
-
-  content().innerHTML = `
-    <div class="section-title">
-      <div>
-        <h2>합주 신청</h2>
-        <p>곡 신청, 세션 신청, 공개 메모와 수동 편성 기록을 한 곳에서 확인합니다.</p>
+  const rounds = latestFirst(state.selectedBackup.ensemble?.rounds || [], 'created_at');
+  return `
+    <section class="backup-section">
+      <div class="section-title">
+        <h3>합주 신청</h3>
       </div>
-    </div>
-    ${rounds.length ? rounds.map((round, index) => renderEnsembleRound(round, index)).join('') : empty('합주 기록이 없습니다.')}
+      ${rounds.length ? rounds.map((round, index) => renderEnsembleRound(round, index)).join('') : empty('합주 기록이 없습니다.')}
+    </section>
+  `;
+}
+
+function renderAdminSheets(sheets) {
+  if (!sheets.length) return '';
+  return `
+    <section class="backup-section">
+      <div class="section-title">
+        <h3>관리자 백업 탭</h3>
+      </div>
+      <div class="sheet-grid">
+        ${sheets.map(sheet => `
+          <div class="sheet-card">
+            <div class="sheet-name">${escapeHtml(sheet.title)}</div>
+            <div class="sheet-rows">${Number(sheet.rows?.length || 0).toLocaleString('ko-KR')} rows</div>
+          </div>
+        `).join('')}
+      </div>
+    </section>
   `;
 }
 
 function renderTimeRound(round, index) {
-  const rows = (round.applications || []).filter(matches);
+  const rows = round.applications || [];
   return roundCard(
     round,
     index,
@@ -205,8 +198,8 @@ function renderTimeRound(round, index) {
 }
 
 function renderSchoolRound(round, index) {
-  const schoolRows = (round.schools || []).filter(matches);
-  const applicationRows = (round.applications || []).filter(matches);
+  const schoolRows = round.schools || [];
+  const applicationRows = round.applications || [];
   return roundCard(
     round,
     index,
@@ -241,9 +234,9 @@ function renderSchoolRound(round, index) {
 }
 
 function renderEnsembleRound(round, index) {
-  const songRows = (round.songs || []).filter(matches);
-  const sessionRows = (round.session_applications || []).filter(matches);
-  const manualRows = (round.manual_entries || []).filter(matches);
+  const songRows = round.songs || [];
+  const sessionRows = round.session_applications || [];
+  const manualRows = round.manual_entries || [];
   return roundCard(
     round,
     index,
@@ -310,7 +303,7 @@ function roundCard(round, index, countLabel, body) {
   ].filter(Boolean);
 
   return `
-    <details class="round-card" ${index < 4 ? 'open' : ''}>
+    <details class="round-card" ${index < 2 ? 'open' : ''}>
       <summary>
         <div class="round-main">
           <div class="round-name">${escapeHtml(round.name || '이름 없는 회차')}</div>
@@ -331,101 +324,15 @@ function table(headers, rows, noteColumns = []) {
       <table>
         <thead><tr>${headers.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>
         <tbody>
-          ${rows
-            .map(row => `
-              <tr>
-                ${row
-                  .map((cell, index) => `<td class="${noteSet.has(index) ? 'note-cell' : ''}">${escapeHtml(cell || '—')}</td>`)
-                  .join('')}
-              </tr>
-            `)
-            .join('')}
+          ${rows.map(row => `
+            <tr>
+              ${row.map((cell, index) => `<td class="${noteSet.has(index) ? 'note-cell' : ''}">${escapeHtml(cell || '—')}</td>`).join('')}
+            </tr>
+          `).join('')}
         </tbody>
       </table>
     </div>
   `;
-}
-
-function collectEvents(backup) {
-  const events = [];
-  for (const round of backup.time?.rounds || []) {
-    for (const application of round.applications || []) {
-      events.push({
-        section: '시간배정',
-        date: application.submitted_at,
-        title: application.team_name_short || application.team_name || '팀 신청',
-        meta: `${application.pref1 || '—'} / ${application.pref2 || '—'} / ${application.pref3 || '—'}`,
-        data: application,
-      });
-    }
-  }
-  for (const round of backup.school?.rounds || []) {
-    for (const application of round.applications || []) {
-      events.push({
-        section: '스쿨',
-        date: application.created_at,
-        title: `${application.applicant_name || '신청자'} · ${application.pref1_school || '—'}`,
-        meta: `${application.student_id || '—'} / ${schoolStatus(application)}`,
-        data: application,
-      });
-    }
-  }
-  for (const round of backup.ensemble?.rounds || []) {
-    for (const song of round.songs || []) {
-      events.push({
-        section: '합주 곡',
-        date: song.created_at,
-        title: `${song.title || '곡'} - ${song.artist || '아티스트'}`,
-        meta: `${song.applicant_name || '—'} / ${joinList(song.sessions) || '세션 미기록'}`,
-        data: song,
-      });
-    }
-    for (const application of round.session_applications || []) {
-      events.push({
-        section: '합주 세션',
-        date: application.created_at,
-        title: application.song_title || '세션 신청',
-        meta: `${application.applicant_name || '—'} / ${joinList(application.sessions) || '—'} / ${application.session_round || 1}차`,
-        data: application,
-      });
-    }
-  }
-  return events
-    .filter(event => event.date)
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-}
-
-function renderEvent(event) {
-  return `
-    <div class="event">
-      <div class="event-top">
-        <span class="chip">${escapeHtml(event.section)}</span>
-        <span class="muted mono">${escapeHtml(formatDateTime(event.date))}</span>
-      </div>
-      <div class="event-title">${escapeHtml(event.title)}</div>
-      <div class="event-meta">${escapeHtml(event.meta || '')}</div>
-    </div>
-  `;
-}
-
-function summaryCard(key, value, detail) {
-  return `
-    <div class="summary-card">
-      <div class="summary-k">${escapeHtml(key)}</div>
-      <div class="summary-v">${escapeHtml(value)}</div>
-      <div class="summary-d">${escapeHtml(detail)}</div>
-    </div>
-  `;
-}
-
-function setStatus(kind, text) {
-  const status = document.getElementById('backupStatus');
-  status.innerHTML = `<span class="status-dot ${escapeHtml(kind)}"></span><span>${escapeHtml(text)}</span>`;
-}
-
-function matches(value) {
-  if (!state.query) return true;
-  return JSON.stringify(value || {}).toLowerCase().includes(state.query);
 }
 
 function latestFirst(rows, field) {
@@ -478,20 +385,30 @@ function formatDateTime(value) {
   }).format(date);
 }
 
-function relativeTime(value) {
+function formatDateTimePlain(value) {
   if (!value) return '시각 없음';
-  const diff = Date.now() - Date.parse(value);
-  if (!Number.isFinite(diff)) return '시각 오류';
-  const minutes = Math.max(0, Math.round(diff / 60000));
-  if (minutes < 1) return '방금 전';
-  if (minutes < 60) return `${minutes}분 전`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.round(hours / 24)}일 전`;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '시각 오류';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${byType.year}-${byType.month}-${byType.day} ${byType.hour}:${byType.minute}:${byType.second}`;
 }
 
 function empty(message) {
   return `<div class="empty-state">${escapeHtml(message)}</div>`;
+}
+
+function list() {
+  return document.getElementById('backupList');
 }
 
 function content() {
