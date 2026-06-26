@@ -47,13 +47,12 @@ function queueButtonPatch() {
 
 function patchSessionFormButtons() {
   if (!rootEl) return;
-  rootEl.querySelectorAll('.form-card .form-footer').forEach(footer => {
-    const submitBtn = [...footer.querySelectorAll('button')].find(btn => btn.textContent.trim() === '세션 신청');
-    if (!submitBtn || footer.querySelector('[data-my-session-manager]')) return;
+  rootEl.querySelectorAll('[data-session-manager-anchor]').forEach(anchor => {
+    if (anchor.querySelector('[data-my-session-manager]')) return;
 
-    footer.style.alignItems = 'center';
-    footer.style.flexWrap = 'wrap';
-    footer.style.gap = '6px';
+    anchor.style.alignItems = 'center';
+    anchor.style.flexWrap = 'wrap';
+    anchor.style.gap = '6px';
 
     const manageBtn = document.createElement('button');
     manageBtn.type = 'button';
@@ -61,7 +60,7 @@ function patchSessionFormButtons() {
     manageBtn.dataset.mySessionManager = '1';
     manageBtn.textContent = '내 신청 확인 및 수정';
     manageBtn.addEventListener('click', openMySessionManager);
-    footer.appendChild(manageBtn);
+    anchor.appendChild(manageBtn);
   });
 }
 
