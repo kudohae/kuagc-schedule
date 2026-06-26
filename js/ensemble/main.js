@@ -617,7 +617,10 @@ function renderList(){
   if(!active.length){el.innerHTML='';return;}
   let html=`<div class="list-card">
     <div class="list-card-hdr">
-      <div class="list-card-title">${phase==='song'?'신청 현황':'곡 목록'}</div>
+      <div class="list-card-heading">
+        <div class="list-card-title">${phase==='song'?'신청 현황':'곡 목록'}</div>
+        <div class="list-card-phase">${phaseLabel(phase)}</div>
+      </div>
       <div class="list-card-count">${searchQ?`${filtered.length}/${active.length}곡`:active.length+'곡'}</div>
     </div>`;
   if(!filtered.length){
@@ -644,12 +647,12 @@ function renderSongItem(s,num,phase){
         const rBadge=(a.session_round||1)===2&&['session2','session2_end','closed'].includes(phase)?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 3px;margin-left:3px">2차</span>`:'';
         const appBadge=isApplicant?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';
         return `<div class="session-row" style="${rejected?'opacity:.55':''}">
-          <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}${isApplicant?';font-weight:700':''}">${esc(a.applicant_name)}(${esc(a.student_id.slice(-3))})${rBadge}${appBadge}</span>
-          <div class="session-row-right">
-            <div class="session-row-sessions">
-              ${a.sessions.map(sess=>`<span class="sess-tag ${a.status==='confirmed'?'confirmed':''}">${sess}</span>`).join('')}
-            </div>
+          <div class="session-person">
+            <span class="session-row-name" style="${rejected?'text-decoration:line-through;color:var(--text3)':''}${isApplicant?';font-weight:700':''}">${esc(a.applicant_name)}(${esc(a.student_id.slice(-3))})${rBadge}${appBadge}</span>
             <span class="sess-ts">${fmtTime(a.created_at)}</span>
+          </div>
+          <div class="session-row-sessions">
+            ${a.sessions.map(sess=>`<span class="sess-tag ${a.status==='confirmed'?'confirmed':''}">${sess}</span>`).join('')}
           </div>
         </div>`;}).join('')}
     </div>`:'';
@@ -666,16 +669,31 @@ function renderSongItem(s,num,phase){
       </div>
     </div>
     <div class="song-meta">
-      <span class="song-applicant">신청: ${esc(s.applicant_name)}(${esc(s.student_id.slice(-3))})</span>
-      <span class="song-ts">${fmtTime(s.created_at)}</span>
-      <div class="sessions-needed">${needBadges}</div>
+      <div class="song-submeta">
+        <span class="song-applicant">신청: ${esc(s.applicant_name)}(${esc(s.student_id.slice(-3))})</span>
+        <span class="song-ts">${fmtTime(s.created_at)}</span>
+      </div>
+      <div class="sessions-needed" aria-label="필요 세션">${needBadges}</div>
     </div>
     ${sessApps.length||phase==='session'?sessionRows:''}
     ${phase==='session'&&s.status!=='rejected'?
-      `<div style="display:flex;justify-content:flex-end;margin-top:4px">
+      `<div class="song-action-row" style="display:flex;justify-content:flex-end;margin-top:4px">
          <button class="btn btn-s btn-xs" onclick="openSessionModal(${s.id})">이 곡에 세션 신청</button>
        </div>`:''}
   </div>`;
+}
+
+function phaseLabel(phase){
+  return {
+    draft:'준비',
+    song:'곡 신청',
+    song_end:'세션 신청 대기',
+    session:'세션 신청',
+    session_end:'2차 신청 대기',
+    session2:'2차 세션 신청',
+    session2_end:'마감',
+    closed:'종료',
+  }[phase]||phase;
 }
 
 function renderPublicNoteInput(song,phase){
