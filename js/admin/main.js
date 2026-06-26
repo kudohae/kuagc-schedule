@@ -2328,12 +2328,121 @@ let eDndSt=null;
 let eDndDrag=null;
 let eDndFilter=null;
 let eMobileSelected=null;
+let eDndLock=null;
+let eDndLockTimer=null;
+
+const ENS_DND_LOCK_TTL_MS=3*60*1000;
+const ENS_DND_LOCK_RENEW_MS=60*1000;
 
 const ENS_SESS_ORDER=SESSIONS;
 function sessOrder(s){const i=ENS_SESS_ORDER.indexOf(s);return i===-1?99:i;}
 function sortSongSlots(slots){slots.sort((a,b)=>sessOrder(a.overrideSession??a.session)-sessOrder(b.overrideSession??b.session)||new Date(a.createdAt)-new Date(b.createdAt));}
 function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;}
 function makeSlots(app,songTitle='',songApplicantSid=null){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle,sessionRound:app.session_round||1,isApplicant:!!(songApplicantSid&&app.student_id===songApplicantSid),isManual:!!(app.is_manual)}));}
+function ensDndLockKey(type,roundId){return `ens_dnd_lock_${type}_${roundId}`;}
+function parseEnsDndLock(raw){try{return raw?JSON.parse(raw):null;}catch{return null;}}
+function isEnsDndLockActive(lock){return lock?.expiresAt&&Date.parse(lock.expiresAt)>Date.now();}
+function makeEnsDndLockValue(type,roundId,editor,token){
+  const now=new Date();
+  return JSON.stringify({
+    type,roundId,editor,token,
+    lockedAt:now.toISOString(),
+    expiresAt:new Date(now.getTime()+ENS_DND_LOCK_TTL_MS).toISOString(),
+  });
+}
+function getEnsDndEditorNames(){
+  return [...new Set((contacts||[]).map(c=>(c.name||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'ko'));
+}
+async function fetchEnsDndLockRaw(key){
+  const {data,error}=await supabase.from('app_config').select('value').eq('key',key).maybeSingle();
+  if(error) throw error;
+  return data?.value||null;
+}
+async function insertEnsDndLock(key,value){
+  const {error}=await supabase.from('app_config').insert({key,value});
+  if(!error) return true;
+  if(error.code==='23505') return false;
+  throw error;
+}
+async function updateEnsDndLockIfUnchanged(key,prevValue,nextValue){
+  const {data,error}=await supabase.from('app_config')
+    .update({value:nextValue})
+    .eq('key',key)
+    .eq('value',prevValue)
+    .select('value')
+    .maybeSingle();
+  if(error) throw error;
+  return !!data;
+}
+async function acquireEnsDndLock(type,roundId,editor){
+  const key=ensDndLockKey(type,roundId);
+  const token=`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  for(let attempt=0;attempt<3;attempt++){
+    const raw=await fetchEnsDndLockRaw(key);
+    const current=parseEnsDndLock(raw);
+    if(isEnsDndLockActive(current)&&current.editor!==editor){
+      return {ok:false,editor:current.editor};
+    }
+    const nextValue=makeEnsDndLockValue(type,roundId,editor,token);
+    const ok=raw===null
+      ?await insertEnsDndLock(key,nextValue)
+      :await updateEnsDndLockIfUnchanged(key,raw,nextValue);
+    if(!ok) continue;
+    const verify=parseEnsDndLock(await fetchEnsDndLockRaw(key));
+    if(verify?.token===token){
+      eDndLock={key,token,type,roundId,editor};
+      return {ok:true};
+    }
+    if(isEnsDndLockActive(verify)&&verify.editor!==editor) return {ok:false,editor:verify.editor};
+  }
+  return {ok:false,editor:null};
+}
+function stopEnsDndLockHeartbeat(){
+  if(eDndLockTimer){clearInterval(eDndLockTimer);eDndLockTimer=null;}
+}
+async function renewEnsDndLock(){
+  if(!eDndLock) return true;
+  const raw=await fetchEnsDndLockRaw(eDndLock.key);
+  const current=parseEnsDndLock(raw);
+  if(current?.token!==eDndLock.token){
+    handleEnsDndLockLost('세션 구성 편집 권한이 해제되었습니다. 다시 열어주세요.');
+    return false;
+  }
+  const nextValue=makeEnsDndLockValue(eDndLock.type,eDndLock.roundId,eDndLock.editor,eDndLock.token);
+  const ok=await updateEnsDndLockIfUnchanged(eDndLock.key,raw,nextValue);
+  if(!ok){
+    handleEnsDndLockLost('세션 구성 편집 권한을 갱신하지 못했습니다. 다시 열어주세요.');
+    return false;
+  }
+  return true;
+}
+function startEnsDndLockHeartbeat(){
+  stopEnsDndLockHeartbeat();
+  eDndLockTimer=setInterval(()=>renewEnsDndLock().catch(()=>{
+    handleEnsDndLockLost('세션 구성 편집 권한을 확인하지 못했습니다. 다시 열어주세요.');
+  }),ENS_DND_LOCK_RENEW_MS);
+}
+async function releaseEnsDndLock(){
+  const lock=eDndLock;
+  eDndLock=null;
+  stopEnsDndLockHeartbeat();
+  if(!lock) return;
+  try{
+    const raw=await fetchEnsDndLockRaw(lock.key);
+    const current=parseEnsDndLock(raw);
+    if(current?.token===lock.token){
+      await supabase.from('app_config').delete().eq('key',lock.key).eq('value',raw);
+    }
+  }catch(e){console.warn('release dnd lock failed',e);}
+}
+function handleEnsDndLockLost(message){
+  if(eDndSt) ensDndSaveState();
+  eDndLock=null;
+  stopEnsDndLockHeartbeat();
+  closeEnsDndModal();
+  alert(message);
+}
 
 function computeEnsDndInitial(type){
   const r=eRounds[type]; if(!r) return null;
@@ -2407,25 +2516,72 @@ function ensDndSaveState(){
   ]));
 }
 
-window.openEnsDndModal=function(type){
+window.openEnsDndModal=async function(type){
+  if(!contacts.length){
+    try{contacts=await fetchContacts();}catch(e){}
+  }
+  const names=getEnsDndEditorNames();
+  if(!names.length){toast('등록된 연락처가 없습니다','err');return;}
+  showModal('세션 구성 편집자 선택',
+    `<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px">세션 구성은 한 번에 한 사람만 편집할 수 있습니다.</div>
+     <div><div class="fl">편집자</div><select class="fs" id="ensDndEditor">${names.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}</select></div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="ensDndEditorBtn" onclick="startEnsDndWithSelectedEditor('${type}')">시작</button>`
+  );
+};
+
+window.startEnsDndWithSelectedEditor=async function(type){
+  const editor=document.getElementById('ensDndEditor')?.value;
+  if(!editor){toast('편집자를 선택하세요','err');return;}
+  const btn=document.getElementById('ensDndEditorBtn');
+  if(btn){btn.disabled=true;btn.textContent='확인 중...';}
+  try{
+    const r=eRounds[type];
+    if(!r){
+      toast('회차 정보가 없습니다','err');
+      if(btn){btn.disabled=false;btn.textContent='시작';}
+      return;
+    }
+    const lock=await acquireEnsDndLock(type,r.id,editor);
+    if(!lock.ok){
+      alert(`세션 구성 편집은 한 번에 한 사람만 가능합니다. 현재 ${lock.editor||'다른 사용자'} 님이 편집 중입니다.`);
+      if(btn){btn.disabled=false;btn.textContent='시작';}
+      return;
+    }
+    closeModal();
+    openEnsDndModalLocked(type,editor);
+  }catch(e){
+    toast(errMsg(e),'err');
+    if(btn){btn.disabled=false;btn.textContent='시작';}
+  }
+};
+
+function openEnsDndModalLocked(type,editor){
   const r=eRounds[type]; if(!r) return;
   const savedKey=`ensDnd_${type}_${r.id}`;
   if(localStorage.getItem(savedKey)&&!confirm('이전에 임시저장한 내용이 있습니다.\n이어서 진행하시겠습니까?\n(취소하면 처음부터 자동 배정합니다)')) localStorage.removeItem(savedKey);
-  eDndSt=computeEnsDndInitial(type); if(!eDndSt) return;
+  eDndSt=computeEnsDndInitial(type);
+  if(!eDndSt){
+    releaseEnsDndLock();
+    toast('팀 구성 데이터를 불러오지 못했습니다','err');
+    return;
+  }
   eDndFilter=null; eMobileSelected=null;
   document.getElementById('ensDndRoundName').textContent=r.name||'팀 구성';
-  document.getElementById('ensDndTypeName').textContent=type==='regular'?'일반 합주':'버스킹 합주';
+  document.getElementById('ensDndTypeName').textContent=`${type==='regular'?'일반 합주':'버스킹 합주'} · ${editor} 편집 중`;
   renderEnsDndModal();
   document.getElementById('ensDndModal').style.display='flex';
   document.body.style.overflow='hidden';
+  startEnsDndLockHeartbeat();
   window._ensDndResize=()=>{if(eDndSt)renderEnsDndModal();};
   window.addEventListener('resize',window._ensDndResize);
-};
+}
 window.closeEnsDndModal=function(){
   document.getElementById('ensDndModal').style.display='none';
   document.body.style.overflow='';
   if(window._ensDndResize){window.removeEventListener('resize',window._ensDndResize);window._ensDndResize=null;}
   eDndSt=null;
+  releaseEnsDndLock();
 };
 window.ensDndSave=function(){ensDndSaveState();toast('임시저장됐습니다','ok');};
 window.ensDndSetFilter=function(session){eDndFilter=session;renderEnsDndPool();};
