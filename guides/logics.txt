@@ -1,0 +1,667 @@
+================================================================================
+  그루터기 동아리방 관리 시스템 — 기술 로직 명세
+================================================================================
+최종 수정: 2026-05-16
+
+이 문서는 시스템의 세 가지 도메인—시간 배정, 스쿨, 합주 신청—의 데이터 모델,
+자동화 로직, 비즈니스 규칙, 예외 처리를 코드 수준으로 기술합니다.
+
+
+================================================================================
+  A. 시간 배정 (Time Assignment)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+A-1. DB 테이블
+────────────────────────────────────────────────────────────────────────────────
+
+  teams
+  ├── id           integer PK
+  ├── name         text
+  ├── type         text  ('합주' | '스쿨' | '이외')
+  ├── color        text  (CSS hex 또는 이름)
+  ├── info         text  (소개)
+  └── members      text[]  ("이름 학번뒷4자리 세션" 포맷, 줄 단위)
+
+  base_slots                          — 시즌 고정 슬롯
+  ├── id           integer PK
+  ├── team_id      integer FK → teams
+  ├── day          integer  (0=월 ~ 6=일)
+  ├── hour         integer  (8~25, 25=새벽 1시)
+  └── season       text  (현재 시즌, e.g. "2025-1")
+
+  slot_exceptions                     — 주차별 예외
+  ├── id           integer PK
+  ├── team_id      integer FK → teams
+  ├── day          integer
+  ├── hour         integer
+  ├── week_offset  integer  (0=이번 주, 1=다음 주, -1=지난 주, ...)
+  └── exception_type text  ('absent' | 'override' | 'extra')
+
+  requests                            — 팀원 신청/신고
+  ├── id           integer PK
+  ├── team_id      integer FK → teams
+  ├── type         text  ('absent' | 'extra' | 'terminate')
+  ├── day          integer
+  ├── hour         integer
+  ├── week_offset  integer
+  ├── reason       text
+  ├── requester_name text
+  ├── status       text  ('pending' | 'approved' | 'rejected')
+  └── reviewed_at  timestamptz
+
+  application_rounds                  — 시간 배정 회차
+  ├── id           integer PK
+  ├── season       text
+  ├── status       text  ('open' | 'closed' | 'finished')
+  ├── open_at      timestamptz  (nullable, 예약 오픈)
+  ├── close_at     timestamptz  (nullable, 예약 마감)
+  └── draft_approved boolean  (배정 초안 승인 여부)
+
+  time_applications                   — 시간 배정 신청
+  ├── id           integer PK
+  ├── round_id     integer FK → application_rounds
+  ├── team_id      integer FK → teams
+  ├── submitted_at timestamptz
+  ├── pref1_day, pref1_hour integer   (1지망, 필수)
+  ├── pref2_day, pref2_hour integer   (2지망, nullable)
+  ├── pref3_day, pref3_hour integer   (3지망, nullable)
+  ├── assigned_day, assigned_hour integer (nullable, 배정 결과)
+  └── assigned_pref integer  (1|2|3, 어느 지망에 배정됐는지)
+
+────────────────────────────────────────────────────────────────────────────────
+A-2. 시간표 렌더링 로직
+────────────────────────────────────────────────────────────────────────────────
+
+  매주 시간표는 base_slots + slot_exceptions를 병합해 생성한다.
+
+  1. 해당 week_offset의 exceptions를 모두 로드
+  2. 각 [day, hour] 셀에 대해:
+     a) base_slot이 있고 exceptions 없음
+        → 정상 슬롯 (팀 색상으로 표시)
+     b) base_slot이 있고 exception_type = 'absent'
+        → 미사용 표시 (빗금 패턴, 회색)
+     c) base_slot이 있고 exception_type = 'override' (다른 [day, hour])
+        → 원래 슬롯은 absent, 새 시간에 override 슬롯 표시
+     d) exception_type = 'extra' (base_slot 없음)
+        → 추가 슬롯 표시 (팀 색상, "추가" 레이블)
+  3. 어떤 슬롯에도 해당 없는 셀 → 빈 칸 (클릭 시 신청 가능)
+
+  week_offset 계산:
+  - 이번 주 월요일 = new Date() 기준 최근 월요일
+  - 화면의 날짜 = 이번 주 월요일 + (weekOff × 7) + day
+
+────────────────────────────────────────────────────────────────────────────────
+A-3. 요청(request) 처리 로직
+────────────────────────────────────────────────────────────────────────────────
+
+  요청 타입별 처리:
+
+  absent (미사용 신고):
+  - 승인 시: slot_exceptions에 {exception_type:'absent', week_offset, day, hour} 삽입
+  - 해당 주에 이미 absent exception이 있으면 삽입 건너뜀 (중복 방지)
+
+  extra (추가 사용 신청):
+  - 승인 시: slot_exceptions에 {exception_type:'extra'} 삽입
+
+  terminate (종료 처리, admin 전용):
+  - 해당 팀의 base_slots 중 day/hour 일치하는 레코드 영구 삭제
+  - 기존 exception도 삭제
+  - 다른 타입과 달리 예외가 아닌 base_slots 자체를 수정
+
+  거절 시: requests.status = 'rejected'만 업데이트, exception 미생성
+
+────────────────────────────────────────────────────────────────────────────────
+A-4. 시간 배정 회차 로직
+────────────────────────────────────────────────────────────────────────────────
+
+  상태 전환:
+    open → (close_at 도달 or 수동 마감) → closed
+    closed → (배정 실행 후 초안 승인) → finished
+
+  신청 유효성:
+  - 동일 round_id, team_id에서 복수 신청 허용
+  - 배정 실행 시 round_id + team_id별 가장 최근(submitted_at) 레코드만 사용
+    (= 마지막 제출이 이전 제출을 무효화)
+  - 1지망은 반드시 입력, 2·3지망은 선택
+
+  배정 알고리즘 (schedule.js → assignSlots):
+  1. round_id에 해당하는 신청 중 team_id별 최신 1건만 추출
+  2. submitted_at 오름차순 정렬 (선착순 기준)
+  3. 1지망 순회: occupied = Set()
+     - app의 pref1_day/hour가 occupied에 없으면 배정 + occupied에 추가
+  4. 1지망 미배정된 것들 2지망 순회 (동일 방식)
+  5. 2지망 미배정된 것들 3지망 순회
+  6. 결과를 time_applications.assigned_day/hour/pref에 일괄 UPDATE
+
+  초안 승인 (schedule.js → approveDraft):
+  1. base_slots에서 해당 season의 모든 레코드 DELETE
+  2. assigned_day/hour가 not null인 applications에서 {team_id, day, hour, season} 추출
+  3. base_slots에 INSERT
+  4. application_rounds.draft_approved = true로 UPDATE
+
+  예약 오픈/마감:
+  - open_at이 설정된 경우: 클라이언트에서 setInterval(1s)로 체크
+    → new Date(open_at) <= Date.now() 이면 자동으로 status = 'open' UPDATE
+  - close_at이 설정된 경우: 동일 방식으로 status = 'closed' UPDATE
+
+────────────────────────────────────────────────────────────────────────────────
+A-5. 실시간 구독
+────────────────────────────────────────────────────────────────────────────────
+
+  index.html / timeassign.html 실시간 채널 (schedule.js):
+  - base_slots: INSERT/UPDATE/DELETE → 시간표 즉시 재렌더
+  - slot_exceptions: 동일
+  - requests: 동일
+  - application_rounds: 동일
+  - time_applications: 동일
+
+  Supabase Realtime (postgres_changes) 사용
+  채널명: 'base-ch', 'ex-ch', 'req-ch', 'round-ch', 'app-ch'
+
+
+================================================================================
+  B. 스쿨 신청 (School Application)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+B-1. DB 테이블
+────────────────────────────────────────────────────────────────────────────────
+
+  school_rounds
+  ├── id                   integer PK
+  ├── name                 text  (자동생성: "{n}학기 {m}차 스쿨 신청")
+  ├── status               text  ('draft' | 'open' | 'closed')
+  ├── open_at              timestamptz  (nullable)
+  ├── close_at             timestamptz  (nullable)
+  └── prioritize_returning boolean  (이전 수강생 후순위 처리 여부)
+
+  schools                              — 반 정보
+  ├── id             integer PK
+  ├── round_id       integer FK → school_rounds
+  ├── name           text  (반 이름)
+  ├── teacher_name   text  (담당 이름)
+  ├── capacity       integer  (정원)
+  ├── schedule_day   text  ('월'|'화'|'수'|'목'|'금'|'토'|'일', nullable)
+  ├── schedule_hour  integer  (nullable)
+  └── description    text  (nullable)
+
+  school_applications
+  ├── id                integer PK
+  ├── round_id          integer FK → school_rounds
+  ├── applicant_name    text
+  ├── student_id        text
+  ├── pref1_school_id   integer FK → schools
+  ├── pref2_school_id   integer FK → schools  (nullable)
+  ├── assigned_school_id integer FK → schools (nullable)
+  ├── is_returning      boolean  (이전 회차 수강생 여부)
+  ├── status            text  ('assigned' | 'unassigned' | 'pending')
+  └── created_at        timestamptz
+
+────────────────────────────────────────────────────────────────────────────────
+B-2. 신청 처리 로직 (school.html → submitApplication)
+────────────────────────────────────────────────────────────────────────────────
+
+  사전 체크:
+  - round.status === 'open' 확인
+  - close_at <= now() 이면 자동 마감 후 거부
+  - 동일 round_id + student_id 중복 신청 체크:
+    이미 신청된 경우 "이미 신청됐습니다" 안내 후 중단
+    (단, 취소 후 재신청 가능: 기존 레코드 DELETE 후 새로 INSERT)
+
+  is_returning 판별:
+  - 이전 회차(most recent closed round) 조회
+  - 해당 회차에 student_id가 assigned_school_id is not null인 레코드가 있으면
+    is_returning = true
+
+  prioritize_returning = false 또는 is_returning = false인 경우 (즉시 배정):
+  1. pref1_school_id의 현재 assigned 수 조회
+     count = school_applications.filter(assigned_school_id === pref1 && status === 'assigned').length
+  2. count < capacity 이면 assigned_school_id = pref1, status = 'assigned'
+  3. 아니면 pref2 동일 체크
+  4. 모두 불가 시 assigned_school_id = null, status = 'unassigned'
+
+  prioritize_returning = true 이고 is_returning = true인 경우 (대기):
+  - assigned_school_id = null, status = 'pending'으로 저장
+  - 마감 후 adminSchoolClose()에서 일괄 처리
+
+────────────────────────────────────────────────────────────────────────────────
+B-3. 마감 후 배정 로직 (admin.html → adminSchoolClose)
+────────────────────────────────────────────────────────────────────────────────
+
+  1. round.status = 'closed'로 업데이트
+  2. status = 'pending'인 applications를 created_at ASC로 정렬 (선착순)
+  3. 각 pending app에 대해:
+     a) 현재 각 school의 assigned 수를 실시간으로 카운트
+        (이미 처리된 배정도 반영해야 하므로 루프 내에서 갱신)
+     b) pref1 가용 여부 → 가능: assigned_school_id = pref1, status = 'assigned'
+     c) pref2 가용 여부 → 가능: assigned_school_id = pref2, status = 'assigned'
+     d) 모두 불가: status = 'unassigned'
+  4. 각 결과를 school_applications UPDATE
+
+  capacity 체크 함수:
+  - 내부 counts 맵을 유지하며 배정 시마다 counts[schoolId]++ 수행
+  - 초기값: 이미 assigned된 레코드 수로 초기화
+
+────────────────────────────────────────────────────────────────────────────────
+B-4. 반 삭제 로직 (admin.html → deleteClass)
+────────────────────────────────────────────────────────────────────────────────
+
+  반을 삭제할 때 연결된 school_applications도 같이 삭제.
+  단순히 assigned_school_id만 체크하면 pref 데이터가 남으므로,
+  세 컬럼 모두를 체크:
+    pref1_school_id === id OR pref2_school_id === id OR assigned_school_id === id
+
+  1. 위 조건에 해당하는 application id 목록 추출
+  2. school_applications.delete().in('id', appIds)
+  3. schools.delete().eq('id', id)
+
+────────────────────────────────────────────────────────────────────────────────
+B-5. 예약 오픈/마감 자동 전환
+────────────────────────────────────────────────────────────────────────────────
+
+  school.html 로드 시:
+  - round.status === 'open'이고 round.close_at <= now() 이면
+    즉시 adminSchoolClose() 실행 (클라이언트 사이드 자동 마감)
+  - close_at > now() 이면 countdown 타이머 시작,
+    만료 시 adminSchoolClose() 자동 호출
+
+  admin.html에서도 동일 로직 적용 (startSchoolCd 함수)
+
+
+================================================================================
+  C. 합주 신청 (Ensemble Application)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+C-1. DB 테이블
+────────────────────────────────────────────────────────────────────────────────
+
+  ensemble_rounds
+  ├── id                    integer PK
+  ├── type                  text  ('regular' | 'busking')
+  ├── name                  text  (예: "2025-1 합주")
+  ├── phase                 text  (아래 참조)
+  ├── max_songs             integer  (전체 최대 곡 수)
+  ├── max_songs_per_person  integer  (1인 최대 신청 곡 수)
+  ├── max_sessions_per_person integer (1인 최대 세션 참여 곡 수)
+  ├── song_scheduled_at     timestamptz  (곡 신청 오픈 예약, nullable)
+  ├── song_close_at         timestamptz  (곡 신청 마감 예약, nullable)
+  ├── session_scheduled_at  timestamptz  (세션 신청 오픈 예약, nullable)
+  ├── session_close_at      timestamptz  (세션 신청 마감 예약, nullable)
+  ├── has_session2          boolean
+  ├── session2_mode         text  ('any_song' | 'missing_only', nullable)
+  ├── session2_scheduled_at timestamptz  (nullable)
+  └── session2_close_at     timestamptz  (nullable)
+
+  phase 가능값 (순서):
+    'draft' → 'song' → 'song_end' → 'session' → 'session_end'
+    → ['session2' → 'session2_end'] → 'closed'
+  has_session2 = false이면 session2/session2_end 건너뜀
+
+  song_applications
+  ├── id              integer PK
+  ├── round_id        integer FK → ensemble_rounds
+  ├── applicant_name  text
+  ├── student_id      text
+  ├── title           text
+  ├── artist          text
+  ├── sessions        text[]  (이 곡에 필요한 세션 목록)
+  ├── status          text  ('pending' | 'confirmed' | 'rejected')
+  └── created_at      timestamptz
+
+  session_applications
+  ├── id              integer PK
+  ├── song_id         integer FK → song_applications
+  ├── round_id        integer FK → ensemble_rounds
+  ├── applicant_name  text
+  ├── student_id      text
+  ├── sessions        text[]  (이 사람이 맡을 세션)
+  ├── status          text  ('pending' | 'confirmed' | 'rejected')
+  ├── session_round   integer  (1 = 1차, 2 = 2차)
+  └── created_at      timestamptz
+
+────────────────────────────────────────────────────────────────────────────────
+C-2. 단계별 자동 전환 로직
+────────────────────────────────────────────────────────────────────────────────
+
+  자동 전환은 클라이언트(ensemble.html, admin.html) 양쪽에서 모두 구현.
+  1초 간격 setInterval + 카운트다운 UI.
+
+  전환 시 DB UPDATE:
+    ensemble_rounds SET phase = 'next', scheduled_at = null WHERE id = r.id
+
+  전환 조건표:
+  ┌──────────────┬────────────────┬──────────────────────────────────────────┐
+  │ 현재 phase   │ 트리거 컬럼     │ 다음 phase                               │
+  ├──────────────┼────────────────┼──────────────────────────────────────────┤
+  │ draft        │ song_scheduled_at | 관리자 수동  │ song                  │
+  │ song         │ song_close_at  │ song_end                                 │
+  │ song_end     │ session_scheduled_at | 수동     │ session               │
+  │ session      │ session_close_at│ session_end                             │
+  │ session_end  │ 수동(관리자)   │ session2 (if has_session2) or closed    │
+  │ session2     │ session2_close_at│ session2_end                          │
+  │ session2_end │ 수동(관리자)   │ closed                                   │
+  └──────────────┴────────────────┴──────────────────────────────────────────┘
+
+  song_end → session2: 보류 중인 song들은 'pending' 상태에서
+    song_end 진입 시 auto-reject 처리 (loadEnsemble에서)
+
+  session_end → session2 전환 시 추가 동작:
+    1차 session_applications 중 status = 'pending'인 레코드 일괄 DELETE
+    (= 1차 세션 신청에서 DnD로 배정받지 못한 인원 데이터 정리)
+
+────────────────────────────────────────────────────────────────────────────────
+C-3. 곡 신청 유효성 검사 (ensemble.html → submitSong)
+────────────────────────────────────────────────────────────────────────────────
+
+  1. phase === 'song' 확인
+  2. song_close_at <= now() 이면 마감으로 간주 → 거부
+  3. 필드 전부 입력 확인 (name, sid, title, artist)
+  4. 필요 세션 1개 이상 체크 확인
+  5. 내가 담당할 세션 1개 이상 체크 확인
+  6. 중복 곡 체크:
+     - title.trim().toLowerCase() === 기존곡.title.trim().toLowerCase()
+       AND artist.trim().toLowerCase() === 기존곡.artist.trim().toLowerCase()
+     - status !== 'rejected'인 곡 대상
+  7. 1인 최대 신청 수 체크:
+     songs[type].filter(s => s.student_id === sid && s.status !== 'rejected').length
+     >= round.max_songs_per_person
+  8. 전체 최대 수 체크:
+     songs[type].filter(s => s.status !== 'rejected').length >= round.max_songs
+
+  통과 시:
+  1. song_applications INSERT → 반환된 id(songData.id) 획득
+  2. session_applications INSERT:
+     { song_id: songData.id, round_id, applicant_name, student_id,
+       sessions: mySessions, status: 'pending', session_round: 1 }
+  (= 신청자의 세션 담당이 곡 신청 시 즉시 등록됨)
+
+────────────────────────────────────────────────────────────────────────────────
+C-4. 세션 신청 유효성 검사 (ensemble.html → doSubmitSession)
+────────────────────────────────────────────────────────────────────────────────
+
+  1. phase === 'session' (또는 'session2') 확인
+  2. 해당 phase의 마감 시각 체크
+  3. 1인 최대 세션 참여 곡 수 체크:
+     allSess = session_applications.filter(session_round === sessionRound)
+     mySongs = allSess.filter(student_id === sid && status !== 'rejected').map(song_id)
+     if !mySongs.has(songId) && mySongs.size >= max_sessions_per_person → 거부
+  4. 동일 곡 중복 신청 체크:
+     sessionMap[songId].find(
+       a => a.student_id === sid && a.status !== 'rejected'
+            && (a.session_round || 1) === sessionRound
+     ) → 이미 존재하면 거부
+  5. 신청자 담당 세션 충돌 체크:
+     songObj = songs에서 song_id 조회
+     if songObj.student_id !== sid:  (본인이 신청한 곡이 아닌 경우만)
+       applicantApp = sessionMap[songId].find(
+         a => a.student_id === songObj.student_id && a.status !== 'rejected'
+       )
+       conflict = sessions.filter(s => applicantApp.sessions.includes(s))
+       if conflict.length > 0 → "신청자가 담당한 세션(X)에는 신청할 수 없습니다" 거부
+
+  통과 시: session_applications INSERT
+
+  세션 의존성 (곡 신청 시 필요 세션 체크박스에서만 적용):
+  - 보컬2 선택 → 보컬1 필수
+  - 기타2 선택 → 기타1 필수
+  - 키보드2 선택 → 키보드1 필수
+  - 보컬1 해제 → 보컬2 자동 해제 (gates 로직)
+
+────────────────────────────────────────────────────────────────────────────────
+C-5. 내가 담당할 세션 제한 (ensemble.html → syncMySessionCheckboxes)
+────────────────────────────────────────────────────────────────────────────────
+
+  onSessionChkChange (필요 세션 체크박스 변경 핸들러) 내에서 호출.
+
+  SESSIONS.forEach(s => {
+    nsEl = document.getElementById('ns_' + s)  // 필요 세션 체크박스
+    msEl = document.getElementById('ms_' + s)  // 내 세션 체크박스
+    msEl.disabled = !nsEl.checked
+    if (!nsEl.checked) msEl.checked = false
+  })
+
+  즉, "필요 세션"에서 체크 해제 시 "내 세션"도 자동으로 비활성 + 해제.
+
+────────────────────────────────────────────────────────────────────────────────
+C-6. 세션 신청 UI에서 신청자 담당 세션 필터링
+────────────────────────────────────────────────────────────────────────────────
+
+  openSessionModal, onSongSelect, onSess2SongSelect 모두 동일한 로직 적용:
+
+  songObj = songs[currentType].find(s => s.id === songId)
+  applicantApp = sessionMap[songId].find(
+    a => a.student_id === songObj.student_id && a.status !== 'rejected'
+  )
+  applicantSessions = new Set(applicantApp?.sessions || [])
+  availableSessions = neededSessions.filter(s => !applicantSessions.has(s))
+
+  UI에 "신청자 담당 세션(X)은 선택 불가" 안내 표시 + 해당 세션 체크박스 제외
+
+────────────────────────────────────────────────────────────────────────────────
+C-7. DnD 팀 구성 초기 상태 계산 (admin.html → computeEnsDndInitial)
+────────────────────────────────────────────────────────────────────────────────
+
+  입력: type (regular | busking)
+  출력: { type, roundId, savedKey, songs: [{song, slots}], unassigned: [slot] }
+
+  slot 구조:
+  { id: "${appId}-${session}", appId, session, applicantName, studentId,
+    createdAt, songTitle, sessionRound, isApplicant }
+
+  isApplicant 판별:
+    session_app.student_id === song_app.student_id (곡 신청자 본인)
+
+  초기화 경로 우선순위:
+
+  [경로 1] localStorage에 임시저장 데이터 있음:
+    - locMap = { slotId: songId | 'pool' }
+    - 각 slot의 위치를 locMap으로 복원
+    - 단, isApplicant = true인 slot은 locMap 무시하고 항상 자신의 곡에 배치
+
+  [경로 2] 이미 confirmed/rejected 앱이 있음 (이전에 확정한 적 있음):
+    - confirmed apps → 해당 곡 slots에 배치
+    - pending apps:
+      · isApplicant = true → 해당 곡에 배치
+      · isApplicant = false → unassigned pool에 배치
+
+  [경로 3] 아무것도 없음 (최초 DnD 열기):
+    - 곡별로 apps를 created_at ASC 정렬
+    - 각 앱의 각 세션에 대해:
+      · isApplicant = true → 무조건 slots에 추가 + claimed에 등록
+      · 아니면 claimed에 해당 session이 없으면 slots에 추가
+      · 이미 claimed된 session이면 unassigned pool에 추가
+    - 즉, 신청자 세션은 항상 먼저 확보, 그 외는 선착순
+
+  sortSongSlots(slots):
+    SESSIONS 배열의 인덱스 기준으로 세션 정렬
+    동일 세션 내에서는 createdAt 오름차순
+
+  충돌 감지 (getConflictedSlotIds):
+    동일 곡에서 동일 session을 두 명 이상이 담당하면 → Set<slotId> 반환 (주황색 표시)
+
+────────────────────────────────────────────────────────────────────────────────
+C-8. DnD 확정 로직 (admin.html → confirmEnsembleTeams)
+────────────────────────────────────────────────────────────────────────────────
+
+  1. eDndSt.songs에 배치된 slots를 appId별로 그룹핑
+     appAssign = { appId: { songId, sessions: Set } }
+
+  2. 같은 appId가 여러 곡에 배치된 경우 (세션 여러 개가 다른 곡으로 분리된 경우):
+     가장 많은 sessions를 가진 곡 하나를 best로 선택
+
+  3. 각 appId에 대해 DB UPDATE:
+     session_applications SET
+       status = 'confirmed',
+       song_id = best.songId,
+       sessions = [...best.sessions]
+     WHERE id = appId
+
+  4. unassigned pool에 남은 slot들의 appId에 대해:
+     session_applications SET status = 'rejected' WHERE id in rejectedAppIds
+
+  5. phase는 변경하지 않음 (DnD 확정 ≠ 단계 전환)
+     단계 전환은 별도 버튼으로 진행
+
+  중요: slot.id = "${appId}-${session}" 이므로 appId = parseInt(slotId.split('-')[0])
+
+────────────────────────────────────────────────────────────────────────────────
+C-9. 단계별 pending 곡 자동 처리 (admin.html → loadEnsemble)
+────────────────────────────────────────────────────────────────────────────────
+
+  song 신청 후 단계가 진행됨에 따라 pending 상태의 곡 처리:
+
+  ['song_end','session','session_end','session2','session2_end','closed']
+  단계에서 loadEnsemble 호출 시:
+
+  songList에서 status = 'pending'인 곡들을 'rejected'로 자동 업데이트
+  (관리자가 명시적으로 확정하지 않은 곡은 자동 거절)
+
+  단, phase = 'song'이면 이 로직 실행 안 함 (아직 신청 중이므로)
+
+────────────────────────────────────────────────────────────────────────────────
+C-10. 2차 세션 신청 모드 (session2_mode)
+────────────────────────────────────────────────────────────────────────────────
+
+  any_song (모든 곡에 신청 가능):
+    confirmedSongs의 sessions 전체를 그대로 신청 대상으로 제공
+
+  missing_only (빈 세션이 있는 곡에만 신청 가능):
+    각 곡에 대해:
+    confirmed1st = session_applications
+      .filter(song_id === song.id && status === 'confirmed')
+      .flatMap(a => a.sessions)
+    available = song.sessions.filter(s => !confirmed1st.includes(s))
+    available.length > 0인 곡만 드롭다운에 표시
+
+  양 모드 모두 신청자 담당 세션 필터는 추가로 적용됨
+
+────────────────────────────────────────────────────────────────────────────────
+C-11. 신청자 고정 (Applicant Pin)
+────────────────────────────────────────────────────────────────────────────────
+
+  식별: session_app.student_id === song_app.student_id
+
+  DnD 카드 렌더링 시 isApplicant = true이면:
+  - draggable = "false" (HTML 속성)
+  - ondragstart 이벤트 핸들러 없음
+  - CSS 클래스: 'ens-member-card applicant' (녹색 배경)
+  - 이름 bold (font-weight:900)
+  - "신청자" 배지 표시 (녹색 배경)
+
+  computeEnsDndInitial에서 세 경로 모두 신청자 slot을 항상 자신의 곡에 배치,
+  unassigned pool에 절대 들어가지 않음
+
+────────────────────────────────────────────────────────────────────────────────
+C-12. 합주 결과 표시 로직 (ensemble.html → renderSongItem)
+────────────────────────────────────────────────────────────────────────────────
+
+  closedLike 여부:
+    phase ∈ {'closed', 'session_end', 'session2', 'session2_end'} → true
+
+  closedLike = true이고 session_app.status = 'rejected':
+    - 해당 행 opacity: 0.55
+    - 이름에 text-decoration: line-through, color: text3
+
+  신청자 판별 (session 행별):
+    a.student_id === s.student_id (song의 student_id)
+    → font-weight: 700, "신청자" 배지 표시
+
+  2차 신청 배지:
+    (a.session_round || 1) === 2 && phase ∈ {session2, session2_end, closed}
+    → "2차" 배지 (주황색)
+
+  admin.html의 mkConfirmedSongHtml:
+    confirmed + rejected 모두 표시
+    rejected: opacity 0.45, line-through, e-sess-dot.rejected (빨간 점)
+    confirmed: 정상 표시, e-sess-dot.confirmed (녹색 점)
+
+────────────────────────────────────────────────────────────────────────────────
+C-13. 이전 단계 되돌리기 (admin.html → revertPhase)
+────────────────────────────────────────────────────────────────────────────────
+
+  prevMap:
+    song       → draft
+    song_end   → song
+    session    → song_end
+    session_end → session
+    session2   → session_end
+    session2_end → session2
+    closed     → (has_session2 ? session2_end : session_end)
+
+  실행:
+    확인 다이얼로그 → ensemble_rounds UPDATE {phase: prev}
+    → loadEnsemble() + renderEnsemble() 재렌더
+
+  주의사항:
+  - session_applications / song_applications 데이터는 삭제되지 않음
+  - 2차 → 1차로 돌아가도 session2 신청 데이터가 남아 있을 수 있음
+  - 실 사용 시 해당 데이터를 DB에서 직접 정리 필요
+
+
+================================================================================
+  D. 공통 사항
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+D-1. 관리자 인증
+────────────────────────────────────────────────────────────────────────────────
+
+  - admin.html 접속 시 비밀번호 입력 요구
+  - app_config 테이블의 key='admin_password' 값과 비교
+  - 일치 시 sessionStorage에 'adminAuth=1' 저장
+  - 페이지 로드마다 sessionStorage 확인, 없으면 입력 폼 표시
+  - 탭/브라우저 닫으면 sessionStorage 소멸 → 자동 로그아웃
+
+────────────────────────────────────────────────────────────────────────────────
+D-2. Realtime 구독 채널
+────────────────────────────────────────────────────────────────────────────────
+
+  ensemble.html: 채널 'ens-rt'
+    - song_applications → refreshList()
+    - session_applications → refreshList()
+    - ensemble_rounds → loadAll() (전체 재렌더, phase 전환 감지)
+
+  폴링 폴백: setInterval(refreshList, 8000)
+    - 탭이 백그라운드일 때 clearInterval, 포그라운드 복귀 시 재시작
+
+  admin.html: 도메인별 별도 채널
+    - 시간표: base-ch, ex-ch, req-ch, round-ch, app-ch
+    - 스쿨: school-rd-ch, school-cls-ch, school-app-ch
+    - 합주: ens-rd-ch, ens-song-ch, ens-sess-ch
+
+────────────────────────────────────────────────────────────────────────────────
+D-3. 시간 표시 포맷
+────────────────────────────────────────────────────────────────────────────────
+
+  fmtScheduled(ts): 예약 시각용
+    → "M월 D일 HH:MM" (한국 로컬 기준)
+
+  fmtTime(ts): 신청 시각용
+    → "M/D HH:MM"
+
+  diffToHMS(ms): 카운트다운 잔여 시간
+    → "HH:MM:SS" (1시간 이상), "MM:SS" (1시간 미만)
+
+  toLocal(ts): datetime-local input 값 변환
+    → "YYYY-MM-DDTHH:MM" 형식
+
+────────────────────────────────────────────────────────────────────────────────
+D-4. 세션 목록 및 의존성
+────────────────────────────────────────────────────────────────────────────────
+
+  SESSIONS 배열 (ensemble.html 내 상수):
+    보컬1, 보컬2, 기타1, 기타2, 베이스, 키보드1, 키보드2, 드럼, 현악, 관악, 기타
+
+  requires (상위 세션 필수 규칙):
+    보컬2  requires  보컬1
+    기타2  requires  기타1
+    키보드2 requires 키보드1
+
+  gates (하위 해제 시 상위도 해제):
+    보컬1  → 보컬2
+    기타1  → 기타2
+    키보드1 → 키보드2
+
+  정렬 기준: SESSIONS 배열의 인덱스 순서 (sessOrder 함수 참조)
