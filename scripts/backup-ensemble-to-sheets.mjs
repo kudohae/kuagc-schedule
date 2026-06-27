@@ -227,6 +227,7 @@ function buildEnsembleSnapshot({ ensembleRounds, songApplications, sessionApplic
         student_id: song.student_id || '',
         sessions: song.sessions || [],
         status: song.status || '',
+        is_formed: song.is_formed === true ? '결성' : song.is_formed === false ? '미결성' : '',
         public_note: song.public_note || '',
         raw: song,
       })),

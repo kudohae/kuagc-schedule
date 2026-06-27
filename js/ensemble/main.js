@@ -625,6 +625,18 @@ function renderList(){
     </div>`;
   if(!filtered.length){
     html+=`<div class="empty-search">검색 결과가 없습니다</div>`;
+  } else if(phase==='closed'&&filtered.some(s=>s.is_formed===true||s.is_formed===false)){
+    const formed=filtered.filter(s=>s.is_formed===true);
+    const unformed=filtered.filter(s=>s.is_formed!==true);
+    let idx=1;
+    if(formed.length){
+      html+=`<div class="formation-section-hdr formed">결성 팀 <span>${formed.length}곡</span></div>`;
+      formed.forEach(s=>{ html+=renderSongItem(s,idx++,phase,'formed'); });
+    }
+    if(unformed.length){
+      html+=`<div class="formation-section-hdr unformed">미결성 팀 <span>${unformed.length}곡</span></div>`;
+      unformed.forEach(s=>{ html+=renderSongItem(s,idx++,phase,'unformed'); });
+    }
   } else {
     filtered.forEach((s,i)=>{ html+=renderSongItem(s,i+1,phase); });
   }
@@ -633,12 +645,17 @@ function renderList(){
   resizeSongPublicNoteTextareas();
 }
 
-function renderSongItem(s,num,phase){
+function renderSongItem(s,num,phase,formationState=''){
   const sessApps=(sessionMap[s.id]||[]);
   const filledSessions=new Set(sessApps.flatMap(a=>a.sessions));
   const needBadges=s.sessions.map(sess=>
     `<span class="sneed ${filledSessions.has(sess)?'filled':''}">${sess}</span>`).join('');
   const closedLike=['closed','session_end','session2','session2_end'].includes(phase);
+  const formationBadge=formationState==='formed'
+    ?'<span class="formation-badge formed">결성</span>'
+    :formationState==='unformed'
+      ?'<span class="formation-badge unformed">미결성</span>'
+      :'';
   const sessionRows=sessApps.length?`
     <div class="session-list">
       ${sessApps.map(a=>{
@@ -656,7 +673,7 @@ function renderSongItem(s,num,phase){
           </div>
         </div>`;}).join('')}
     </div>`:'';
-  return `<div class="song-item">
+  return `<div class="song-item${formationState==='unformed'?' unformed':''}">
     <div class="song-item-hdr">
       <span class="song-num">${String(num).padStart(2,'0')}</span>
       <div class="song-info">
@@ -664,6 +681,7 @@ function renderSongItem(s,num,phase){
           <span class="song-title">${esc(s.title)}</span>
           <span class="song-artist">${esc(s.artist)}</span>
           ${s.is_fixed?FIXED_BADGE:''}
+          ${formationBadge}
         </div>
         ${renderPublicNoteInput(s,phase)}
       </div>

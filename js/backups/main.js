@@ -244,7 +244,7 @@ function renderEnsembleRound(round, index) {
     `
       <div class="subhead">곡 신청 <span class="subnote">${songRows.length}곡</span></div>
       ${table(
-        ['신청 시각', '곡', '아티스트', '신청자', '학번', '필요 세션', '상태', '메모'],
+        ['신청 시각', '곡', '아티스트', '신청자', '학번', '필요 세션', '상태', '결성 여부', '메모'],
         songRows.map(song => [
           formatDateTime(song.created_at),
           song.title || '—',
@@ -253,9 +253,10 @@ function renderEnsembleRound(round, index) {
           song.student_id || '—',
           joinList(song.sessions) || '—',
           song.status || '—',
+          song.is_formed || '—',
           song.public_note || '—',
         ]),
-        [7]
+        [8]
       )}
       <div class="subhead">세션 신청 <span class="subnote">${sessionRows.length}건</span></div>
       ${table(
