@@ -2700,18 +2700,23 @@ function ensDndPersonKey(sl){
   return `${sl.studentId||''}::${sl.applicantName||''}`;
 }
 function ensDndAssignedSongCounts(){
-  if(!eDndSongCountMap){
-    eDndSongCountMap=new Map();
-    if(!eDndSt) return eDndSongCountMap;
-    for(const {song,slots} of eDndSt.songs){
-      for(const sl of slots){
-        const key=ensDndPersonKey(sl);
-        if(!eDndSongCountMap.has(key)) eDndSongCountMap.set(key,new Set());
-        eDndSongCountMap.get(key).add(song.id);
-      }
+  const counts=new Map();
+  if(!eDndSt) return counts;
+  for(const {song,slots} of eDndSt.songs){
+    const sessionCounts={};
+    for(const sl of slots){
+      const sess=sl.overrideSession??sl.session;
+      sessionCounts[sess]=(sessionCounts[sess]||0)+1;
+    }
+    for(const sl of slots){
+      const sess=sl.overrideSession??sl.session;
+      if(sessionCounts[sess]>1) continue;
+      const key=ensDndPersonKey(sl);
+      if(!counts.has(key)) counts.set(key,new Set());
+      counts.get(key).add(song.id);
     }
   }
-  return eDndSongCountMap;
+  return counts;
 }
 function ensDndSongCountBadge(sl){
   const count=ensDndAssignedSongCounts().get(ensDndPersonKey(sl))?.size||0;
