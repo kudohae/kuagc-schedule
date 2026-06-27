@@ -1744,6 +1744,7 @@ let eDraggingId=null;
 let _ftRowIdx=0;
 let eManualEntries={regular:[],busking:[]};
 let eManualApps={regular:[],busking:[]};
+let eDndDrafts={regular:null,busking:null};
 
 function renderEnsemble(){
   ['regular','busking'].forEach(type=>{
@@ -1876,12 +1877,54 @@ function renderEnsemble(){
       if(showDndBtn) h+=`<div style="padding:12px 13px"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">${dndBtnLabel}</button></div>`;
       return h;
     };
+    const mkDraftSongHtml=(dndBtnLabel='팀 구성 다시 하기')=>{
+      const draft=eDndDrafts[type];
+      if(!draft?.items?.length) return '';
+      const st=computeEnsDndInitial(type,draft.items,draft.savedBy||'');
+      if(!st) return '';
+      const savedMeta=[
+        draft.savedAt?fmtDndTime(draft.savedAt):'',
+        draft.savedBy?`${esc(draft.savedBy)} 편집`: '',
+      ].filter(Boolean).join(' · ');
+      let h=`<div style="padding:10px 13px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);background:rgba(50,160,95,.08)">
+        <b style="color:var(--accent)">팀 구성 임시저장 기준</b>${savedMeta?` · ${savedMeta}`:''}
+      </div>`;
+      h+=st.songs.map(({song,slots},i)=>{
+        const sh=slots.length?`<div class="e-sess-list">${slots.map(sl=>{
+          const sess=sl.overrideSession||sl.session;
+          const rBadge=sl.sessionRound===2?`<span style="font-size:9px;background:var(--accent2,#e89c3c);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px">2차</span>`:'';
+          const appBadge=sl.isApplicant?`<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>`:'';
+          const manualBadge=sl.isManual?`<span style="font-size:9px;background:var(--panel2);color:var(--text2);border-radius:3px;padding:1px 4px;margin-left:3px">수동</span>`:'';
+          return `<div class="e-sess-row">
+            <span class="e-sess-dot confirmed"></span>
+            <span class="e-sess-name" style="${sl.isApplicant?'font-weight:900':'normal'}">${esc(sl.applicantName)}${appBadge}${manualBadge}${rBadge} <span style="color:var(--text3);font-weight:400">${esc(sl.studentId||'')}</span></span>
+            <div class="e-sess-tags"><span class="e-sess-tag confirmed">${esc(sess)}</span></div>
+            <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtDndTime(sl.createdAt)}</span>
+          </div>`;
+        }).join('')}</div>`:'';
+        return `<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">${String(i+1).padStart(2,'0')}</span><div style="flex:1;min-width:0"><div class="e-song-title">${esc(song.title)}${song.is_fixed?ENS_FIXED_BADGE:''}</div><div class="e-song-artist">${esc(song.artist)}</div></div></div>${sh}</div>`;
+      }).join('');
+      if(st.unassigned.length){
+        h+=`<div class="e-song-item"><div class="e-song-hdr"><span class="e-song-num">--</span><div style="flex:1;min-width:0"><div class="e-song-title">미배정</div><div class="e-song-artist">임시저장에 남아 있는 미배정 슬롯</div></div></div>
+          <div class="e-sess-list">${st.unassigned.map(sl=>`<div class="e-sess-row" style="opacity:.75">
+            <span class="e-sess-dot pending"></span>
+            <span class="e-sess-name">${esc(sl.applicantName)} <span style="color:var(--text3);font-weight:400">${esc(sl.studentId||'')}</span></span>
+            <div class="e-sess-tags"><span class="e-sess-tag">${esc(sl.overrideSession||sl.session)}</span></div>
+            <span style="font-size:9px;color:var(--text3);flex-shrink:0">${fmtDndTime(sl.createdAt)}</span>
+          </div>`).join('')}</div></div>`;
+      }
+      h+=`<div style="padding:12px 13px"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">${dndBtnLabel}</button></div>`;
+      return h;
+    };
 
     let songsHtml='';
     if(phase==='session_end'){
       const allSessApps=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
       const dndDone=allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
-      if(dndDone){
+      const draftHtml=mkDraftSongHtml('팀 구성 다시 하기');
+      if(draftHtml){
+        songsHtml=draftHtml;
+      } else if(dndDone){
         songsHtml=mkConfirmedSongHtml(songList,true,'팀 구성 다시 하기');
       } else {
         songsHtml=`<div style="padding:12px 13px"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
@@ -1890,7 +1933,10 @@ function renderEnsemble(){
       const allSessApps2=(eSongs[type]||[]).filter(s=>s.status!=='rejected').flatMap(s=>eSessionMap[s.id]||[]);
       const sess2Apps=allSessApps2.filter(a=>(a.session_round||1)===2);
       const dndDone2=sess2Apps.some(a=>a.status==='confirmed'||a.status==='rejected');
-      if(dndDone2){
+      const draftHtml=mkDraftSongHtml('팀 구성 다시 하기');
+      if(draftHtml){
+        songsHtml=draftHtml;
+      } else if(dndDone2){
         songsHtml=mkConfirmedSongHtml(songList,true,'팀 구성 다시 하기');
       } else {
         songsHtml=`<div style="padding:12px 13px"><button class="btn btn-p" onclick="openEnsDndModal('${type}')">팀 구성 시작</button></div>`;
@@ -3032,9 +3078,14 @@ async function loadEnsemble(){
   }
   eSessionMap=newMap;
   eManualApps={regular:[],busking:[]};
+  eDndDrafts={regular:null,busking:null};
   for(const type of ['regular','busking']){
     const r=eRounds[type];
-    if(r){const{data:mApps}=await supabase.from('session_applications').select('*').eq('round_id',r.id).eq('is_manual',true).is('song_id',null);eManualApps[type]=mApps||[];}
+    if(r){
+      const{data:mApps}=await supabase.from('session_applications').select('*').eq('round_id',r.id).eq('is_manual',true).is('song_id',null);
+      eManualApps[type]=mApps||[];
+      try{eDndDrafts[type]=await fetchEnsDndDraft(type,r.id);}catch(e){console.warn('fetch dnd draft failed',e);}
+    }
   }
   for(const type of ['regular','busking']){
     const r=eRounds[type];
