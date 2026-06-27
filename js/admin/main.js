@@ -3323,13 +3323,17 @@ window.openFormationSelectModal=function(type,roundId){
     return;
   }
   const rows=songs2.map((s,i)=>{
-    const confirmedCount=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed').length;
-    const checked=s.is_formed===true||(s.is_formed==null&&confirmedCount>0);
+    const confirmedApps=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed');
+    const confirmedSessions=new Set(confirmedApps.flatMap(a=>a.sessions||[]));
+    const requiredSessions=s.sessions||[];
+    const missingSessions=requiredSessions.filter(sess=>!confirmedSessions.has(sess));
+    const checked=s.is_formed===true||(s.is_formed==null&&confirmedApps.length>0);
     return `<label style="display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">
       <input class="formation-song-chk" type="checkbox" value="${s.id}" ${checked?'checked':''} style="margin-top:3px;accent-color:var(--accent)"/>
       <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
         <span style="font-size:13px;font-weight:800;color:var(--text)">${String(i+1).padStart(2,'0')}. ${esc(s.title)} <span style="font-size:12px;font-weight:500;color:var(--text2)">${esc(s.artist)}</span>${s.is_fixed?ENS_FIXED_BADGE:''}</span>
-        <span style="font-size:11px;color:var(--text3)">확정 인원 ${confirmedCount}명 · 필요 세션 ${(s.sessions||[]).map(esc).join(' · ')}</span>
+        <span style="font-size:11px;color:var(--text3)">필요 세션 ${requiredSessions.map(esc).join(' · ')||'—'}</span>
+        <span style="font-size:11px;color:${missingSessions.length?'var(--warn)':'var(--accent)'};font-weight:700">${missingSessions.length?`미충족: ${missingSessions.map(esc).join(' · ')}`:'모두 충족'}</span>
       </span>
     </label>`;
   }).join('');
