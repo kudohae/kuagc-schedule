@@ -571,7 +571,9 @@ function render(){
 
 function renderTeamComposingStatus(name){
   return `<div class="status-card closed">
-    <div class="status-icon composing-hourglass">⏳</div>
+    <div class="compose-morph-loader" aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+    </div>
     <div class="status-texts">
       <div class="status-title">${esc(name)} — 관리자가 팀 구성 중입니다</div>
       <div class="status-sub">팀 구성 완료 공지를 기다려주세요.</div>
