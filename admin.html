@@ -100,7 +100,10 @@
 <div class="page" id="pgTeams">
   <div class="section-hdr">
     <div class="section-title">팀 관리</div>
-    <button class="btn btn-p btn-xs" onclick="openAddTeamModal()">+ 팀 추가</button>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="btn btn-s btn-xs" onclick="importFormedEnsembleTeams()">결성 팀 불러오기</button>
+      <button class="btn btn-p btn-xs" onclick="openAddTeamModal()">+ 팀 추가</button>
+    </div>
   </div>
   <div class="teams-toolbar">
     <button class="btn btn-s btn-xs" onclick="selectAllTeams()">전체 선택</button>
