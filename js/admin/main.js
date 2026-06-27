@@ -3257,17 +3257,19 @@ window.advanceFromSessionEnd=async function(type,roundId){
   const r=eRounds[type]; if(!r) return;
   const next=r.has_session2?'session2':'closed';
   const label=next==='session2'?'2차 세션 신청 단계':'완료';
+  if(next==='closed'){
+    openFormationSelectModal(type,roundId);
+    return;
+  }
   if(!confirm(`${label}로 이동하시겠습니까?`)) return;
   try{
-    if(next==='session2'){
-      // 1차 세션 신청 중 미확정(pending) 데이터 삭제
-      const confirmedSongIds=(eSongs[type]||[]).filter(s=>s.status==='confirmed').map(s=>s.id);
-      if(confirmedSongIds.length){
-        const pendingIds=(confirmedSongIds.flatMap(sid=>(eSessionMap[sid]||[]))).filter(a=>a.status==='pending'&&(a.session_round||1)===1).map(a=>a.id);
-        if(pendingIds.length){
-          const {error:delErr}=await supabase.from('session_applications').delete().in('id',pendingIds);
-          if(delErr) throw delErr;
-        }
+    // 1차 세션 신청 중 미확정(pending) 데이터 삭제
+    const confirmedSongIds=(eSongs[type]||[]).filter(s=>s.status==='confirmed').map(s=>s.id);
+    if(confirmedSongIds.length){
+      const pendingIds=(confirmedSongIds.flatMap(sid=>(eSessionMap[sid]||[]))).filter(a=>a.status==='pending'&&(a.session_round||1)===1).map(a=>a.id);
+      if(pendingIds.length){
+        const {error:delErr}=await supabase.from('session_applications').delete().in('id',pendingIds);
+        if(delErr) throw delErr;
       }
     }
     const {error}=await supabase.from('ensemble_rounds').update({phase:next}).eq('id',roundId);
@@ -3294,12 +3296,76 @@ window.startSession2EndNow=async function(id){
 };
 
 window.completeRound=async function(id){
+  const type=eRounds.regular?.id===id?'regular':eRounds.busking?.id===id?'busking':null;
+  if(type){
+    openFormationSelectModal(type,id);
+    return;
+  }
   if(!confirm('합주 신청을 완료 처리하시겠습니까?')) return;
   try{
     const {error}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',id);
     if(error) throw error;
     toast('합주 신청이 완료됐습니다','ok'); await ensUpdated();
   }catch(e){toast(errMsg(e),'err');}
+};
+
+function getFormationCandidates(type){
+  return (eSongs[type]||[]).filter(s=>s.status!=='rejected');
+}
+window.openFormationSelectModal=function(type,roundId){
+  const songs2=getFormationCandidates(type);
+  if(!songs2.length){
+    showModal('최종 결성 곡 선택',
+      `<div style="font-size:13px;color:var(--text2)">결성 여부를 선택할 곡이 없습니다. 완료 처리만 진행합니다.</div>`,
+      `<button class="btn btn-s" onclick="closeModal()">취소</button>
+       <button class="btn btn-p" onclick="saveFormationAndClose('${type}',${roundId})">완료 처리</button>`
+    );
+    return;
+  }
+  const rows=songs2.map((s,i)=>{
+    const confirmedCount=(eSessionMap[s.id]||[]).filter(a=>a.status==='confirmed').length;
+    const checked=s.is_formed===true||(s.is_formed==null&&confirmedCount>0);
+    return `<label style="display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">
+      <input class="formation-song-chk" type="checkbox" value="${s.id}" ${checked?'checked':''} style="margin-top:3px;accent-color:var(--accent)"/>
+      <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+        <span style="font-size:13px;font-weight:800;color:var(--text)">${String(i+1).padStart(2,'0')}. ${esc(s.title)} <span style="font-size:12px;font-weight:500;color:var(--text2)">${esc(s.artist)}</span>${s.is_fixed?ENS_FIXED_BADGE:''}</span>
+        <span style="font-size:11px;color:var(--text3)">확정 인원 ${confirmedCount}명 · 필요 세션 ${(s.sessions||[]).map(esc).join(' · ')}</span>
+      </span>
+    </label>`;
+  }).join('');
+  showModal('최종 결성 곡 선택',
+    `<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px">
+       체크한 곡은 공개 페이지에서 <b>결성</b>으로, 체크하지 않은 곡은 <b>미결성</b>으로 표시됩니다.
+     </div>
+     <div style="max-height:52vh;overflow:auto;border-top:1px solid var(--border)">${rows}</div>`,
+    `<button class="btn btn-s" onclick="closeModal()">취소</button>
+     <button class="btn btn-p" id="formationSaveBtn" onclick="saveFormationAndClose('${type}',${roundId})">선택 저장 후 완료</button>`
+  );
+};
+window.saveFormationAndClose=async function(type,roundId){
+  const btn=document.getElementById('formationSaveBtn');
+  if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+  const candidates=getFormationCandidates(type);
+  const selectedIds=[...document.querySelectorAll('.formation-song-chk:checked')].map(el=>parseInt(el.value,10)).filter(Number.isFinite);
+  try{
+    const candidateIds=candidates.map(s=>s.id);
+    if(candidateIds.length){
+      const {error:clearErr}=await supabase.from('song_applications').update({is_formed:false}).in('id',candidateIds);
+      if(clearErr) throw clearErr;
+    }
+    if(selectedIds.length){
+      const {error:setErr}=await supabase.from('song_applications').update({is_formed:true}).in('id',selectedIds);
+      if(setErr) throw setErr;
+    }
+    const {error:roundErr}=await supabase.from('ensemble_rounds').update({phase:'closed'}).eq('id',roundId);
+    if(roundErr) throw roundErr;
+    toast('결성 곡 선택이 저장되고 합주 신청이 완료됐습니다','ok');
+    closeModal();
+    await ensUpdated();
+  }catch(e){
+    toast(errMsg(e),'err');
+    if(btn){btn.disabled=false;btn.textContent='선택 저장 후 완료';}
+  }
 };
 
 window.deleteRound=async function(id){

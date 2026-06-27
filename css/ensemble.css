@@ -52,6 +52,7 @@ body.dark .list-card-phase{background:rgba(71,197,255,.08);border-color:rgba(71,
 .list-card-count{font-size:12px;color:var(--text3);}
 .song-item{padding:13px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
 .song-item:last-child{border-bottom:none;}
+.song-item.unformed{opacity:.78;}
 .song-item-hdr{display:flex;align-items:flex-start;gap:8px;}
 .song-num{font-family:'Space Mono',monospace;font-size:12px;color:var(--text3);flex-shrink:0;min-width:24px;padding-top:2px;}
 .song-info{flex:1;min-width:0;}
@@ -70,6 +71,14 @@ body.dark .song-status.confirmed{background:rgba(232,255,71,.15);}
 body.dark .song-status.pending{background:rgba(255,170,71,.1);}
 .song-status.rejected{background:rgba(217,48,37,.1);color:var(--danger);}
 body.dark .song-status.rejected{background:rgba(255,71,71,.1);}
+.formation-section-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:900;color:var(--text);background:var(--surface2);}
+.formation-section-hdr span{font-size:11px;font-weight:700;color:var(--text3);}
+.formation-section-hdr.unformed{border-top:1px solid var(--border);}
+.formation-badge{font-size:10px;font-weight:900;padding:2px 7px;border-radius:999px;line-height:1.4;white-space:nowrap;}
+.formation-badge.formed{background:rgba(92,158,0,.13);border:1px solid rgba(92,158,0,.28);color:var(--accent);}
+body.dark .formation-badge.formed{background:rgba(232,255,71,.14);border-color:rgba(232,255,71,.28);}
+.formation-badge.unformed{background:rgba(200,118,10,.12);border:1px solid rgba(200,118,10,.25);color:var(--warn);}
+body.dark .formation-badge.unformed{background:rgba(255,170,71,.12);border-color:rgba(255,170,71,.25);}
 .song-meta{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;}
 .song-submeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .song-applicant{font-size:12px;color:var(--text3);}
