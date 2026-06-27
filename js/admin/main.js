@@ -2330,6 +2330,7 @@ let eDndFilter=null;
 let eMobileSelected=null;
 let eDndLock=null;
 let eDndLockTimer=null;
+let eDndDraftQueue=Promise.resolve();
 
 const ENS_DND_LOCK_TTL_MS=3*60*1000;
 const ENS_DND_LOCK_RENEW_MS=60*1000;
@@ -2340,6 +2341,7 @@ function sortSongSlots(slots){slots.sort((a,b)=>sessOrder(a.overrideSession??a.s
 function fmtDndTime(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;}
 function makeSlots(app,songTitle='',songApplicantSid=null){return app.sessions.map(session=>({id:`${app.id}-${session}`,appId:app.id,session,applicantName:app.applicant_name,studentId:app.student_id,createdAt:app.created_at,songTitle,sessionRound:app.session_round||1,isApplicant:!!(songApplicantSid&&app.student_id===songApplicantSid),isManual:!!(app.is_manual)}));}
 function ensDndLockKey(type,roundId){return `ens_dnd_lock_${type}_${roundId}`;}
+function ensDndDraftKey(type,roundId){return `ens_dnd_draft_${type}_${roundId}`;}
 function parseEnsDndLock(raw){try{return raw?JSON.parse(raw):null;}catch{return null;}}
 function isEnsDndLockActive(lock){return lock?.expiresAt&&Date.parse(lock.expiresAt)>Date.now();}
 function makeEnsDndLockValue(type,roundId,editor,token){
@@ -2437,25 +2439,68 @@ async function releaseEnsDndLock(){
   }catch(e){console.warn('release dnd lock failed',e);}
 }
 function handleEnsDndLockLost(message){
-  if(eDndSt) ensDndSaveState();
+  if(eDndSt) ensDndSaveState().catch(e=>console.warn('save dnd draft failed',e));
   eDndLock=null;
   stopEnsDndLockHeartbeat();
   closeEnsDndModal();
   alert(message);
 }
 
-function computeEnsDndInitial(type){
+function parseEnsDndDraft(raw){try{return raw?JSON.parse(raw):null;}catch{return null;}}
+async function fetchEnsDndDraft(type,roundId){
+  const {data,error}=await supabase.from('app_config').select('value').eq('key',ensDndDraftKey(type,roundId)).maybeSingle();
+  if(error) throw error;
+  return parseEnsDndDraft(data?.value||null);
+}
+function serializeEnsDndState(){
+  if(!eDndSt) return [];
+  const enc=sl=>({id:sl.id,loc:null,...(sl.overrideSession?{os:sl.overrideSession}:{})});
+  return [
+    ...eDndSt.songs.flatMap(s=>s.slots.map(sl=>({...enc(sl),loc:s.song.id}))),
+    ...eDndSt.unassigned.map(sl=>({...enc(sl),loc:'pool'}))
+  ];
+}
+function makeEnsDndDraftPayload(){
+  if(!eDndSt) return;
+  return {
+    key:eDndSt.draftKey,
+    type:eDndSt.type,
+    roundId:eDndSt.roundId,
+    savedAt:new Date().toISOString(),
+    savedBy:eDndSt.editor||'',
+    items:serializeEnsDndState(),
+  };
+}
+async function saveEnsDndDraft(payload){
+  if(!payload) return;
+  const {error}=await supabase.from('app_config').upsert({
+    key:payload.key,
+    value:JSON.stringify(payload),
+  },{onConflict:'key'});
+  if(error) throw error;
+}
+function ensDndSaveState(){
+  const payload=makeEnsDndDraftPayload();
+  eDndDraftQueue=eDndDraftQueue.catch(()=>{}).then(()=>saveEnsDndDraft(payload));
+  return eDndDraftQueue;
+}
+async function deleteEnsDndDraft(type,roundId){
+  await eDndDraftQueue.catch(()=>{});
+  const {error}=await supabase.from('app_config').delete().eq('key',ensDndDraftKey(type,roundId));
+  if(error) throw error;
+}
+
+function computeEnsDndInitial(type,savedItems=null,editor=''){
   const r=eRounds[type]; if(!r) return null;
   const confirmedSongs=(eSongs[type]||[]).filter(s=>s.status==='confirmed');
   const allApps=confirmedSongs.flatMap(s=>(eSessionMap[s.id]||[]));
-  const savedKey=`ensDnd_${type}_${r.id}`;
+  const draftKey=ensDndDraftKey(type,r.id);
   const songs=[]; const unassigned=[];
   const songTitleById=Object.fromEntries(confirmedSongs.map(s=>[s.id,s.title]));
   const songApplicantSidById=Object.fromEntries(confirmedSongs.map(s=>[s.id,s.student_id]));
-  const savedRaw=localStorage.getItem(savedKey);
-  if(savedRaw){
+  if(savedItems?.length){
     try{
-      const savedData=JSON.parse(savedRaw);
+      const savedData=savedItems;
       const locMap=Object.fromEntries(savedData.map(({id,loc})=>[id,loc]));
       const osMap=Object.fromEntries(savedData.filter(d=>d.os).map(({id,os})=>[id,os]));
       for(const song of confirmedSongs) songs.push({song,slots:[]});
@@ -2475,7 +2520,7 @@ function computeEnsDndInitial(type){
         if(songEntry) songEntry.slots.push(sl); else unassigned.push(sl);
       }
       for(const s of songs) sortSongSlots(s.slots);
-      return {type,roundId:r.id,savedKey,songs,unassigned};
+      return {type,roundId:r.id,draftKey,editor,songs,unassigned};
     }catch{}
   }
   const hasConfirmed=allApps.some(a=>a.status==='confirmed');
@@ -2490,7 +2535,7 @@ function computeEnsDndInitial(type){
       songs.push({song,slots});
     }
     for(const app of eManualApps[type]) unassigned.push(...makeSlots(app,'',null));
-    return {type,roundId:r.id,savedKey,songs,unassigned};
+    return {type,roundId:r.id,draftKey,editor,songs,unassigned};
   }
   for(const song of confirmedSongs){
     const apps=(eSessionMap[song.id]||[]).slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
@@ -2504,16 +2549,7 @@ function computeEnsDndInitial(type){
     songs.push({song,slots});
   }
   for(const app of eManualApps[type]) unassigned.push(...makeSlots(app,'',null));
-  return {type,roundId:r.id,savedKey,songs,unassigned};
-}
-
-function ensDndSaveState(){
-  if(!eDndSt) return;
-  const enc=sl=>({id:sl.id,loc:null,...(sl.overrideSession?{os:sl.overrideSession}:{})});
-  localStorage.setItem(eDndSt.savedKey,JSON.stringify([
-    ...eDndSt.songs.flatMap(s=>s.slots.map(sl=>({...enc(sl),loc:s.song.id}))),
-    ...eDndSt.unassigned.map(sl=>({...enc(sl),loc:'pool'}))
-  ]));
+  return {type,roundId:r.id,draftKey,editor,songs,unassigned};
 }
 
 window.openEnsDndModal=async function(type){
@@ -2549,18 +2585,28 @@ window.startEnsDndWithSelectedEditor=async function(type){
       return;
     }
     closeModal();
-    openEnsDndModalLocked(type,editor);
+    await openEnsDndModalLocked(type,editor);
   }catch(e){
     toast(errMsg(e),'err');
     if(btn){btn.disabled=false;btn.textContent='시작';}
   }
 };
 
-function openEnsDndModalLocked(type,editor){
+async function openEnsDndModalLocked(type,editor){
   const r=eRounds[type]; if(!r) return;
-  const savedKey=`ensDnd_${type}_${r.id}`;
-  if(localStorage.getItem(savedKey)&&!confirm('이전에 임시저장한 내용이 있습니다.\n이어서 진행하시겠습니까?\n(취소하면 처음부터 자동 배정합니다)')) localStorage.removeItem(savedKey);
-  eDndSt=computeEnsDndInitial(type);
+  let savedItems=null;
+  let draft=null;
+  try{draft=await fetchEnsDndDraft(type,r.id);}catch(e){console.warn('load dnd draft failed',e);}
+  if(draft?.items?.length){
+    const by=draft.savedBy?`${draft.savedBy} 님이 `:'';
+    const at=draft.savedAt?`\n저장 시각: ${fmtDndTime(draft.savedAt)}`:'';
+    if(confirm(`이전에 ${by}임시저장한 팀 구성이 있습니다.\n이어서 진행하시겠습니까?${at}\n(취소하면 처음부터 자동 배정합니다)`)){
+      savedItems=draft.items;
+    } else {
+      await deleteEnsDndDraft(type,r.id).catch(e=>console.warn('delete dnd draft failed',e));
+    }
+  }
+  eDndSt=computeEnsDndInitial(type,savedItems,editor);
   if(!eDndSt){
     releaseEnsDndLock();
     toast('팀 구성 데이터를 불러오지 못했습니다','err');
@@ -2583,7 +2629,12 @@ window.closeEnsDndModal=function(){
   eDndSt=null;
   releaseEnsDndLock();
 };
-window.ensDndSave=function(){ensDndSaveState();toast('임시저장됐습니다','ok');};
+window.ensDndSave=async function(){
+  try{
+    await ensDndSaveState();
+    toast('임시저장됐습니다','ok');
+  }catch(e){toast(`임시저장 실패: ${errMsg(e)}`,'err');}
+};
 window.ensDndSetFilter=function(session){eDndFilter=session;renderEnsDndPool();};
 
 function getConflictedSlotIds(slots){
@@ -2619,7 +2670,7 @@ window.setSlotSession=function(slotId,newSession){
   if(!sl) sl=eDndSt.unassigned.find(x=>x.id===slotId);
   if(!sl) return;
   sl.overrideSession=newSession;
-  ensDndSaveState();
+  ensDndSaveState().catch(e=>console.warn('save dnd draft failed',e));
   renderEnsDndSongs();
   renderEnsDndPool();
 };
@@ -2764,7 +2815,7 @@ window.ensMobAssign=function(songId){
   const target=eDndSt.songs.find(s=>s.song.id===songId);
   if(target){target.slots.push(sl);sortSongSlots(target.slots);}
   eMobileSelected=null;
-  ensDndSaveState();
+  ensDndSaveState().catch(e=>console.warn('save dnd draft failed',e));
   renderEnsDndMobile();
 };
 window.ensMobRemove=function(slotId){
@@ -2774,7 +2825,7 @@ window.ensMobRemove=function(slotId){
     if(idx!==-1){eDndSt.unassigned.push(s.slots.splice(idx,1)[0]);break;}
   }
   eMobileSelected=null;
-  ensDndSaveState();
+  ensDndSaveState().catch(e=>console.warn('save dnd draft failed',e));
   renderEnsDndMobile();
 };
 
@@ -2817,6 +2868,7 @@ window.ensDndDropToSong=function(event,songId){
   if(!sl) return;
   const target=eDndSt.songs.find(s=>s.song.id===songId);
   if(target){target.slots.push(sl);sortSongSlots(target.slots);}
+  ensDndSaveState().catch(e=>console.warn('save dnd draft failed',e));
   renderEnsDndModal();
 };
 window.ensDndDropToPool=function(event){
@@ -2829,6 +2881,7 @@ window.ensDndDropToPool=function(event){
     const idx=s.slots.findIndex(x=>x.id===id);
     if(idx!==-1){eDndSt.unassigned.push(s.slots.splice(idx,1)[0]);break;}
   }
+  ensDndSaveState().catch(e=>console.warn('save dnd draft failed',e));
   renderEnsDndModal();
 };
 
@@ -2856,7 +2909,7 @@ window.addManualParticipant=async function(type){
     if(error) throw error;
     eManualApps[type].push(data);
     eDndSt.unassigned.push(...makeSlots(data,'',null));
-    ensDndSaveState();
+    await ensDndSaveState();
     closeModal();
     renderEnsDndPool();
     toast(`${esc(name)} 추가됐습니다`,'ok');
@@ -2877,7 +2930,7 @@ window.deleteManualPoolEntry=async function(slotId){
     const type=eDndSt.type;
     const mIdx=eManualApps[type].findIndex(a=>a.id===sl.appId);
     if(mIdx!==-1) eManualApps[type].splice(mIdx,1);
-    ensDndSaveState();
+    await ensDndSaveState();
     renderEnsDndPool();
   }catch(e){toast(errMsg(e),'err');}
 };
@@ -2920,7 +2973,7 @@ window.confirmEnsembleTeams=async function(){
       const{error:eRej}=await supabase.from('song_applications').update({status:'rejected'}).in('id',emptySongIds);
       if(eRej) throw eRej;
     }
-    localStorage.removeItem(eDndSt.savedKey);
+    await deleteEnsDndDraft(eDndSt.type,eDndSt.roundId).catch(e=>console.warn('delete dnd draft failed',e));
     toast(`${eDndSt.songs.filter(s=>s.slots.length).length}개 팀이 확정됐습니다`,'ok');
     closeEnsDndModal();
     await ensUpdated();
@@ -2960,7 +3013,7 @@ async function loadEnsemble(){
 
 async function ensUpdated(){
   if(eDndSt&&document.getElementById('ensDndModal')?.style.display!=='none'){
-    ensDndSaveState();
+    await ensDndSaveState().catch(e=>console.warn('save dnd draft failed',e));
     closeEnsDndModal();
     toast('합주 단계가 변경됐습니다. 진행 중이던 팀 구성이 임시저장됐습니다.','');
   }
