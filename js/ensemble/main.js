@@ -447,7 +447,7 @@ function render(){
         render();
       });
     }
-    const confirmedSongs=songs[currentType].filter(s=>s.status!=='rejected');
+    const confirmedSongs=sortSongsByTitle(songs[currentType].filter(s=>s.status!=='rejected'));
     html+=`<div class="form-card">
       <div class="form-title">세션 신청</div>
       <div class="form-row">
@@ -533,7 +533,7 @@ function render(){
         render();
       });
     }
-    const confirmedSongs=songs[type].filter(s=>s.status!=='rejected');
+    const confirmedSongs=sortSongsByTitle(songs[type].filter(s=>s.status!=='rejected'));
     const isMissingOnly=r?.session2_mode==='missing_only';
     html+=`<div class="form-card">
       <div class="form-title">2차 세션 신청</div>
@@ -651,6 +651,13 @@ function renderList(){
 function missingSessionCount(song){
   const filled=new Set((sessionMap[song.id]||[]).flatMap(a=>a.sessions||[]));
   return (song.sessions||[]).filter(sess=>!filled.has(sess)).length;
+}
+function sortSongsByTitle(list){
+  return list.slice().sort((a,b)=>
+    String(a.title||'').localeCompare(String(b.title||''),'ko')||
+    String(a.artist||'').localeCompare(String(b.artist||''),'ko')||
+    new Date(a.created_at||0)-new Date(b.created_at||0)
+  );
 }
 function sortSongsBySessionNeed(list){
   return list.slice().sort((a,b)=>{
