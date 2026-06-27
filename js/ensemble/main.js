@@ -473,39 +473,13 @@ function render(){
   else if(phase==='session_end'){
     const allSessApps=Object.values(sessionMap).flat().filter(a=>a.round_id===r.id);
     const dndDone=allSessApps.some(a=>a.status==='confirmed'||a.status==='rejected');
-    if(dndDone){
-      const target=r?.has_session2&&r?.session2_scheduled_at;
-      if(target&&new Date(target)<=new Date(serverNow())){
-        if(rounds[type]?.id===r.id){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
-        supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id).then(({error})=>{if(error)console.error('session_end→session2:',error.message);});
-        render(); return;
-      }
-      html+=`<div class="status-card closed">
-        <div class="status-icon">✅</div>
-        <div class="status-texts">
-          <div class="status-title">${r?.name||typeName} — 1차 팀 구성이 완료됐습니다</div>
-          <div class="status-sub">${r?.has_session2?'2차 세션 신청을 기다려주세요.':'합주 팀을 확인하세요.'}</div>
-        </div>
-      </div>`;
-      if(target){
-        const diff=new Date(target)-serverNow();
-        html+=`<div class="cd-num cd-open" id="cd-${type}">${diffToHMS(diff)}</div>`;
-        startCountdown(type,target,async()=>{
-          if(rounds[type]?.id===r.id&&rounds[type]?.phase==='session_end'){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
-          const {error}=await supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id).eq('phase','session_end');
-          if(error) console.error('session_end→session2(timer):',error.message);
-          render();
-        });
-      }
-    } else {
-      html+=`<div class="status-card closed">
-        <div class="status-icon">⏸️</div>
-        <div class="status-texts">
-          <div class="status-title">${r?.name||typeName} — 세션 신청이 끝났습니다</div>
-          <div class="status-sub">합주 팀 배정을 기다려주세요.</div>
-        </div>
-      </div>`;
+    const target=dndDone&&r?.has_session2&&r?.session2_scheduled_at;
+    if(target&&new Date(target)<=new Date(serverNow())){
+      if(rounds[type]?.id===r.id){rounds[type].phase='session2';rounds[type].session2_scheduled_at=null;}
+      supabase.from('ensemble_rounds').update({phase:'session2',session2_scheduled_at:null}).eq('id',r.id).then(({error})=>{if(error)console.error('session_end→session2:',error.message);});
+      render(); return;
     }
+    html+=renderTeamComposingStatus(r?.name||typeName);
   }
 
   else if(phase==='session2'){
@@ -562,15 +536,7 @@ function render(){
   }
 
   else if(phase==='session2_end'){
-    const allSessApps2=Object.values(sessionMap).flat().filter(a=>a.round_id===r.id&&(a.session_round||1)===2);
-    const dndDone2=allSessApps2.some(a=>a.status==='confirmed'||a.status==='rejected');
-    html+=`<div class="status-card closed">
-      <div class="status-icon">${dndDone2?'✅':'⏸️'}</div>
-      <div class="status-texts">
-        <div class="status-title">${r?.name||typeName} — ${dndDone2?'팀 구성이 완료됐습니다':'2차 세션 신청이 끝났습니다'}</div>
-        <div class="status-sub">${dndDone2?'합주 팀을 확인하세요.':'합주 팀 배정을 기다려주세요.'}</div>
-      </div>
-    </div>`;
+    html+=renderTeamComposingStatus(r?.name||typeName);
   }
 
   else if(phase==='closed'){
@@ -593,9 +559,36 @@ function render(){
     </div>`;
   }
 
+  if(['session_end','session2_end'].includes(phase)){
+    html+=renderTeamComposingAnimation();
+    el.innerHTML=html;
+    return;
+  }
+
   html+=`<div id="songListEl"></div>`;
   el.innerHTML=html;
   renderList();
+}
+
+function renderTeamComposingStatus(name){
+  return `<div class="status-card closed">
+    <div class="status-icon">⏳</div>
+    <div class="status-texts">
+      <div class="status-title">${esc(name)} — 관리자가 팀 구성 중입니다</div>
+      <div class="status-sub">팀 구성 완료 공지를 기다려주세요.</div>
+    </div>
+  </div>`;
+}
+
+function renderTeamComposingAnimation(){
+  return `<div class="compose-card" aria-label="팀 구성 작성 중">
+    <div class="compose-loader">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="compose-lines">
+      <span></span><span></span><span></span>
+    </div>
+  </div>`;
 }
 
 function renderList(){
