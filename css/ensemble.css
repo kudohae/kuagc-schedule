@@ -24,21 +24,8 @@ body.dark .status-card.session{background:rgba(71,197,255,.06);border-color:rgba
 .status-texts{display:flex;flex-direction:column;gap:3px;}
 .status-title{font-size:15px;font-weight:700;}
 .status-sub{font-size:12px;color:var(--text2);}
-.compose-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 20px;display:flex;align-items:center;gap:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
-.compose-loader{display:flex;align-items:flex-end;gap:5px;height:34px;flex-shrink:0;}
-.compose-loader span{width:6px;border-radius:999px;background:var(--accent2);animation:composePulse 1s ease-in-out infinite;}
-.compose-loader span:nth-child(1){height:14px;animation-delay:0s;}
-.compose-loader span:nth-child(2){height:24px;animation-delay:.12s;}
-.compose-loader span:nth-child(3){height:18px;animation-delay:.24s;}
-.compose-loader span:nth-child(4){height:30px;animation-delay:.36s;}
-.compose-lines{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;}
-.compose-lines span{height:8px;border-radius:999px;background:linear-gradient(90deg,var(--surface2),rgba(0,119,204,.16),var(--surface2));background-size:220% 100%;animation:composeShimmer 1.4s linear infinite;}
-.compose-lines span:nth-child(1){width:72%;}
-.compose-lines span:nth-child(2){width:52%;animation-delay:.12s;}
-.compose-lines span:nth-child(3){width:63%;animation-delay:.24s;}
-body.dark .compose-lines span{background:linear-gradient(90deg,var(--surface2),rgba(71,197,255,.18),var(--surface2));background-size:220% 100%;}
-@keyframes composePulse{0%,100%{transform:scaleY(.62);opacity:.45;}50%{transform:scaleY(1);opacity:1;}}
-@keyframes composeShimmer{0%{background-position:120% 0;}100%{background-position:-120% 0;}}
+.composing-hourglass{display:inline-block;transform-origin:center;animation:hourglassTurn 2s linear infinite;}
+@keyframes hourglassTurn{0%{transform:rotate(0deg);}25%,100%{transform:rotate(180deg);}}
 
 /* FORM */
 .form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 17px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
