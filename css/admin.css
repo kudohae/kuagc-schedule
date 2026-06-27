@@ -252,6 +252,8 @@ body.dark .ens-song-card.complete{border-color:rgba(92,255,100,.6);}
 .ens-member-card.applicant{background:rgba(92,158,0,.07);border-color:rgba(92,158,0,.35);cursor:default;}
 body.dark .ens-member-card.applicant{background:rgba(232,255,71,.06);border-color:rgba(232,255,71,.2);}
 .ens-member-name{font-size:12px;font-weight:700;}
+.ens-song-count-badge{display:inline-flex;align-items:center;margin-left:5px;padding:1px 5px;border-radius:999px;background:rgba(0,119,204,.08);border:1px solid rgba(0,119,204,.18);color:var(--accent2);font-size:9px;font-weight:800;line-height:1.35;vertical-align:middle;white-space:nowrap;}
+body.dark .ens-song-count-badge{background:rgba(71,197,255,.08);border-color:rgba(71,197,255,.2);}
 .ens-member-sid{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:5px;}
 .ens-member-tags{display:flex;flex-wrap:wrap;gap:3px;}
 .ens-member-tag{font-size:10px;padding:1px 6px;border-radius:3px;background:rgba(92,158,0,.1);color:var(--accent);}

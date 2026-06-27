@@ -2331,6 +2331,7 @@ let eMobileSelected=null;
 let eDndLock=null;
 let eDndLockTimer=null;
 let eDndDraftQueue=Promise.resolve();
+let eDndSongCountMap=null;
 
 const ENS_DND_LOCK_TTL_MS=3*60*1000;
 const ENS_DND_LOCK_RENEW_MS=60*1000;
@@ -2642,6 +2643,27 @@ function getConflictedSlotIds(slots){
   for(const sl of slots){const k=sl.overrideSession??sl.session;cnt[k]=(cnt[k]||0)+1;}
   return new Set(slots.filter(sl=>cnt[sl.overrideSession??sl.session]>1).map(sl=>sl.id));
 }
+function ensDndPersonKey(sl){
+  return `${sl.studentId||''}::${sl.applicantName||''}`;
+}
+function ensDndAssignedSongCounts(){
+  if(!eDndSongCountMap){
+    eDndSongCountMap=new Map();
+    if(!eDndSt) return eDndSongCountMap;
+    for(const {song,slots} of eDndSt.songs){
+      for(const sl of slots){
+        const key=ensDndPersonKey(sl);
+        if(!eDndSongCountMap.has(key)) eDndSongCountMap.set(key,new Set());
+        eDndSongCountMap.get(key).add(song.id);
+      }
+    }
+  }
+  return eDndSongCountMap;
+}
+function ensDndSongCountBadge(sl){
+  const count=ensDndAssignedSongCounts().get(ensDndPersonKey(sl))?.size||0;
+  return `<span class="ens-song-count-badge">총 ${count}곡</span>`;
+}
 
 function ensSlotCardHtml(sl,conflicted,inPool=false){
   const sid=sl.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -2658,7 +2680,7 @@ function ensSlotCardHtml(sl,conflicted,inPool=false){
     :`<span style="font-size:10px;color:var(--text3);line-height:1.2">${fmtDndTime(sl.createdAt)}</span>`;
   return `<div class="ens-member-card${conflicted?' conflict':''}${pinned?' applicant':''}" ${dragAttrs} data-id="${sl.id}">
     ${topLine}
-    <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${esc(sl.applicantName)}</span><span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${esc(sl.songTitle)}</span>`:''}${applicantBadge}${r2Badge}</div>
+    <div><span class="ens-member-name" style="${pinned?'font-weight:900':'normal'}">${esc(sl.applicantName)}</span>${ensDndSongCountBadge(sl)}<span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${esc(sl.songTitle)}</span>`:''}${applicantBadge}${r2Badge}</div>
     <div class="ens-member-tags">${sessTag}</div>
   </div>`;
 }
@@ -2677,6 +2699,7 @@ window.setSlotSession=function(slotId,newSession){
 
 function renderEnsDndPool(){
   if(!eDndSt) return;
+  eDndSongCountMap=null;
   document.getElementById('ensDndPoolCount').textContent=eDndSt.unassigned.length;
   const usedSess=[...new Set(eDndSt.unassigned.map(sl=>sl.overrideSession??sl.session))].sort((a,b)=>sessOrder(a)-sessOrder(b));
   document.getElementById('ensDndFilterRow').innerHTML=usedSess.length
@@ -2697,6 +2720,7 @@ function renderEnsDndPool(){
 
 function renderEnsDndSongs(){
   if(!eDndSt) return;
+  eDndSongCountMap=null;
   document.getElementById('ensDndSongs').innerHTML=eDndSt.songs.map(({song,slots})=>{
     const conflicts=getConflictedSlotIds(slots);
     const filledSess=new Set(slots.map(sl=>sl.overrideSession??sl.session));
@@ -2717,6 +2741,7 @@ function renderEnsDndSongs(){
 }
 function renderEnsDndModal(){
   if(!eDndSt) return;
+  eDndSongCountMap=null;
   if(window.innerWidth<=700){renderEnsDndMobile();return;}
   renderEnsDndPool();
   renderEnsDndSongs();
@@ -2732,6 +2757,7 @@ function ensMobPoolCardHtml(sl){
     <div style="display:flex;align-items:center;gap:6px">
       <div style="flex:1;min-width:0">
         <span class="ens-member-name">${esc(sl.applicantName)}</span>
+        ${ensDndSongCountBadge(sl)}
         <span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>
         ${sl.songTitle?`<span class="ens-member-sid" style="margin-left:4px">${esc(sl.songTitle)}</span>`:''}
         ${sl.sessionRound===2?'<span style="font-size:9px;background:var(--accent2);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>':''}
@@ -2750,6 +2776,7 @@ function ensMobSongMemberHtml(sl,conflicted){
     <div style="display:flex;align-items:center;gap:6px">
       <div style="flex:1;min-width:0">
         <span class="ens-member-name" style="${pinned?'font-weight:900':''}">${esc(sl.applicantName)}</span>
+        ${ensDndSongCountBadge(sl)}
         <span class="ens-member-sid">${esc(sl.studentId?.slice(-3)||'')}</span>
         ${pinned?'<span style="font-size:9px;background:var(--accent);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700">신청자</span>':''}
         ${sl.sessionRound===2?'<span style="font-size:9px;background:var(--accent2);color:#fff;border-radius:3px;padding:1px 4px;margin-left:2px">2차</span>':''}
@@ -2764,6 +2791,7 @@ function ensMobSongMemberHtml(sl,conflicted){
 
 function renderEnsDndMobile(){
   if(!eDndSt) return;
+  eDndSongCountMap=null;
   // Pool section
   document.getElementById('ensDndPoolCount').textContent=eDndSt.unassigned.length;
   const usedSess=[...new Set(eDndSt.unassigned.map(sl=>sl.overrideSession??sl.session))].sort((a,b)=>sessOrder(a)-sessOrder(b));
