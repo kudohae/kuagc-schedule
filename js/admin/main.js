@@ -1382,6 +1382,73 @@ window.addTeam=async function(){
     toast(`${name} 팀이 추가되었습니다`,'ok'); closeModal(); renderTeams();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
+window.importFormedEnsembleTeams=async function(){
+  const btn=document.querySelector('button[onclick="importFormedEnsembleTeams()"]');
+  const oldText=btn?.textContent;
+  if(btn){btn.disabled=true;btn.textContent='불러오는 중...';}
+  try{
+    const {data:round,error:roundErr}=await supabase
+      .from('ensemble_rounds')
+      .select('*')
+      .eq('type','regular')
+      .order('created_at',{ascending:false})
+      .limit(1)
+      .maybeSingle();
+    if(roundErr) throw roundErr;
+    if(!round){toast('합주 신청 회차가 없습니다','err');return;}
+    if(round.phase!=='closed'){toast('합주 신청 회차가 먼저 종료되어야 합니다','err');return;}
+
+    const {data:songs,error:songErr}=await supabase
+      .from('song_applications')
+      .select('*')
+      .eq('round_id',round.id)
+      .eq('is_formed',true)
+      .neq('status','rejected')
+      .order('created_at');
+    if(songErr) throw songErr;
+    if(!songs?.length){toast('결성 팀이 없습니다','err');return;}
+
+    const existingInfos=new Set(teams.filter(t=>t.type==='합주').map(t=>(t.info||'').trim()).filter(Boolean));
+    const targetSongs=songs.filter(s=>!existingInfos.has((s.title||'').trim()));
+    if(!targetSongs.length){toast('이미 모든 결성 팀을 불러왔습니다','');return;}
+
+    const ids=targetSongs.map(s=>s.id);
+    const {data:apps,error:appsErr}=await supabase
+      .from('session_applications')
+      .select('*')
+      .in('song_id',ids)
+      .eq('status','confirmed')
+      .order('created_at');
+    if(appsErr) throw appsErr;
+    const appsBySong={};
+    (apps||[]).forEach(a=>{if(!appsBySong[a.song_id]) appsBySong[a.song_id]=[]; appsBySong[a.song_id].push(a);});
+
+    const usedNums=new Set(teams.filter(t=>t.type==='합주').map(t=>{const m=(t.name||'').match(/^(\d+)팀$/);return m?parseInt(m[1]):0;}).filter(Boolean));
+    const nextName=()=>{
+      let n=1;
+      while(usedNums.has(n)) n++;
+      usedNums.add(n);
+      return `${n}팀`;
+    };
+    const created=[];
+    for(const song of targetSongs){
+      const members=(appsBySong[song.id]||[]).map(a=>{
+        const sid=String(a.student_id||'');
+        return {name:a.applicant_name,student_id_last3:sid.slice(-3),sessions:a.sessions||[]};
+      });
+      const team=await createTeam({name:nextName(),type:'합주',color:GRAY,info:song.title||'',members});
+      created.push(team);
+    }
+    teams=korSort([...teams,...created],'name');
+    renderTeams();
+    renderSchedule();
+    toast(`${created.length}개 결성 팀을 불러왔습니다`,'ok');
+  }catch(e){
+    toast(errMsg(e),'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldText||'결성 팀 불러오기';}
+  }
+};
 
 // ── APPLY ─────────────────────────────────────────────────────────────
 function renderApply(){
