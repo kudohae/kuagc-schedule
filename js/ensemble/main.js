@@ -560,7 +560,6 @@ function render(){
   }
 
   if(['session_end','session2_end'].includes(phase)){
-    html+=renderTeamComposingAnimation();
     el.innerHTML=html;
     return;
   }
@@ -572,21 +571,10 @@ function render(){
 
 function renderTeamComposingStatus(name){
   return `<div class="status-card closed">
-    <div class="status-icon">⏳</div>
+    <div class="status-icon composing-hourglass">⏳</div>
     <div class="status-texts">
       <div class="status-title">${esc(name)} — 관리자가 팀 구성 중입니다</div>
       <div class="status-sub">팀 구성 완료 공지를 기다려주세요.</div>
-    </div>
-  </div>`;
-}
-
-function renderTeamComposingAnimation(){
-  return `<div class="compose-card" aria-label="팀 구성 작성 중">
-    <div class="compose-loader">
-      <span></span><span></span><span></span><span></span>
-    </div>
-    <div class="compose-lines">
-      <span></span><span></span><span></span>
     </div>
   </div>`;
 }
