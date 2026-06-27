@@ -612,6 +612,9 @@ function renderList(){
       s.sessions.some(sess=>sess.toLowerCase().includes(searchQ))
     );
   }
+  if(['session','session2'].includes(phase)){
+    filtered=sortSongsBySessionNeed(filtered);
+  }
   const el=document.getElementById('songListEl');
   if(!el) return;
   if(!active.length){el.innerHTML='';return;}
@@ -643,6 +646,19 @@ function renderList(){
   html+=`</div>`;
   el.innerHTML=html;
   resizeSongPublicNoteTextareas();
+}
+
+function missingSessionCount(song){
+  const filled=new Set((sessionMap[song.id]||[]).flatMap(a=>a.sessions||[]));
+  return (song.sessions||[]).filter(sess=>!filled.has(sess)).length;
+}
+function sortSongsBySessionNeed(list){
+  return list.slice().sort((a,b)=>{
+    if(!!a.is_fixed!==!!b.is_fixed) return a.is_fixed?1:-1;
+    const missingDiff=missingSessionCount(b)-missingSessionCount(a);
+    if(missingDiff) return missingDiff;
+    return new Date(a.created_at||0)-new Date(b.created_at||0);
+  });
 }
 
 function renderSongItem(s,num,phase,formationState=''){
