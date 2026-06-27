@@ -2654,10 +2654,24 @@ async function openEnsDndModalLocked(type,editor){
   if(draft?.items?.length){
     const by=draft.savedBy?`${draft.savedBy} 님이 `:'';
     const at=draft.savedAt?`\n저장 시각: ${fmtDndTime(draft.savedAt)}`:'';
-    if(confirm(`이전에 ${by}임시저장한 팀 구성이 있습니다.\n이어서 진행하시겠습니까?${at}\n(취소하면 처음부터 자동 배정합니다)`)){
+    if(confirm(`이전에 ${by}임시저장한 팀 구성이 있습니다.\n이어서 진행하시겠습니까?${at}\n(취소하면 임시저장 폐기 확인을 거친 뒤 처음부터 자동 배정할 수 있습니다)`)){
       savedItems=draft.items;
     } else {
-      await deleteEnsDndDraft(type,r.id).catch(e=>console.warn('delete dnd draft failed',e));
+      const typed=prompt('임시저장 내역을 폐기하고 처음부터 자동 배정하려면 아래 문구를 정확히 입력하세요.\n\n임시저장 폐기');
+      if(typed!=='임시저장 폐기'){
+        releaseEnsDndLock();
+        toast('임시저장 내역을 유지했습니다','');
+        return;
+      }
+      try{
+        await deleteEnsDndDraft(type,r.id);
+        eDndDrafts[type]=null;
+        toast('임시저장 내역을 폐기했습니다','ok');
+      }catch(e){
+        releaseEnsDndLock();
+        toast(`임시저장 폐기 실패: ${errMsg(e)}`,'err');
+        return;
+      }
     }
   }
   eDndSt=computeEnsDndInitial(type,savedItems,editor);
