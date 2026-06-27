@@ -2531,7 +2531,14 @@ function computeEnsDndInitial(type,savedItems=null,editor=''){
       const confirmedSlots=sApps.filter(a=>a.status==='confirmed').flatMap(a=>makeSlots(a,song.title,song.student_id));
       const pendingSlots=sApps.filter(a=>a.status==='pending').flatMap(a=>makeSlots(a,song.title,song.student_id));
       const slots=[...confirmedSlots];
-      pendingSlots.forEach(sl=>{if(sl.isApplicant||sl.sessionRound>=2)slots.push(sl);else unassigned.push(sl);});
+      const claimed=new Set(confirmedSlots.map(sl=>sl.overrideSession||sl.session));
+      pendingSlots.forEach(sl=>{
+        const sess=sl.overrideSession||sl.session;
+        if(sl.isApplicant||sl.sessionRound>=2||!claimed.has(sess)){
+          slots.push(sl);
+          claimed.add(sess);
+        }else unassigned.push(sl);
+      });
       sortSongSlots(slots);
       songs.push({song,slots});
     }
