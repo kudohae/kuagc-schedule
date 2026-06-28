@@ -44,6 +44,8 @@ body.dark .apply-status.finished{background:rgba(71,197,255,.05);border-color:rg
 .ta-app-row{cursor:pointer;}
 .ta-app-row:focus-visible td{outline:1px solid var(--accent2);outline-offset:-2px;}
 .ta-app-row.active td{background:rgba(71,197,255,.05);}
+.apply-tbl th.ta-expected-col,.apply-tbl td.ta-expected-col{background:rgba(232,255,71,.08);}
+.ta-app-row:hover td.ta-expected-col,.ta-app-row.active td.ta-expected-col{background:rgba(232,255,71,.12);}
 .ta-detail-row td{padding:0 10px 8px;background:rgba(71,197,255,.035);}
 .ta-detail-box{display:flex;gap:8px;align-items:center;padding:3px 0 0 34px;font-size:11px;color:var(--text3);}
 .ta-detail-box strong{font-family:'Space Mono',monospace;font-size:11px;font-weight:500;color:var(--text2);}
