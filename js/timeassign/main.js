@@ -423,7 +423,7 @@ function renderList(){
     </div>
     <div style="overflow-x:auto">
       <table class="apply-tbl">
-        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th><th>${isFin?'결과':'예상 배정'}</th></tr></thead>
+        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th><th class="${isFin?'':'ta-expected-col'}">${isFin?'결과':'예상 배정'}</th></tr></thead>
         <tbody>
           ${applications.map((a,i)=>{
             const void_=isVoid(a);
@@ -439,7 +439,7 @@ function renderList(){
               <td>${dayHour(a.pref1_day,a.pref1_hour)}</td>
               <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
               <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
-              <td>${allocation}</td>
+              <td class="${isFin?'':'ta-expected-col'}">${allocation}</td>
             </tr>${expanded?`<tr class="ta-detail-row"><td colspan="6"><div class="ta-detail-box"><span>제출 시각</span><strong>${fmtTime(a.submitted_at)}</strong></div></td></tr>`:''}`;
           }).join('')}
         </tbody>
