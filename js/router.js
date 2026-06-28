@@ -16,12 +16,14 @@ function setHeaderVisibility(view) {
   const weekNav    = document.getElementById('weekNavEl');
   const seasonChip = document.getElementById('seasonChip');
   const contacts   = document.querySelector('.hdr-contacts-btn');
+  const games      = document.querySelector('.hdr-games-btn');
   const typeToggle = document.getElementById('typeToggle');
   const isSchedule = view === 'schedule' || view === 'teams';
 
   if (weekNav)    weekNav.style.display    = isSchedule ? '' : 'none';
   if (seasonChip) seasonChip.style.display = isSchedule ? '' : 'none';
   if (contacts)   contacts.style.display   = isSchedule ? '' : 'none';
+  if (games)      games.style.display      = view === 'schedule' ? '' : 'none';
   if (typeToggle) typeToggle.style.display  = view === 'ensemble' ? '' : 'none';
 }
 
