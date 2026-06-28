@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그루터기 회장단</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/admin.css">
+
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div>
+      <div class="login-title">관리자 페이지</div>
+      <div class="login-sub">동아리 관리 시스템</div>
+    </div>
+    <div>
+      <div class="fl">이메일</div>
+      <input class="fi" type="email" id="emailInput" placeholder="이메일 입력"
+        onkeydown="if(event.key==='Enter')document.getElementById('pwInput').focus()"/>
+    </div>
+    <div>
+      <div class="fl">비밀번호</div>
+      <input class="fi" type="password" id="pwInput" placeholder="비밀번호 입력"
+        onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-err" id="loginErr">이메일 또는 비밀번호가 틀렸습니다</div>
+    <button class="btn btn-p" style="width:100%;padding:9px" id="loginBtn" onclick="doLogin()">로그인</button>
+    <div style="text-align:center">
+      <a href="index.html" style="font-size:11px;color:var(--text3);text-decoration:none;">← 일반 시간표로 돌아가기</a>
+    </div>
+    <div style="text-align:center">
+      <button onclick="showForgotPwInfo()" style="background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer;padding:0;font-family:'Noto Sans KR',sans-serif;">비밀번호를 잊어버렸습니다.</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN UI -->
+<div id="adminUI" style="display:none">
+
+<header>
+  <a class="logo" href="myskill.html"><span class="logo-img"></span><span class="logo-sub">관리자</span></a>
+  <div class="nav">
+    <button class="nb active" id="nb-sch"      onclick="showPage('sch')">시간표</button>
+    <button class="nb"        id="nb-teams"    onclick="showPage('teams')">팀 관리</button>
+    <button class="nb"        id="nb-apply"    onclick="showPage('apply')">시간신청</button>
+    <button class="nb"        id="nb-school"   onclick="showPage('school')">스쿨신청</button>
+    <button class="nb"        id="nb-ensemble" onclick="showPage('ensemble')">합주신청</button>
+    <button class="nb"        id="nb-notices"  onclick="showPage('notices')">공지</button>
+    <button class="nb"        id="nb-contacts" onclick="showPage('contacts')">연락처</button>
+    <button class="nb"        id="nb-data"     onclick="showPage('data')" style="color:var(--danger)">데이터 관리</button>
+  </div>
+  <div class="hdr-r">
+    <button class="season-sel" id="seasonBadge" onclick="goToAcademicCard()">—</button>
+    <div class="week-nav" id="weekNavEl">
+      <button onclick="changeWeek(-1)" aria-label="이전 주">‹</button>
+      <div class="week-lbl" id="weekLbl">—</div>
+      <button onclick="changeWeek(1)" aria-label="다음 주">›</button>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="다크/라이트 모드 전환">🌙</button>
+  </div>
+</header>
+
+<!-- SCHEDULE + PENDING SIDEBAR -->
+<div class="page active" id="pgSch">
+  <div class="sch-main">
+    <div class="admin-bar">
+      <span class="admin-bar-label">🔧 관리자</span>
+      <button class="btn btn-s btn-xs" onclick="openAddSlotModal()">+ 슬롯 추가</button>
+      <button class="btn btn-s btn-xs" onclick="openNoticeModal()">📢 공지 추가</button>
+    </div>
+    <div class="sch-wrap">
+      <div class="sch-title-row">
+        <span class="sch-title" id="schTitle">—</span>
+        <span class="sch-season" id="schSeason"></span>
+      </div>
+      <div class="day-tab-bar" id="dayTabBar"></div>
+      <div class="sch-hdr" id="schHdr"></div>
+      <div class="sch-body">
+        <div class="sch-times" id="schTimes"></div>
+        <div class="sch-grid" id="schGrid"></div>
+      </div>
+    </div>
+  </div>
+  <!-- 신청대기 사이드패널 -->
+  <div class="pend-sidebar">
+    <div class="pend-sidebar-hdr">
+      <div class="pend-sidebar-title">승인 대기</div>
+      <span class="pend-badge" id="pendBadge" style="display:none"></span>
+    </div>
+    <div class="pend-list" id="pendList"></div>
+  </div>
+</div>
+
+<!-- TEAMS -->
+<div class="page" id="pgTeams">
+  <div class="section-hdr">
+    <div class="section-title">팀 관리</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="btn btn-s btn-xs" onclick="importFormedEnsembleTeams()">결성 팀 불러오기</button>
+      <button class="btn btn-p btn-xs" onclick="openAddTeamModal()">+ 팀 추가</button>
+    </div>
+  </div>
+  <div class="teams-toolbar">
+    <button class="btn btn-s btn-xs" onclick="selectAllTeams()">전체 선택</button>
+    <button class="btn btn-d btn-xs" onclick="deleteSelectedTeams()">선택한 팀 삭제</button>
+    <span class="teams-sel-count" id="teamSelCount"></span>
+  </div>
+  <div id="teamsContent" style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;"></div>
+</div>
+
+<!-- APPLY -->
+<div class="page" id="pgApply">
+  <div class="focused-inner">
+    <div class="section-hdr">
+      <div class="section-title">시간 신청 관리</div>
+      <a href="timeassign.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">신청 페이지로 이동</a>
+    </div>
+    <div id="applyContent" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- SCHOOL -->
+<div class="page" id="pgSchool" style="flex-direction:column;overflow-y:auto;padding:10px 14px;align-items:center;">
+  <div class="focused-inner">
+    <div class="section-hdr">
+      <div class="section-title">스쿨 신청 관리</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <a href="school.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">신청 페이지로 이동</a>
+      </div>
+    </div>
+    <div id="schoolAdminContent" style="display:flex;flex-direction:column;gap:12px;"></div>
+  </div>
+</div>
+
+<!-- NOTICES -->
+<div class="page page-centered" id="pgNotices">
+  <div class="centered-card">
+    <div class="centered-card-hdr">
+      <div class="centered-card-title">📢 공지사항</div>
+      <button class="btn btn-p btn-xs" onclick="openNoticeModal()">+ 추가</button>
+    </div>
+    <div class="centered-card-body" id="noticesContent">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:16px 0">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACTS -->
+<div class="page page-centered" id="pgContacts">
+  <div class="centered-card">
+    <div class="centered-card-hdr">
+      <div class="centered-card-title">📞 회장단 연락처</div>
+      <button class="btn btn-p btn-xs" onclick="openAddContactModal()">+ 추가</button>
+    </div>
+    <div class="centered-card-body" id="contactsContent">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:16px 0">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ENSEMBLE -->
+<div class="page" id="pgEnsemble" style="flex-direction:column;overflow-y:auto;padding:10px 14px;align-items:center;">
+  <div class="focused-inner">
+    <div class="section-hdr">
+      <div class="section-title">합주 신청 관리</div>
+      <a href="ensemble.html" target="_blank" class="btn btn-s btn-xs" style="text-decoration:none">신청 페이지로 이동</a>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+      <div class="ens-type-tabs">
+        <button class="ens-type-tab active" id="ensTabRegular" onclick="switchEnsTab('regular')">
+          일반 합주<span class="ensemble-phase closed" id="ephaseRegular" style="margin-left:7px">닫힘</span>
+        </button>
+        <button class="ens-type-tab" id="ensTabBusking" onclick="switchEnsTab('busking')">
+          버스킹 합주<span class="ensemble-phase closed" id="ephaseBusking" style="margin-left:7px">닫힘</span>
+        </button>
+      </div>
+      <div class="ens-tab-panel" id="ensembleRegularPanel">
+        <div class="ensemble-col-body" id="ensembleRegularBody"></div>
+      </div>
+      <div class="ens-tab-panel" id="ensembleBuskingPanel" style="display:none">
+        <div class="ensemble-col-body" id="ensembleBuskingBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ensemble DnD Team Builder Modal -->
+<div id="ensDndModal" class="ens-modal-overlay" style="display:none">
+  <div class="ens-modal-wrap">
+    <div class="ens-modal-hdr">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span id="ensDndRoundName" style="font-size:15px;font-weight:700"></span>
+        <span id="ensDndTypeName" style="font-size:11px;color:var(--text2)"></span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text3)">드래그로 자유 배치 · <span style="color:var(--warn)">주황색</span>은 세션 중복</span>
+        <button class="btn btn-s" onclick="ensDndSave()">임시저장</button>
+        <button class="btn btn-p" onclick="confirmEnsembleTeams()">팀 구성 완료</button>
+        <button class="btn" onclick="closeEnsDndModal()">닫기</button>
+      </div>
+    </div>
+    <div class="ens-modal-body">
+      <div class="ens-pool-col" id="ensDndPool"
+           ondragover="ensDndDragOverPool(event)"
+           ondragleave="ensDndDragLeavePool(event)"
+           ondrop="ensDndDropToPool(event)">
+        <div class="ens-section-hdr" style="display:flex;justify-content:space-between;align-items:center">
+          <span>미배정 <span class="dnd-badge" id="ensDndPoolCount">0</span></span>
+          <button class="btn btn-xs btn-s" style="font-size:11px;padding:2px 8px" onclick="openAddManualParticipant()">참여자 추가</button>
+        </div>
+        <div id="ensDndFilterRow" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+        <div id="ensMobHint"></div>
+        <div id="ensDndPoolCards"></div>
+      </div>
+      <div class="ens-songs-grid" id="ensDndSongs"></div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="pgData" style="flex-direction:column;overflow-y:auto;padding:10px 14px;gap:10px;">
+  <div class="card" id="academicCard" style="padding:16px">
+    <div style="color:var(--text3);font-size:12px;padding:8px 0">불러오는 중...</div>
+  </div>
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)">시간 정보 삭제</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">선택한 학기의 기본 시간표, 신청 회차 및 모든 신청 정보를 삭제합니다.</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+      <select class="fs" id="delSeasonSel" style="width:auto">
+        <option>1학기</option><option>여름방학</option><option>2학기</option><option>겨울방학</option>
+      </select>
+    </div>
+    <button class="btn btn-d" onclick="openDeleteTimeModal()">시간 정보 삭제</button>
+  </div>
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text2)">백업 데이터 확인</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">시간 신청, 스쿨 신청, 합주 신청 데이터를 xlsx 파일로 다운로드합니다.</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <label style="font-size:12px;color:var(--text2)">시작일 <input type="date" id="bkStart" style="font-size:12px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)"></label>
+      <label style="font-size:12px;color:var(--text2)">종료일 <input type="date" id="bkEnd" style="font-size:12px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text)"></label>
+    </div>
+    <button class="btn btn-s" onclick="downloadBackupXlsx()">데이터 다운로드</button>
+  </div>
+  <div class="card" style="padding:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2)">관리자 비밀번호 변경</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div><div class="fl">새 비밀번호</div><input class="fi" type="password" id="newPw1" placeholder="새 비밀번호 (6자 이상)"/></div>
+      <div><div class="fl">새 비밀번호 확인</div><input class="fi" type="password" id="newPw2" placeholder="새 비밀번호 재입력"/></div>
+      <button class="btn btn-p" style="width:fit-content" onclick="changeAdminPassword()">비밀번호 변경</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /adminUI -->
+
+<!-- ADMIN MOBILE TAB BAR -->
+<div class="mob-tab-bar" id="mobTabBar" style="display:none">
+  <button class="mob-tab active" id="mt-sch" onclick="showPage('sch')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    시간표
+  </button>
+  <button class="mob-tab" id="mt-teams" onclick="showPage('teams')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>
+    팀 관리
+  </button>
+  <button class="mob-tab" id="mt-apply" onclick="showPage('apply')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    시간신청
+  </button>
+  <button class="mob-tab" id="mt-school" onclick="showPage('school')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    스쿨신청
+  </button>
+  <button class="mob-tab" id="mt-ensemble" onclick="showPage('ensemble')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    합주신청
+  </button>
+  <button class="mob-tab" id="mt-notices" onclick="showPage('notices')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    공지
+  </button>
+  <button class="mob-tab" id="mt-data" onclick="showPage('data')" style="color:var(--danger)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    데이터
+  </button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bd" id="modalBd" style="display:none" onclick="onMBd(event)">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-ttl" id="modalTtl"></div>
+      <button class="modal-x" onclick="closeModal()" aria-label="닫기">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<script src="js/lib/xlsx-js-style.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script type="module" src="js/admin/main.js"></script>
+</body>
+</html>
