@@ -21,6 +21,7 @@ body.dark .apply-status.finished{background:rgba(71,197,255,.05);border-color:rg
 /* ── FORM CARD ── */
 .apply-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
 .apply-card-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;}
+.apply-card-hint{font-size:11px;color:var(--text3);}
 /* timeassign .fl is uppercase/smaller — overrides base.css */
 .fl{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
 /* timeassign .fi/.fs focus uses accent2 */
@@ -40,6 +41,12 @@ body.dark .apply-status.finished{background:rgba(71,197,255,.05);border-color:rg
 .apply-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);}
 .apply-tbl tr:last-child td{border-bottom:none;}
 .apply-tbl tr:hover td{background:rgba(255,255,255,.02);}
+.ta-app-row{cursor:pointer;}
+.ta-app-row:focus-visible td{outline:1px solid var(--accent2);outline-offset:-2px;}
+.ta-app-row.active td{background:rgba(71,197,255,.05);}
+.ta-detail-row td{padding:0 10px 8px;background:rgba(71,197,255,.035);}
+.ta-detail-box{display:flex;gap:8px;align-items:center;padding:3px 0 0 34px;font-size:11px;color:var(--text3);}
+.ta-detail-box strong{font-family:'Space Mono',monospace;font-size:11px;font-weight:500;color:var(--text2);}
 .pbadge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;}
 .pbadge.p1{background:rgba(232,255,71,.15);color:var(--accent);}
 .pbadge.p2{background:rgba(71,197,255,.15);color:var(--accent2);}

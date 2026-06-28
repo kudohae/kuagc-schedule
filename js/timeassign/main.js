@@ -46,6 +46,51 @@ let _bcReconnectTimer=null;
 let _rtReplacing=false;
 let _bcReplacing=false;
 let _destroyed=false;
+let expandedApplicationId=null;
+
+function cmpSubmitted(a,b){
+  const dt=new Date(a.submitted_at)-new Date(b.submitted_at);
+  return dt!==0?dt:a.id-b.id;
+}
+
+function latestApplicationsByTeam(apps){
+  const latest=new Map();
+  for(const app of apps){
+    const ex=latest.get(app.team_id);
+    if(!ex||cmpSubmitted(app,ex)>0) latest.set(app.team_id,app);
+  }
+  return latest;
+}
+
+function expectedAssignments(apps){
+  const latest=latestApplicationsByTeam(apps);
+  const sorted=[...latest.values()].sort(cmpSubmitted);
+  const assigned=new Set();
+  const result=new Map();
+
+  for(const pref of [1,2,3]){
+    for(const app of sorted){
+      if(result.has(app.id)) continue;
+      const day=app[`pref${pref}_day`];
+      const hour=app[`pref${pref}_hour`];
+      if(day==null||hour==null) continue;
+      const key=`${day}-${hour}`;
+      if(assigned.has(key)) continue;
+      assigned.add(key);
+      result.set(app.id,{day,hour});
+    }
+  }
+
+  for(const app of sorted){
+    if(!result.has(app.id)) result.set(app.id,{day:null,hour:null});
+  }
+
+  return result;
+}
+
+function dayHour(day,hour){
+  return day!=null&&hour!=null?`${DAYS[day]} ${hour}:00`:'—';
+}
 
 function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});}
 
@@ -361,38 +406,59 @@ function renderList(){
   if(old) old.remove();
   if(!round||!applications.length) return;
 
-  const latestIdByTeam=new Map();
-  for(const a of applications) latestIdByTeam.set(a.team_id,a.id);
+  const latestIdByTeam=new Map([...latestApplicationsByTeam(applications)].map(([teamId,a])=>[teamId,a.id]));
   const isVoid=a=>latestIdByTeam.get(a.team_id)!==a.id;
   const validCount=applications.filter(a=>!isVoid(a)).length;
+  const expectedById=isFin?new Map():expectedAssignments(applications);
+  const appIds=new Set(applications.map(a=>String(a.id)));
+  if(expandedApplicationId&&!appIds.has(String(expandedApplicationId))) expandedApplicationId=null;
 
   const div=document.createElement('div');
   div.id='taListCard';
   div.className='apply-card';
   div.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
       <div class="apply-card-title" style="margin-bottom:0">${isFin?'배정 결과':'신청 현황'} (${validCount}팀)</div>
+      <div class="apply-card-hint">각 행을 눌러 제출 시각 확인</div>
     </div>
     <div style="overflow-x:auto">
       <table class="apply-tbl">
-        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFin?'<th>결과</th>':''}<th>제출 시각</th></tr></thead>
+        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th><th>${isFin?'결과':'예상 배정'}</th></tr></thead>
         <tbody>
           ${applications.map((a,i)=>{
             const void_=isVoid(a);
-            return `<tr style="${void_?'opacity:.32;':''}">
+            const expanded=String(expandedApplicationId)===String(a.id);
+            const allocation=void_
+              ? '<span class="pbadge none">무효</span>'
+              : isFin
+                ? (a.assigned_day!=null?dayHour(a.assigned_day,a.assigned_hour):'<span class="pbadge none">미배정</span>')
+                : (()=>{const ex=expectedById.get(a.id);return ex?.day!=null?dayHour(ex.day,ex.hour):'<span class="pbadge none">미배정</span>';})();
+            return `<tr class="ta-app-row${expanded?' active':''}" data-app-id="${a.id}" tabindex="0" style="${void_?'opacity:.32;':''}" aria-expanded="${expanded?'true':'false'}">
               <td style="color:var(--text3);font-family:'Space Mono',monospace">${String(i+1).padStart(2,'0')}</td>
               <td style="font-weight:600${void_?';text-decoration:line-through':''}">${a.teams.name}${void_?` <span class="pbadge none" style="font-size:9px">무효</span>`:''}</td>
-              <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
+              <td>${dayHour(a.pref1_day,a.pref1_hour)}</td>
               <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
               <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
-              ${isFin?`<td>${!void_&&a.assigned_day!=null?`<span class="pbadge p${a.assigned_pref||'none'}">${a.assigned_pref?a.assigned_pref+'지망':'—'}</span> ${DAYS[a.assigned_day]} ${a.assigned_hour}:00`:`<span class="pbadge none">${void_?'무효':'미배정'}</span>`}</td>`:''}
-              <td style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace">${fmtTime(a.submitted_at)}</td>
-            </tr>`;
+              <td>${allocation}</td>
+            </tr>${expanded?`<tr class="ta-detail-row"><td colspan="6"><div class="ta-detail-box"><span>제출 시각</span><strong>${fmtTime(a.submitted_at)}</strong></div></td></tr>`:''}`;
           }).join('')}
         </tbody>
       </table>
     </div>`;
   contentEl.appendChild(div);
+  div.querySelectorAll('.ta-app-row').forEach(row=>{
+    const toggle=()=>{
+      expandedApplicationId=String(expandedApplicationId)===row.dataset.appId?null:row.dataset.appId;
+      renderList();
+    };
+    row.addEventListener('click',toggle);
+    row.addEventListener('keydown',e=>{
+      if(e.key==='Enter'||e.key===' '){
+        e.preventDefault();
+        toggle();
+      }
+    });
+  });
 }
 
 // ── INTERACTIONS ──────────────────────────────────────────────────────
