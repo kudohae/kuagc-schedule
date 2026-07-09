@@ -320,7 +320,7 @@ document.getElementById('modalBd').addEventListener('click',event=>{if(event.tar
 document.getElementById('previousWeek').addEventListener('click',()=>{location.href='index.html';});
 document.getElementById('nextWeek').addEventListener('click',()=>{location.href='index.html';});
 document.getElementById('openPitchGame').addEventListener('click',resetGame);
-document.getElementById('openDuelGame').addEventListener('click',openDuelGame);
+document.getElementById('openDuelGame')?.addEventListener('click',openDuelGame);
 document.getElementById('openWordGame').addEventListener('click',openWordGame);
 gameStage.addEventListener('click',()=>{if(state==='ready') startRound();});
 choicesEl.addEventListener('click',event=>{const button=event.target.closest('.choice-btn');if(button) chooseAnswer(Number(button.dataset.midi));});
