@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-03T22:34:36.953Z",
-  "generated_at_kst": "2026년 7월 4일 7시 34분 36초",
+  "generated_at": "2026-07-10T23:30:51.105Z",
+  "generated_at_kst": "2026년 7월 11일 8시 30분 51초",
   "source": "Supabase KUAGC Schedule",
   "purpose": "latest readable static backup for kuagc.kro.kr/backups.html",
   "counts": {
