@@ -1,0 +1,527 @@
+import { supabase } from '../supabase.js';
+import {
+  getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
+  fetchActiveRound, fetchApplications, submitApplication
+} from '../schedule.js';
+import { diffToHMS } from '../utils/time.js';
+import { syncServerTime, serverNow } from '../utils/serverTime.js';
+
+const DAYS  = ['월','화','수','목','금','토','일'];
+const HOURS = Array.from({length:18},(_,i)=>i+8);
+const korSort = (a,k) => [...a].sort((x,y)=>x[k].localeCompare(y[k],'ko-KR',{numeric:true}));
+const teamClr = t => t.type==='합주'?'#888888':(t.color||'#888888');
+const timeStr = h => h<24?h+':00':'0'+(h-24)+':00';
+const fmtTime = ts => {
+  if(!ts) return '';
+  const d=new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;
+};
+const errMsg = e => {
+  const m = e?.message||'';
+  if(m.includes('unique')||m.includes('duplicate')) return '이미 해당 시간에 신청이 존재합니다';
+  if(m.includes('network')||m.includes('fetch')) return '네트워크 오류가 발생했습니다. 다시 시도해주세요';
+  return m || '오류가 발생했습니다';
+};
+
+function fmtScheduled(ts){
+  const d=new Date(ts),pad=n=>String(n).padStart(2,'0');
+  return `${String(d.getFullYear()).slice(2)}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────
+let season='1학기';
+let teams=[], baseSlots=[], exceptions=[], merged=[];
+let round=null, applications=[];
+let applyPrefs={}, applyTeamId=null, applyTeamName='';
+let taCountdownTimer=null;
+let _rtChannel=null;
+let _bcChannel=null;
+let _lastTaSubmitTs=0;
+let _pollTimer=null;
+let _appPollTimer=null;
+let _refreshTimer=null;
+let _refreshGen=0;
+let _rtReconnectTimer=null;
+let _bcReconnectTimer=null;
+let _rtReplacing=false;
+let _bcReplacing=false;
+let _destroyed=false;
+let expandedApplicationId=null;
+
+function cmpSubmitted(a,b){
+  const dt=new Date(a.submitted_at)-new Date(b.submitted_at);
+  return dt!==0?dt:a.id-b.id;
+}
+
+function latestApplicationsByTeam(apps){
+  const latest=new Map();
+  for(const app of apps){
+    const ex=latest.get(app.team_id);
+    if(!ex||cmpSubmitted(app,ex)>0) latest.set(app.team_id,app);
+  }
+  return latest;
+}
+
+function expectedAssignments(apps){
+  const latest=latestApplicationsByTeam(apps);
+  const sorted=[...latest.values()].sort(cmpSubmitted);
+  const assigned=new Set();
+  const result=new Map();
+
+  for(const pref of [1,2,3]){
+    for(const app of sorted){
+      if(result.has(app.id)) continue;
+      const day=app[`pref${pref}_day`];
+      const hour=app[`pref${pref}_hour`];
+      if(day==null||hour==null) continue;
+      const key=`${day}-${hour}`;
+      if(assigned.has(key)) continue;
+      assigned.add(key);
+      result.set(app.id,{day,hour});
+    }
+  }
+
+  for(const app of sorted){
+    if(!result.has(app.id)) result.set(app.id,{day:null,hour:null});
+  }
+
+  return result;
+}
+
+function dayHour(day,hour){
+  return day!=null&&hour!=null?`${DAYS[day]} ${hour}:00`:'—';
+}
+
+function broadcastRefresh(){_bcChannel?.send({type:'broadcast',event:'update',payload:{scope:'applications'}}).catch(()=>{});}
+
+function scheduleApplicationsRefresh(delay=400){
+  if(_destroyed) return;
+  if(_refreshTimer) clearTimeout(_refreshTimer);
+  _refreshTimer=setTimeout(()=>{ _refreshTimer=null; refreshApplications(); },delay);
+}
+
+async function refreshApplications(){
+  if(_destroyed||!round||!document.getElementById('applyContent')) return;
+  const gen=++_refreshGen;
+  try{
+    const next=await fetchApplications(round.id);
+    if(gen!==_refreshGen||_destroyed||!document.getElementById('applyContent')) return;
+    applications=next||[];
+    renderList();
+  }catch(e){
+    console.warn('time applications refresh failed',e);
+  }
+}
+
+function handleChannelStatus(label,reconnect,isReplacing,status,err){
+  if(status==='CLOSED'&&isReplacing()) return;
+  if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+    if(_destroyed) return;
+    console.warn(`${label} realtime ${status}`,err||'');
+    scheduleApplicationsRefresh(0);
+    reconnect();
+  }
+}
+
+function scheduleRtReconnect(){
+  if(_rtReconnectTimer) clearTimeout(_rtReconnectTimer);
+  _rtReconnectTimer=setTimeout(()=>{ _rtReconnectTimer=null; if(!_destroyed) subscribeRealtime(); },2000);
+}
+
+function scheduleBcReconnect(){
+  if(_bcReconnectTimer) clearTimeout(_bcReconnectTimer);
+  _bcReconnectTimer=setTimeout(()=>{ _bcReconnectTimer=null; if(!_destroyed) subscribeBroadcast(); },2000);
+}
+
+function subscribeRealtime(){
+  if(_rtChannel){
+    const old=_rtChannel; _rtChannel=null; _rtReplacing=true;
+    supabase.removeChannel(old).finally(()=>setTimeout(()=>{ _rtReplacing=false; },1000));
+  }
+  _rtChannel = supabase.channel('ta-rt-' + Date.now())
+    .on('postgres_changes',{event:'*',schema:'public',table:'time_applications'},()=>{
+      scheduleApplicationsRefresh();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'application_rounds'},async()=>{
+      if(!document.getElementById('applyContent')) return;
+      try{
+        round=await fetchActiveRound(season);
+        if(round) applications=await fetchApplications(round.id);
+        render();
+      }catch(e){
+        console.warn('time round refresh failed',e);
+      }
+    })
+    .subscribe((status,err)=>handleChannelStatus('timeassign',scheduleRtReconnect,()=>_rtReplacing,status,err));
+}
+
+function subscribeBroadcast(){
+  if(_bcChannel){
+    const old=_bcChannel; _bcChannel=null; _bcReplacing=true;
+    supabase.removeChannel(old).finally(()=>setTimeout(()=>{ _bcReplacing=false; },1000));
+  }
+  _bcChannel=supabase.channel('ta-pub')
+    .on('broadcast',{event:'update'},()=>{
+      if(!document.getElementById('applyContent')) return;
+      scheduleApplicationsRefresh(0);
+    })
+    .subscribe((status,err)=>handleChannelStatus('timeassign broadcast',scheduleBcReconnect,()=>_bcReplacing,status,err));
+}
+
+function handleResume(){
+  if(document.hidden) return;
+  scheduleApplicationsRefresh(0);
+}
+
+// ── EXPORTED INIT ─────────────────────────────────────────────────────
+export async function init(outerContainer) {
+  // reset state
+  _destroyed=false;
+  season='1학기'; teams=[]; baseSlots=[]; exceptions=[]; merged=[];
+  round=null; applications=[];
+  applyPrefs={}; applyTeamId=null; applyTeamName='';
+
+  // Create inner container
+  outerContainer.innerHTML = '<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
+
+  try {
+    await syncServerTime(supabase);
+    season = await getConfig('current_season').catch(()=>'1학기');
+    [teams, baseSlots, exceptions] = await Promise.all([
+      fetchTeams(), fetchBaseSlots(season), fetchExceptions(0)
+    ]);
+    teams=korSort(teams,'name');
+    merged=mergeSchedule(baseSlots,exceptions);
+    round=await fetchActiveRound(season);
+    if(round) applications=await fetchApplications(round.id);
+
+    outerContainer.innerHTML='';
+    const inner=document.createElement('div');
+    inner.className='container';
+    inner.id='applyContent';
+    outerContainer.appendChild(inner);
+
+    render();
+
+    subscribeRealtime();
+    subscribeBroadcast();
+
+    _pollTimer=setInterval(async()=>{
+      if(!document.getElementById('applyContent')) return;
+      const fresh=await fetchActiveRound(season).catch(()=>null);
+      const chg=fresh?.id!==round?.id||fresh?.status!==round?.status||fresh?.open_at!==round?.open_at||fresh?.close_at!==round?.close_at;
+      if(chg){
+        try{
+          round=fresh;
+          if(round) applications=await fetchApplications(round.id);
+          render();
+        }catch(e){
+          console.warn('time poll refresh failed',e);
+        }
+      }
+    },3000);
+    _appPollTimer=setInterval(()=>{ if(!document.hidden) scheduleApplicationsRefresh(0); },10000);
+    document.addEventListener('visibilitychange',handleResume);
+    window.addEventListener('online',handleResume);
+    window.addEventListener('pageshow',handleResume);
+  } catch(e) {
+    outerContainer.innerHTML=`
+      <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px">
+        <div style="font-size:14px;color:var(--danger)">데이터를 불러오지 못했습니다</div>
+        <div style="font-size:12px;color:var(--text2)">${e.message||'네트워크 오류'}</div>
+        <button class="btn btn-p" onclick="navigate('timeassign')">다시 시도</button>
+      </div>`;
+  }
+
+  return function destroy() {
+    _destroyed=true;
+    if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
+    if(_refreshTimer){ clearTimeout(_refreshTimer); _refreshTimer=null; }
+    if(_rtReconnectTimer){ clearTimeout(_rtReconnectTimer); _rtReconnectTimer=null; }
+    if(_bcReconnectTimer){ clearTimeout(_bcReconnectTimer); _bcReconnectTimer=null; }
+    if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
+    if(_appPollTimer){clearInterval(_appPollTimer);_appPollTimer=null;}
+    if(_rtChannel){ supabase.removeChannel(_rtChannel); _rtChannel=null; }
+    if(_bcChannel){ supabase.removeChannel(_bcChannel); _bcChannel=null; }
+    document.removeEventListener('visibilitychange',handleResume);
+    window.removeEventListener('online',handleResume);
+    window.removeEventListener('pageshow',handleResume);
+  };
+}
+
+// ── AUTO CLOSE ────────────────────────────────────────────────────────
+async function autoCloseRound(){
+  if(!round||round.status!=='open') return;
+  const fresh=await fetchActiveRound(season).catch(()=>null);
+  if(!fresh||fresh.status!=='open'){round=fresh;render();return;}
+  if(fresh.close_at&&new Date(fresh.close_at)>new Date(serverNow())){round=fresh;render();return;}
+  await supabase.from('application_rounds').update({status:'closed'}).eq('id',round.id).eq('status','open');
+  round=await fetchActiveRound(season).catch(()=>round);
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function render(){
+  if(taCountdownTimer){ clearInterval(taCountdownTimer); taCountdownTimer=null; }
+  const contentEl=document.getElementById('applyContent');
+  if(!contentEl) return;
+
+  // If close_at has passed while status is still 'open', auto-close immediately
+  if(round&&round.status==='open'&&round.close_at&&new Date(round.close_at)<=serverNow()){
+    autoCloseRound(); return;
+  }
+
+  if(!round||round.status==='discarded'){
+    contentEl.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <h2 style="font-size:15px;font-weight:700">📅 시간 배정 신청</h2>
+      </div>
+      <div class="apply-status closed">
+        <div class="apply-status-icon">⭕</div>
+        <div class="apply-status-texts">
+          <div class="apply-status-title">진행 중 회차 없음</div>
+          <div class="apply-status-sub">관리자가 신청을 열면 여기서 신청할 수 있습니다.</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const isScheduled=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date(serverNow());
+  const isOpen=round&&round.status==='open'&&(!round.open_at||new Date(round.open_at)<=new Date(serverNow()));
+  const isFin=round&&(round.status==='finished'||round.draft_approved);
+  const occMap=new Map(merged.filter(s=>s.status!=='absent').map(s=>[`${s.day}-${s.hour}`,s.teams.name]));
+
+  let html=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <h2 style="font-size:15px;font-weight:700">📅 시간 배정 신청</h2>
+    </div>`;
+
+  if(isScheduled){
+    const targetDate=round.open_at;
+    const diff=new Date(targetDate)-serverNow();
+    html+=`<div class="apply-status closed">
+      <div class="apply-status-icon">⏳</div>
+      <div class="apply-status-texts">
+        <div class="apply-status-title">신청 기간이 아닙니다</div>
+        <div class="apply-status-sub">${fmtScheduled(targetDate)}에 신청이 열립니다</div>
+        <div class="cd-num cd-open" id="ta-cd">${diffToHMS(diff)}</div>
+      </div>
+    </div>`;
+    contentEl.innerHTML=html;
+    renderList();
+    taCountdownTimer=setInterval(()=>{
+      const d2=new Date(targetDate)-serverNow();
+      const el=document.getElementById('ta-cd');
+      if(el) el.textContent=diffToHMS(d2);
+      if(d2<=0){
+        clearInterval(taCountdownTimer); taCountdownTimer=null;
+        render();
+      }
+    },1000);
+    return;
+  }
+
+  const closeTs=isOpen&&round.close_at&&new Date(round.close_at)>new Date(serverNow())?round.close_at:null;
+  const closeDiff=closeTs?new Date(closeTs)-serverNow():0;
+  html+=`<div class="apply-status ${isOpen?'open':isFin?'finished':'closed'}">
+      <div class="apply-status-icon">${isOpen?'🟢':isFin?'🔵':'⭕'}</div>
+      <div class="apply-status-texts">
+        <div class="apply-status-title">${isOpen?'신청 진행 중':isFin?'신청 마감 — 배정 완료':'신청 기간이 아닙니다'}</div>
+        ${closeTs?`<div class="apply-status-sub" style="color:var(--warn)">⏰ 마감: ${fmtScheduled(closeTs)}</div>`
+          :!isOpen&&!isFin?`<div class="apply-status-sub">관리자가 신청을 열면 여기서 신청할 수 있습니다.</div>`:''}
+        ${closeTs?`<div class="cd-num cd-close" id="ta-close-cd">${diffToHMS(closeDiff)}</div>`:''}
+      </div>
+    </div>`;
+  if(closeTs){
+    taCountdownTimer=setInterval(()=>{
+      const d2=new Date(closeTs)-serverNow();
+      const el=document.getElementById('ta-close-cd');
+      if(el) el.textContent=diffToHMS(d2);
+      if(d2<=0){ clearInterval(taCountdownTimer); taCountdownTimer=null; autoCloseRound(); }
+    },1000);
+  }
+
+  if(isOpen){
+    const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
+
+    function prefFormRow(n,cls,label,optional,p){
+      const dayOptsN=`<option value="">요일 선택</option>${DAYS.map((d,i)=>`<option value="${i}" ${i===p?.day?'selected':''}>${d}</option>`).join('')}`;
+      let hourOptsN=`<option value="">시간 선택</option>`;
+      if(p){
+        hourOptsN=`<option value="">시간 선택</option>${HOURS.map(h=>{
+          const occ=occMap.get(`${p.day}-${h}`);
+          return `<option value="${h}" ${h===p.hour?'selected':''}>${occ?timeStr(h)+' '+occ+'이(가) 사용 중':timeStr(h)}</option>`;
+        }).join('')}`;
+      }
+      return `<div class="pref-form-row">
+        <div class="pref-form-label ${cls}">${label}${optional?'':' *'}</div>
+        <div class="pref-form-selects">
+          <select class="fs" id="apD${n}" onchange="onApplyDayChange(${n})">${dayOptsN}</select>
+          <select class="fs" id="apH${n}"${!p?' disabled':''}>${hourOptsN}</select>
+        </div>
+      </div>`;
+    }
+
+    html+=`
+    <div class="apply-card">
+      <div class="apply-card-title">시간 신청</div>
+      <div style="margin-bottom:14px">
+        <div class="fl">팀 번호 *</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="fi" type="number" min="1" id="apTeamInput" placeholder="번호"
+            oninput="onApplyTeamInput(this.value)"
+            value="${applyTeamName.replace(/팀$/,'')}" style="width:80px;flex-shrink:0"/>
+          <span style="font-size:14px;font-weight:600">팀</span>
+          <div id="apTeamInfo" style="font-size:12px;min-width:80px;flex-shrink:0">${(()=>{
+            if(!applyTeamName) return '';
+            const _t=teams.find(t=>normTeam(t.name)===normTeam(applyTeamName));
+            return _t
+              ? `<span style="color:var(--accent)">${_t.info||'—'}</span>`
+              : `<span style="color:var(--danger)">없는 팀입니다. 팀명을 확인해주세요.</span>`;
+          })()}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+        ${prefFormRow(1,'p1-txt','1지망',false,p1)}
+        ${prefFormRow(2,'p2-txt','2지망',true,p2)}
+        ${prefFormRow(3,'p3-txt','3지망',true,p3)}
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">요일을 선택하면 시간 드롭다운에 현재 배정된 팀 정보가 함께 표시됩니다.</div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-p" onclick="submitApply()">신청 제출</button>
+      </div>
+    </div>`;
+  }
+
+  contentEl.innerHTML=html;
+  renderList();
+}
+
+function renderList(){
+  const contentEl=document.getElementById('applyContent');
+  if(!contentEl) return;
+
+  const isFin=round&&(round.status==='finished'||round.draft_approved);
+  const old=document.getElementById('taListCard');
+  if(old) old.remove();
+  if(!round||!applications.length) return;
+
+  const latestIdByTeam=new Map([...latestApplicationsByTeam(applications)].map(([teamId,a])=>[teamId,a.id]));
+  const isVoid=a=>latestIdByTeam.get(a.team_id)!==a.id;
+  const validCount=applications.filter(a=>!isVoid(a)).length;
+  const expectedById=isFin?new Map():expectedAssignments(applications);
+  const appIds=new Set(applications.map(a=>String(a.id)));
+  if(expandedApplicationId&&!appIds.has(String(expandedApplicationId))) expandedApplicationId=null;
+
+  const div=document.createElement('div');
+  div.id='taListCard';
+  div.className='apply-card';
+  div.innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
+      <div class="apply-card-title" style="margin-bottom:0">${isFin?'배정 결과':'신청 현황'} (${validCount}팀)</div>
+      <div class="apply-card-hint">각 행을 눌러 제출 시각 확인</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="apply-tbl">
+        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th><th class="ta-expected-col">${isFin?'결과':'예상 배정'}</th></tr></thead>
+        <tbody>
+          ${applications.map((a,i)=>{
+            const void_=isVoid(a);
+            const expanded=String(expandedApplicationId)===String(a.id);
+            const allocation=void_
+              ? '<span class="pbadge none">무효</span>'
+              : isFin
+                ? (a.assigned_day!=null?dayHour(a.assigned_day,a.assigned_hour):'<span class="pbadge none">미배정</span>')
+                : (()=>{const ex=expectedById.get(a.id);return ex?.day!=null?dayHour(ex.day,ex.hour):'<span class="pbadge none">미배정</span>';})();
+            return `<tr class="ta-app-row${expanded?' active':''}" data-app-id="${a.id}" tabindex="0" style="${void_?'opacity:.32;':''}" aria-expanded="${expanded?'true':'false'}">
+              <td style="color:var(--text3);font-family:'Space Mono',monospace">${String(i+1).padStart(2,'0')}</td>
+              <td style="font-weight:600${void_?';text-decoration:line-through':''}">${a.teams.name}${void_?` <span class="pbadge none" style="font-size:9px">무효</span>`:''}</td>
+              <td>${dayHour(a.pref1_day,a.pref1_hour)}</td>
+              <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
+              <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
+              <td class="ta-expected-col">${allocation}</td>
+            </tr>${expanded?`<tr class="ta-detail-row"><td colspan="6"><div class="ta-detail-box"><span>제출 시각</span><strong>${fmtTime(a.submitted_at)}</strong></div></td></tr>`:''}`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  contentEl.appendChild(div);
+  div.querySelectorAll('.ta-app-row').forEach(row=>{
+    const toggle=()=>{
+      expandedApplicationId=String(expandedApplicationId)===row.dataset.appId?null:row.dataset.appId;
+      renderList();
+    };
+    row.addEventListener('click',toggle);
+    row.addEventListener('keydown',e=>{
+      if(e.key==='Enter'||e.key===' '){
+        e.preventDefault();
+        toggle();
+      }
+    });
+  });
+}
+
+// ── INTERACTIONS ──────────────────────────────────────────────────────
+const normTeam=s=>s.replace(/\s/g,'');
+window.onApplyTeamInput=function(val){
+  const trimmed=val.trim();
+  applyTeamName=trimmed?trimmed+'팀':'';
+  const norm=normTeam(applyTeamName);
+  const infoEl=document.getElementById('apTeamInfo');
+  if(!infoEl) return;
+  if(!norm){ applyTeamId=null; infoEl.innerHTML=''; return; }
+  const t=teams.find(t=>normTeam(t.name)===norm);
+  if(t){
+    applyTeamId=t.id;
+    infoEl.innerHTML=`<span style="color:var(--accent)">${t.info||'—'}</span>`;
+  } else {
+    applyTeamId=null;
+    infoEl.innerHTML=`<span style="color:var(--danger)">없는 팀입니다. 팀명을 확인해주세요.</span>`;
+  }
+};
+
+window.onApplyDayChange=function(n){
+  const dayEl=document.getElementById(`apD${n}`);
+  const hourEl=document.getElementById(`apH${n}`);
+  if(!dayEl||!hourEl) return;
+  const dayVal=dayEl.value;
+  if(!dayVal){
+    hourEl.innerHTML='<option value="">시간 선택</option>';
+    hourEl.disabled=true;
+    return;
+  }
+  const d=parseInt(dayVal);
+  const occMap=new Map(merged.filter(s=>s.status!=='absent').map(s=>[`${s.day}-${s.hour}`,s.teams.name]));
+  hourEl.innerHTML=`<option value="">시간 선택</option>`+HOURS.map(h=>{
+    const occ=occMap.get(`${d}-${h}`);
+    return `<option value="${h}">${occ?timeStr(h)+' '+occ+'이(가) 사용 중':timeStr(h)}</option>`;
+  }).join('');
+  hourEl.disabled=false;
+  if(applyPrefs[n]&&applyPrefs[n].day!==d) delete applyPrefs[n];
+};
+
+window.submitApply=async function(){
+  const _sched=round&&round.status==='open'&&round.open_at&&new Date(round.open_at)>new Date(serverNow());
+  const _closed=round&&round.close_at&&new Date(round.close_at)<=serverNow();
+  if(!round||round.status!=='open'||_sched||_closed){window.toast('현재 신청 기간이 아닙니다','err');return;}
+  const _now=Date.now();
+  if(_now-_lastTaSubmitTs<3000){window.toast('잠시 후 다시 시도해주세요','err');return;}
+  if(!applyTeamId){window.toast('팀을 선택해주세요','err');return;}
+  const d1=document.getElementById('apD1')?.value;
+  const h1=document.getElementById('apH1')?.value;
+  if(!d1||!h1){window.toast('1지망 요일과 시간을 선택해주세요','err');return;}
+  const d2=document.getElementById('apD2')?.value, h2=document.getElementById('apH2')?.value;
+  const d3=document.getElementById('apD3')?.value, h3=document.getElementById('apH3')?.value;
+  _lastTaSubmitTs=Date.now();
+  try{
+    await submitApplication({round_id:round.id,team_id:applyTeamId,
+      pref1_day:parseInt(d1),pref1_hour:parseInt(h1),
+      pref2_day:d2&&h2?parseInt(d2):null,pref2_hour:d2&&h2?parseInt(h2):null,
+      pref3_day:d3&&h3?parseInt(d3):null,pref3_hour:d3&&h3?parseInt(h3):null});
+    applyPrefs={}; applyTeamId=null; applyTeamName='';
+    window.toast('신청이 제출됐습니다','ok');
+    broadcastRefresh();
+    scheduleApplicationsRefresh(0);
+    render();
+  }catch(e){_lastTaSubmitTs=0;window.toast(errMsg(e),'err');}
+};
