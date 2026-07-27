@@ -317,7 +317,7 @@ window.openAbsenceModal=function(slotId,day,hour,teamId,label){
   const isSchool=t?.type==='스쿨';
   if(isSchool){
     // 종강 신고: 이미 대기 중인 신청이 있는지 확인
-    const existing=requests.find(r=>r.status==='pending'&&r.type==='absent'&&r.team_id===teamId&&r.day===day&&r.hour===hour&&r.week_offset===weekOff);
+    const existing=requests.find(r=>r.status==='pending'&&r.type==='absent'&&r.team_id===teamId&&r.day===day&&r.hour===hour);
     if(existing){
       showModal(modalLabel,
         `<div class="irow"><span class="ik">팀</span><span style="font-weight:700">${esc(t.name)}</span></div>

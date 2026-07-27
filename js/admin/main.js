@@ -1133,7 +1133,7 @@ function renderPending(){
   list.innerHTML=pendingAll.map(r=>{
     const isTerminate=r.teams.type==='스쿨'&&r.type==='absent';
     const typeLabel=isTerminate?'종강 신고':r.type==='absent'?'미사용':'추가사용';
-    const dateStr=reqActualDate(r.week_offset,r.day);
+    const dateStr=reqActualDate(r._relative_week_offset ?? r.week_offset,r.day);
     return `
     <div class="pcard ${r.type}">
       <div class="pcard-name" style="color:${teamClr(r.teams)}">${esc(r.teams.name)}</div>
