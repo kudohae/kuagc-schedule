@@ -1,6 +1,56 @@
 // js/schedule.js
 import { supabase } from './supabase.js';
 
+function weekStart(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+function addWeeks(date, offset) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + offset * 7);
+  return d;
+}
+
+function weekKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function targetWeekStart(weekOffset, baseDate = new Date()) {
+  return addWeeks(weekStart(baseDate), Number(weekOffset) || 0);
+}
+
+function rowTargetWeekStart(row) {
+  return targetWeekStart(row.week_offset, row.created_at ? new Date(row.created_at) : new Date());
+}
+
+function relativeWeekOffsetFromNow(targetStart) {
+  const current = weekStart();
+  return Math.round((targetStart - current) / (7 * 24 * 60 * 60 * 1000));
+}
+
+function withWeekScope(row) {
+  const start = rowTargetWeekStart(row);
+  return {
+    ...row,
+    _target_week_start: weekKey(start),
+    _relative_week_offset: relativeWeekOffsetFromNow(start),
+  };
+}
+
+function matchesTargetWeek(row, weekOffset) {
+  return weekKey(rowTargetWeekStart(row)) === weekKey(targetWeekStart(weekOffset));
+}
+
+function isCurrentOrFutureWeek(row) {
+  return rowTargetWeekStart(row) >= weekStart();
+}
+
 // ─── CONFIG ──────────────────────────────────────────────────────────
 export async function getConfig(key) {
   const { data, error } = await supabase.from('app_config').select('value').eq('key', key).single();
@@ -56,9 +106,9 @@ export async function deleteBaseSlot(id) {
 
 // ─── EXCEPTIONS ──────────────────────────────────────────────────────
 export async function fetchExceptions(weekOffset) {
-  const { data, error } = await supabase.from('slot_exceptions').select('*, teams(*)').eq('week_offset', weekOffset).order('day').order('hour');
+  const { data, error } = await supabase.from('slot_exceptions').select('*, teams(*)').order('day').order('hour');
   if (error) throw error;
-  return data;
+  return (data || []).filter(row => matchesTargetWeek(row, weekOffset)).map(withWeekScope);
 }
 export async function createException({ team_id, day, hour, week_offset, exception_type = 'absent' }) {
   const { data, error } = await supabase.from('slot_exceptions')
@@ -99,21 +149,28 @@ export function mergeSchedule(baseSlots, exceptions) {
 
 // ─── REQUESTS ────────────────────────────────────────────────────────
 export async function fetchRequests(weekOffset) {
-  const { data, error } = await supabase.from('requests').select('*, teams(*)').eq('week_offset', weekOffset).order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('requests').select('*, teams(*)').order('created_at', { ascending: false });
   if (error) throw error;
-  return data;
+  return (data || []).filter(row => matchesTargetWeek(row, weekOffset)).map(withWeekScope);
 }
 export async function createRequest({ type, team_id, day, hour, week_offset, reason, requester_name }) {
   const { data, error } = await supabase.from('requests').insert({ type, team_id, day, hour, week_offset, reason, requester_name, status: 'pending' }).select('*, teams(*)').single();
   if (error) throw error;
   return data;
 }
-export async function approveRequest(request, weekOffset) {
+export async function approveRequest(request) {
   await supabase.from('requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', request.id);
   const ex_type = request.type === 'absent' ? 'absent' : 'extra';
-  const existing = await supabase.from('slot_exceptions').select('id').eq('day', request.day).eq('hour', request.hour).eq('week_offset', weekOffset).maybeSingle();
-  if (!existing.data) {
-    await createException({ team_id: request.team_id, day: request.day, hour: request.hour, week_offset: weekOffset, exception_type: ex_type });
+  const targetStart = rowTargetWeekStart(request);
+  const effectiveWeekOffset = relativeWeekOffsetFromNow(targetStart);
+  const { data: existing, error } = await supabase
+    .from('slot_exceptions')
+    .select('id, created_at, week_offset')
+    .eq('day', request.day)
+    .eq('hour', request.hour);
+  if (error) throw error;
+  if (!(existing || []).some(row => weekKey(rowTargetWeekStart(row)) === weekKey(targetStart))) {
+    await createException({ team_id: request.team_id, day: request.day, hour: request.hour, week_offset: effectiveWeekOffset, exception_type: ex_type });
   }
 }
 export async function rejectRequest(id) {
@@ -135,7 +192,7 @@ export async function fetchAllPendingRequests() {
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data;
+  return (data || []).filter(isCurrentOrFutureWeek).map(withWeekScope);
 }
 
 // ─── REALTIME ────────────────────────────────────────────────────────
