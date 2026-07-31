@@ -1,5 +1,21 @@
 [
   {
+    "generated_at": "2026-07-31T17:05:29.042Z",
+    "generated_at_kst": "2026년 8월 1일 2시 05분 29초",
+    "path": "data/backups/snapshots/2026-07-31T17-05-29-042Z.json",
+    "counts": {
+      "time_rounds": 12,
+      "time_applications": 22,
+      "school_rounds": 37,
+      "schools": 58,
+      "school_applications": 63,
+      "ensemble_rounds": 111,
+      "song_applications": 163,
+      "session_applications": 409,
+      "manual_entries": 2
+    }
+  },
+  {
     "generated_at": "2026-07-31T15:01:14.846Z",
     "generated_at_kst": "2026년 8월 1일 24시 01분 14초",
     "path": "data/backups/snapshots/2026-07-31T15-01-14-846Z.json",
@@ -1267,22 +1283,6 @@
     "generated_at": "2026-07-24T17:06:15.610Z",
     "generated_at_kst": "2026년 7월 25일 2시 06분 15초",
     "path": "data/backups/snapshots/2026-07-24T17-06-15-610Z.json",
-    "counts": {
-      "time_rounds": 12,
-      "time_applications": 22,
-      "school_rounds": 37,
-      "schools": 58,
-      "school_applications": 63,
-      "ensemble_rounds": 111,
-      "song_applications": 163,
-      "session_applications": 409,
-      "manual_entries": 2
-    }
-  },
-  {
-    "generated_at": "2026-07-24T15:02:58.856Z",
-    "generated_at_kst": "2026년 7월 25일 24시 02분 58초",
-    "path": "data/backups/snapshots/2026-07-24T15-02-58-856Z.json",
     "counts": {
       "time_rounds": 12,
       "time_applications": 22,
