@@ -1,5 +1,21 @@
 [
   {
+    "generated_at": "2026-09-01T19:46:33.140Z",
+    "generated_at_kst": "2026년 9월 2일 4시 46분 33초",
+    "path": "data/backups/snapshots/2026-09-01T19-46-33-140Z.json",
+    "counts": {
+      "time_rounds": 12,
+      "time_applications": 22,
+      "school_rounds": 37,
+      "schools": 58,
+      "school_applications": 63,
+      "ensemble_rounds": 111,
+      "song_applications": 163,
+      "session_applications": 409,
+      "manual_entries": 2
+    }
+  },
+  {
     "generated_at": "2026-09-01T16:50:33.329Z",
     "generated_at_kst": "2026년 9월 2일 1시 50분 33초",
     "path": "data/backups/snapshots/2026-09-01T16-50-33-329Z.json",
@@ -739,54 +755,6 @@
     "generated_at": "2026-08-25T20:31:50.520Z",
     "generated_at_kst": "2026년 8월 26일 5시 31분 50초",
     "path": "data/backups/snapshots/2026-08-25T20-31-50-520Z.json",
-    "counts": {
-      "time_rounds": 12,
-      "time_applications": 22,
-      "school_rounds": 37,
-      "schools": 58,
-      "school_applications": 63,
-      "ensemble_rounds": 111,
-      "song_applications": 163,
-      "session_applications": 409,
-      "manual_entries": 2
-    }
-  },
-  {
-    "generated_at": "2026-08-25T19:33:56.631Z",
-    "generated_at_kst": "2026년 8월 26일 4시 33분 56초",
-    "path": "data/backups/snapshots/2026-08-25T19-33-56-631Z.json",
-    "counts": {
-      "time_rounds": 12,
-      "time_applications": 22,
-      "school_rounds": 37,
-      "schools": 58,
-      "school_applications": 63,
-      "ensemble_rounds": 111,
-      "song_applications": 163,
-      "session_applications": 409,
-      "manual_entries": 2
-    }
-  },
-  {
-    "generated_at": "2026-08-25T18:42:12.473Z",
-    "generated_at_kst": "2026년 8월 26일 3시 42분 12초",
-    "path": "data/backups/snapshots/2026-08-25T18-42-12-473Z.json",
-    "counts": {
-      "time_rounds": 12,
-      "time_applications": 22,
-      "school_rounds": 37,
-      "schools": 58,
-      "school_applications": 63,
-      "ensemble_rounds": 111,
-      "song_applications": 163,
-      "session_applications": 409,
-      "manual_entries": 2
-    }
-  },
-  {
-    "generated_at": "2026-08-25T17:33:48.932Z",
-    "generated_at_kst": "2026년 8월 26일 2시 33분 48초",
-    "path": "data/backups/snapshots/2026-08-25T17-33-48-932Z.json",
     "counts": {
       "time_rounds": 12,
       "time_applications": 22,
