@@ -1,5 +1,21 @@
 [
   {
+    "generated_at": "2026-09-04T21:41:17.051Z",
+    "generated_at_kst": "2026년 9월 5일 6시 41분 17초",
+    "path": "data/backups/snapshots/2026-09-04T21-41-17-051Z.json",
+    "counts": {
+      "time_rounds": 12,
+      "time_applications": 22,
+      "school_rounds": 37,
+      "schools": 58,
+      "school_applications": 63,
+      "ensemble_rounds": 111,
+      "song_applications": 163,
+      "session_applications": 409,
+      "manual_entries": 2
+    }
+  },
+  {
     "generated_at": "2026-09-04T19:24:07.643Z",
     "generated_at_kst": "2026년 9월 5일 4시 24분 07초",
     "path": "data/backups/snapshots/2026-09-04T19-24-07-643Z.json",
