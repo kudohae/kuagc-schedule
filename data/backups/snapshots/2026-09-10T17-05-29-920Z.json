@@ -1,23 +1,23 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-03T16:02:42.247Z",
-  "generated_at_kst": "2026년 9월 4일 1시 02분 42초",
+  "generated_at": "2026-09-10T17:05:29.920Z",
+  "generated_at_kst": "2026년 9월 11일 2시 05분 29초",
   "source": "Supabase KUAGC Schedule",
   "purpose": "latest readable static backup for kuagc.kro.kr/backups.html",
   "counts": {
     "time_rounds": 12,
-    "time_applications": 22,
-    "school_rounds": 37,
-    "schools": 58,
-    "school_applications": 63,
+    "time_applications": 0,
+    "school_rounds": 39,
+    "schools": 62,
+    "school_applications": 64,
     "ensemble_rounds": 111,
     "song_applications": 163,
     "session_applications": 409,
     "manual_entries": 2
   },
   "latest_timestamps": {
-    "time_application": "2026-06-28T09:57:48.372296+00:00",
-    "school_application": "2026-06-26T03:03:27.63978+00:00",
+    "time_application": "",
+    "school_application": "2026-09-10T15:30:37.831165+00:00",
     "song_application": "2026-06-26T02:37:54.206951+00:00",
     "session_application": "2026-06-27T07:27:56.333423+00:00",
     "manual_entry": ""
@@ -209,182 +209,6 @@
           "",
           "",
           ""
-        ],
-        [
-          "2026년 6월 28일 17시 00분 12초",
-          "20",
-          "사랑을 전하고 싶다던가",
-          "목 17",
-          "목 18",
-          "목 19"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 15초",
-          "18",
-          "태양물고기",
-          "목 16",
-          "목 14",
-          "목 13"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 15초",
-          "10",
-          "오르트구름",
-          "월 17",
-          "월 18",
-          "월 19"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 16초",
-          "7",
-          "소나기",
-          "목 19",
-          "목 20",
-          "목 21"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 17초",
-          "16",
-          "Madeliene Love",
-          "일 20",
-          "일 21",
-          "일 19"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 20초",
-          "12",
-          "여행",
-          "화 19",
-          "화 20",
-          "화 21"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 21초",
-          "2",
-          "골든 글러브",
-          "목 19",
-          "목 20",
-          "목 21"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 22초",
-          "6",
-          "물그림",
-          "토 16",
-          "토 15",
-          "토 14"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 23초",
-          "1",
-          "사랑이라 했던 말 속에서",
-          "월 20",
-          "일 21",
-          "목 20"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 31초",
-          "17",
-          "등대",
-          "화 17",
-          "금 17",
-          "화 18"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 31초",
-          "14",
-          "Antifreeze",
-          "금 19",
-          "금 20",
-          "금 21"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 33초",
-          "3",
-          "자랑",
-          "토 15",
-          "토 16",
-          "토 14"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 55초",
-          "15",
-          "초록빛",
-          "화 18",
-          "화 19",
-          "화 20"
-        ],
-        [
-          "2026년 6월 28일 17시 00분 56초",
-          "2",
-          "골든 글러브",
-          "목 19",
-          "목 20",
-          "목 21"
-        ],
-        [
-          "2026년 6월 28일 17시 02분 00초",
-          "11",
-          "오래된노래",
-          "일 14",
-          "일 15",
-          "일 16"
-        ],
-        [
-          "2026년 6월 28일 17시 02분 02초",
-          "8",
-          "bad",
-          "목 20",
-          "목 19",
-          "목 18"
-        ],
-        [
-          "2026년 6월 28일 17시 02분 37초",
-          "11",
-          "오래된노래",
-          "일 14",
-          "일 15",
-          "일 16"
-        ],
-        [
-          "2026년 6월 28일 17시 11분 05초",
-          "9",
-          "야생화",
-          "토 14",
-          "토 15",
-          "—"
-        ],
-        [
-          "2026년 6월 28일 17시 11분 33초",
-          "4",
-          "지켜줄게",
-          "목 18",
-          "목 17",
-          "목 16"
-        ],
-        [
-          "2026년 6월 28일 17시 22분 54초",
-          "13",
-          "Drac & Friends",
-          "목 22",
-          "—",
-          "—"
-        ],
-        [
-          "2026년 6월 28일 18시 08분 07초",
-          "19",
-          "나들이갈까",
-          "수 21",
-          "목 21",
-          "목 20"
-        ],
-        [
-          "2026년 6월 28일 18시 57분 48초",
-          "5",
-          "고래",
-          "수 18",
-          "—",
-          "—"
         ],
         [
           "2026년 6월 28일 21시 30분 00초 회차 마감",
@@ -1339,6 +1163,41 @@
         ],
         [
           "2026년 6월 26일 17시 00분 00초 '여름학기 1차 스쿨 신청' 마감",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "2026년 9월 11일 24시 15분 04초 '2학기 1차 스쿨 신청' 시작",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "(마감 일시 미기록) '2학기 1차 스쿨 신청' 마감",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "2026년 9월 11일 24시 26분 41초 '2학기 1차 스쿨 신청' 시작",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "2026년 9월 11일 24시 30분 37초",
+          "김민성",
+          "2022160105",
+          "기타 입문 2반",
+          "—"
+        ],
+        [
+          "2026년 9월 11일 24시 35분 00초 '2학기 1차 스쿨 신청' 마감",
           "",
           "",
           "",
@@ -11705,646 +11564,7 @@
         "created_at": "2026-06-28T01:32:34.221173+00:00",
         "open_at": "2026-06-28T08:00:00+00:00",
         "close_at": "2026-06-28T12:30:00+00:00",
-        "applications": [
-          {
-            "id": 200,
-            "submitted_at": "2026-06-28T08:00:12.237941+00:00",
-            "team_name": "20팀",
-            "team_name_short": "20",
-            "team_info": "사랑을 전하고 싶다던가",
-            "pref1": "목 17",
-            "pref2": "목 18",
-            "pref3": "목 19",
-            "raw": {
-              "id": 200,
-              "round_id": 108,
-              "team_id": 366,
-              "pref1_day": 3,
-              "pref1_hour": 17,
-              "pref2_day": 3,
-              "pref2_hour": 18,
-              "pref3_day": 3,
-              "pref3_hour": 19,
-              "assigned_day": 3,
-              "assigned_hour": 17,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:12.237941+00:00",
-              "teams": {
-                "info": "사랑을 전하고 싶다던가",
-                "name": "20팀"
-              }
-            }
-          },
-          {
-            "id": 201,
-            "submitted_at": "2026-06-28T08:00:15.375769+00:00",
-            "team_name": "18팀",
-            "team_name_short": "18",
-            "team_info": "태양물고기",
-            "pref1": "목 16",
-            "pref2": "목 14",
-            "pref3": "목 13",
-            "raw": {
-              "id": 201,
-              "round_id": 108,
-              "team_id": 364,
-              "pref1_day": 3,
-              "pref1_hour": 16,
-              "pref2_day": 3,
-              "pref2_hour": 14,
-              "pref3_day": 3,
-              "pref3_hour": 13,
-              "assigned_day": 3,
-              "assigned_hour": 16,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:15.375769+00:00",
-              "teams": {
-                "info": "태양물고기",
-                "name": "18팀"
-              }
-            }
-          },
-          {
-            "id": 202,
-            "submitted_at": "2026-06-28T08:00:15.57768+00:00",
-            "team_name": "10팀",
-            "team_name_short": "10",
-            "team_info": "오르트구름",
-            "pref1": "월 17",
-            "pref2": "월 18",
-            "pref3": "월 19",
-            "raw": {
-              "id": 202,
-              "round_id": 108,
-              "team_id": 356,
-              "pref1_day": 0,
-              "pref1_hour": 17,
-              "pref2_day": 0,
-              "pref2_hour": 18,
-              "pref3_day": 0,
-              "pref3_hour": 19,
-              "assigned_day": 0,
-              "assigned_hour": 17,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:15.57768+00:00",
-              "teams": {
-                "info": "오르트구름",
-                "name": "10팀"
-              }
-            }
-          },
-          {
-            "id": 203,
-            "submitted_at": "2026-06-28T08:00:16.050822+00:00",
-            "team_name": "7팀",
-            "team_name_short": "7",
-            "team_info": "소나기",
-            "pref1": "목 19",
-            "pref2": "목 20",
-            "pref3": "목 21",
-            "raw": {
-              "id": 203,
-              "round_id": 108,
-              "team_id": 353,
-              "pref1_day": 3,
-              "pref1_hour": 19,
-              "pref2_day": 3,
-              "pref2_hour": 20,
-              "pref3_day": 3,
-              "pref3_hour": 21,
-              "assigned_day": 3,
-              "assigned_hour": 19,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:16.050822+00:00",
-              "teams": {
-                "info": "소나기",
-                "name": "7팀"
-              }
-            }
-          },
-          {
-            "id": 204,
-            "submitted_at": "2026-06-28T08:00:17.999816+00:00",
-            "team_name": "16팀",
-            "team_name_short": "16",
-            "team_info": "Madeliene Love",
-            "pref1": "일 20",
-            "pref2": "일 21",
-            "pref3": "일 19",
-            "raw": {
-              "id": 204,
-              "round_id": 108,
-              "team_id": 362,
-              "pref1_day": 6,
-              "pref1_hour": 20,
-              "pref2_day": 6,
-              "pref2_hour": 21,
-              "pref3_day": 6,
-              "pref3_hour": 19,
-              "assigned_day": 6,
-              "assigned_hour": 20,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:17.999816+00:00",
-              "teams": {
-                "info": "Madeliene Love",
-                "name": "16팀"
-              }
-            }
-          },
-          {
-            "id": 205,
-            "submitted_at": "2026-06-28T08:00:20.848703+00:00",
-            "team_name": "12팀",
-            "team_name_short": "12",
-            "team_info": "여행",
-            "pref1": "화 19",
-            "pref2": "화 20",
-            "pref3": "화 21",
-            "raw": {
-              "id": 205,
-              "round_id": 108,
-              "team_id": 358,
-              "pref1_day": 1,
-              "pref1_hour": 19,
-              "pref2_day": 1,
-              "pref2_hour": 20,
-              "pref3_day": 1,
-              "pref3_hour": 21,
-              "assigned_day": 1,
-              "assigned_hour": 19,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:20.848703+00:00",
-              "teams": {
-                "info": "여행",
-                "name": "12팀"
-              }
-            }
-          },
-          {
-            "id": 206,
-            "submitted_at": "2026-06-28T08:00:21.785392+00:00",
-            "team_name": "2팀",
-            "team_name_short": "2",
-            "team_info": "골든 글러브",
-            "pref1": "목 19",
-            "pref2": "목 20",
-            "pref3": "목 21",
-            "raw": {
-              "id": 206,
-              "round_id": 108,
-              "team_id": 348,
-              "pref1_day": 3,
-              "pref1_hour": 19,
-              "pref2_day": 3,
-              "pref2_hour": 20,
-              "pref3_day": 3,
-              "pref3_hour": 21,
-              "assigned_day": null,
-              "assigned_hour": null,
-              "assigned_pref": null,
-              "submitted_at": "2026-06-28T08:00:21.785392+00:00",
-              "teams": {
-                "info": "골든 글러브",
-                "name": "2팀"
-              }
-            }
-          },
-          {
-            "id": 207,
-            "submitted_at": "2026-06-28T08:00:22.651082+00:00",
-            "team_name": "6팀",
-            "team_name_short": "6",
-            "team_info": "물그림",
-            "pref1": "토 16",
-            "pref2": "토 15",
-            "pref3": "토 14",
-            "raw": {
-              "id": 207,
-              "round_id": 108,
-              "team_id": 352,
-              "pref1_day": 5,
-              "pref1_hour": 16,
-              "pref2_day": 5,
-              "pref2_hour": 15,
-              "pref3_day": 5,
-              "pref3_hour": 14,
-              "assigned_day": 5,
-              "assigned_hour": 16,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:22.651082+00:00",
-              "teams": {
-                "info": "물그림",
-                "name": "6팀"
-              }
-            }
-          },
-          {
-            "id": 208,
-            "submitted_at": "2026-06-28T08:00:23.151639+00:00",
-            "team_name": "1팀",
-            "team_name_short": "1",
-            "team_info": "사랑이라 했던 말 속에서",
-            "pref1": "월 20",
-            "pref2": "일 21",
-            "pref3": "목 20",
-            "raw": {
-              "id": 208,
-              "round_id": 108,
-              "team_id": 347,
-              "pref1_day": 0,
-              "pref1_hour": 20,
-              "pref2_day": 6,
-              "pref2_hour": 21,
-              "pref3_day": 3,
-              "pref3_hour": 20,
-              "assigned_day": 0,
-              "assigned_hour": 20,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:23.151639+00:00",
-              "teams": {
-                "info": "사랑이라 했던 말 속에서",
-                "name": "1팀"
-              }
-            }
-          },
-          {
-            "id": 210,
-            "submitted_at": "2026-06-28T08:00:31.195667+00:00",
-            "team_name": "17팀",
-            "team_name_short": "17",
-            "team_info": "등대",
-            "pref1": "화 17",
-            "pref2": "금 17",
-            "pref3": "화 18",
-            "raw": {
-              "id": 210,
-              "round_id": 108,
-              "team_id": 363,
-              "pref1_day": 1,
-              "pref1_hour": 17,
-              "pref2_day": 4,
-              "pref2_hour": 17,
-              "pref3_day": 1,
-              "pref3_hour": 18,
-              "assigned_day": 1,
-              "assigned_hour": 17,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:31.195667+00:00",
-              "teams": {
-                "info": "등대",
-                "name": "17팀"
-              }
-            }
-          },
-          {
-            "id": 211,
-            "submitted_at": "2026-06-28T08:00:31.71308+00:00",
-            "team_name": "14팀",
-            "team_name_short": "14",
-            "team_info": "Antifreeze",
-            "pref1": "금 19",
-            "pref2": "금 20",
-            "pref3": "금 21",
-            "raw": {
-              "id": 211,
-              "round_id": 108,
-              "team_id": 360,
-              "pref1_day": 4,
-              "pref1_hour": 19,
-              "pref2_day": 4,
-              "pref2_hour": 20,
-              "pref3_day": 4,
-              "pref3_hour": 21,
-              "assigned_day": 4,
-              "assigned_hour": 19,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:31.71308+00:00",
-              "teams": {
-                "info": "Antifreeze",
-                "name": "14팀"
-              }
-            }
-          },
-          {
-            "id": 212,
-            "submitted_at": "2026-06-28T08:00:33.107569+00:00",
-            "team_name": "3팀",
-            "team_name_short": "3",
-            "team_info": "자랑",
-            "pref1": "토 15",
-            "pref2": "토 16",
-            "pref3": "토 14",
-            "raw": {
-              "id": 212,
-              "round_id": 108,
-              "team_id": 349,
-              "pref1_day": 5,
-              "pref1_hour": 15,
-              "pref2_day": 5,
-              "pref2_hour": 16,
-              "pref3_day": 5,
-              "pref3_hour": 14,
-              "assigned_day": 5,
-              "assigned_hour": 15,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:33.107569+00:00",
-              "teams": {
-                "info": "자랑",
-                "name": "3팀"
-              }
-            }
-          },
-          {
-            "id": 213,
-            "submitted_at": "2026-06-28T08:00:55.555627+00:00",
-            "team_name": "15팀",
-            "team_name_short": "15",
-            "team_info": "초록빛",
-            "pref1": "화 18",
-            "pref2": "화 19",
-            "pref3": "화 20",
-            "raw": {
-              "id": 213,
-              "round_id": 108,
-              "team_id": 361,
-              "pref1_day": 1,
-              "pref1_hour": 18,
-              "pref2_day": 1,
-              "pref2_hour": 19,
-              "pref3_day": 1,
-              "pref3_hour": 20,
-              "assigned_day": 1,
-              "assigned_hour": 18,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:00:55.555627+00:00",
-              "teams": {
-                "info": "초록빛",
-                "name": "15팀"
-              }
-            }
-          },
-          {
-            "id": 214,
-            "submitted_at": "2026-06-28T08:00:56.648311+00:00",
-            "team_name": "2팀",
-            "team_name_short": "2",
-            "team_info": "골든 글러브",
-            "pref1": "목 19",
-            "pref2": "목 20",
-            "pref3": "목 21",
-            "raw": {
-              "id": 214,
-              "round_id": 108,
-              "team_id": 348,
-              "pref1_day": 3,
-              "pref1_hour": 19,
-              "pref2_day": 3,
-              "pref2_hour": 20,
-              "pref3_day": 3,
-              "pref3_hour": 21,
-              "assigned_day": 3,
-              "assigned_hour": 21,
-              "assigned_pref": 3,
-              "submitted_at": "2026-06-28T08:00:56.648311+00:00",
-              "teams": {
-                "info": "골든 글러브",
-                "name": "2팀"
-              }
-            }
-          },
-          {
-            "id": 215,
-            "submitted_at": "2026-06-28T08:02:00.370702+00:00",
-            "team_name": "11팀",
-            "team_name_short": "11",
-            "team_info": "오래된노래",
-            "pref1": "일 14",
-            "pref2": "일 15",
-            "pref3": "일 16",
-            "raw": {
-              "id": 215,
-              "round_id": 108,
-              "team_id": 357,
-              "pref1_day": 6,
-              "pref1_hour": 14,
-              "pref2_day": 6,
-              "pref2_hour": 15,
-              "pref3_day": 6,
-              "pref3_hour": 16,
-              "assigned_day": null,
-              "assigned_hour": null,
-              "assigned_pref": null,
-              "submitted_at": "2026-06-28T08:02:00.370702+00:00",
-              "teams": {
-                "info": "오래된노래",
-                "name": "11팀"
-              }
-            }
-          },
-          {
-            "id": 216,
-            "submitted_at": "2026-06-28T08:02:02.870389+00:00",
-            "team_name": "8팀",
-            "team_name_short": "8",
-            "team_info": "bad",
-            "pref1": "목 20",
-            "pref2": "목 19",
-            "pref3": "목 18",
-            "raw": {
-              "id": 216,
-              "round_id": 108,
-              "team_id": 354,
-              "pref1_day": 3,
-              "pref1_hour": 20,
-              "pref2_day": 3,
-              "pref2_hour": 19,
-              "pref3_day": 3,
-              "pref3_hour": 18,
-              "assigned_day": 3,
-              "assigned_hour": 20,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:02:02.870389+00:00",
-              "teams": {
-                "info": "bad",
-                "name": "8팀"
-              }
-            }
-          },
-          {
-            "id": 217,
-            "submitted_at": "2026-06-28T08:02:37.795308+00:00",
-            "team_name": "11팀",
-            "team_name_short": "11",
-            "team_info": "오래된노래",
-            "pref1": "일 14",
-            "pref2": "일 15",
-            "pref3": "일 16",
-            "raw": {
-              "id": 217,
-              "round_id": 108,
-              "team_id": 357,
-              "pref1_day": 6,
-              "pref1_hour": 14,
-              "pref2_day": 6,
-              "pref2_hour": 15,
-              "pref3_day": 6,
-              "pref3_hour": 16,
-              "assigned_day": 6,
-              "assigned_hour": 14,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:02:37.795308+00:00",
-              "teams": {
-                "info": "오래된노래",
-                "name": "11팀"
-              }
-            }
-          },
-          {
-            "id": 221,
-            "submitted_at": "2026-06-28T08:11:05.583249+00:00",
-            "team_name": "9팀",
-            "team_name_short": "9",
-            "team_info": "야생화",
-            "pref1": "토 14",
-            "pref2": "토 15",
-            "pref3": "—",
-            "raw": {
-              "id": 221,
-              "round_id": 108,
-              "team_id": 355,
-              "pref1_day": 5,
-              "pref1_hour": 14,
-              "pref2_day": 5,
-              "pref2_hour": 15,
-              "pref3_day": null,
-              "pref3_hour": null,
-              "assigned_day": 5,
-              "assigned_hour": 14,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:11:05.583249+00:00",
-              "teams": {
-                "info": "야생화",
-                "name": "9팀"
-              }
-            }
-          },
-          {
-            "id": 222,
-            "submitted_at": "2026-06-28T08:11:33.805845+00:00",
-            "team_name": "4팀",
-            "team_name_short": "4",
-            "team_info": "지켜줄게",
-            "pref1": "목 18",
-            "pref2": "목 17",
-            "pref3": "목 16",
-            "raw": {
-              "id": 222,
-              "round_id": 108,
-              "team_id": 350,
-              "pref1_day": 3,
-              "pref1_hour": 18,
-              "pref2_day": 3,
-              "pref2_hour": 17,
-              "pref3_day": 3,
-              "pref3_hour": 16,
-              "assigned_day": 3,
-              "assigned_hour": 18,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:11:33.805845+00:00",
-              "teams": {
-                "info": "지켜줄게",
-                "name": "4팀"
-              }
-            }
-          },
-          {
-            "id": 224,
-            "submitted_at": "2026-06-28T08:22:54.330073+00:00",
-            "team_name": "13팀",
-            "team_name_short": "13",
-            "team_info": "Drac & Friends",
-            "pref1": "목 22",
-            "pref2": "—",
-            "pref3": "—",
-            "raw": {
-              "id": 224,
-              "round_id": 108,
-              "team_id": 359,
-              "pref1_day": 3,
-              "pref1_hour": 22,
-              "pref2_day": null,
-              "pref2_hour": null,
-              "pref3_day": null,
-              "pref3_hour": null,
-              "assigned_day": 3,
-              "assigned_hour": 22,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T08:22:54.330073+00:00",
-              "teams": {
-                "info": "Drac & Friends",
-                "name": "13팀"
-              }
-            }
-          },
-          {
-            "id": 225,
-            "submitted_at": "2026-06-28T09:08:07.364578+00:00",
-            "team_name": "19팀",
-            "team_name_short": "19",
-            "team_info": "나들이갈까",
-            "pref1": "수 21",
-            "pref2": "목 21",
-            "pref3": "목 20",
-            "raw": {
-              "id": 225,
-              "round_id": 108,
-              "team_id": 365,
-              "pref1_day": 2,
-              "pref1_hour": 21,
-              "pref2_day": 3,
-              "pref2_hour": 21,
-              "pref3_day": 3,
-              "pref3_hour": 20,
-              "assigned_day": 2,
-              "assigned_hour": 21,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T09:08:07.364578+00:00",
-              "teams": {
-                "info": "나들이갈까",
-                "name": "19팀"
-              }
-            }
-          },
-          {
-            "id": 226,
-            "submitted_at": "2026-06-28T09:57:48.372296+00:00",
-            "team_name": "5팀",
-            "team_name_short": "5",
-            "team_info": "고래",
-            "pref1": "수 18",
-            "pref2": "—",
-            "pref3": "—",
-            "raw": {
-              "id": 226,
-              "round_id": 108,
-              "team_id": 351,
-              "pref1_day": 2,
-              "pref1_hour": 18,
-              "pref2_day": null,
-              "pref2_hour": null,
-              "pref3_day": null,
-              "pref3_hour": null,
-              "assigned_day": 2,
-              "assigned_hour": 18,
-              "assigned_pref": 1,
-              "submitted_at": "2026-06-28T09:57:48.372296+00:00",
-              "teams": {
-                "info": "고래",
-                "name": "5팀"
-              }
-            }
-          }
-        ],
+        "applications": [],
         "raw": {
           "id": 108,
           "season": "여름방학",
@@ -15330,6 +14550,125 @@
           "close_at": "2026-06-26T08:00:00+00:00",
           "created_at": "2026-06-24T12:57:08.708306+00:00",
           "name": "여름학기 1차 스쿨 신청",
+          "prioritize_returning": false
+        }
+      },
+      {
+        "id": 53,
+        "name": "2학기 1차 스쿨 신청",
+        "status": "closed",
+        "created_at": "2026-09-10T15:15:04.406313+00:00",
+        "open_at": "",
+        "close_at": "",
+        "prioritize_returning": false,
+        "schools": [
+          {
+            "id": 76,
+            "name": "안녕",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 76,
+              "name": "안녕",
+              "round_id": 53
+            }
+          },
+          {
+            "id": 77,
+            "name": "forign guitar",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 77,
+              "name": "forign guitar",
+              "round_id": 53
+            }
+          }
+        ],
+        "applications": [],
+        "raw": {
+          "id": 53,
+          "status": "closed",
+          "open_at": null,
+          "close_at": null,
+          "created_at": "2026-09-10T15:15:04.406313+00:00",
+          "name": "2학기 1차 스쿨 신청",
+          "prioritize_returning": false
+        }
+      },
+      {
+        "id": 54,
+        "name": "2학기 1차 스쿨 신청",
+        "status": "open",
+        "created_at": "2026-09-10T15:26:41.571942+00:00",
+        "open_at": "2026-09-10T15:30:00+00:00",
+        "close_at": "2026-09-10T15:35:00+00:00",
+        "prioritize_returning": false,
+        "schools": [
+          {
+            "id": 78,
+            "name": "기타입문1반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 78,
+              "name": "기타입문1반",
+              "round_id": 54
+            }
+          },
+          {
+            "id": 79,
+            "name": "기타 입문 2반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 79,
+              "name": "기타 입문 2반",
+              "round_id": 54
+            }
+          }
+        ],
+        "applications": [
+          {
+            "id": 337,
+            "created_at": "2026-09-10T15:30:37.831165+00:00",
+            "applicant_name": "김민성",
+            "student_id": "2022160105",
+            "pref1_school": "기타 입문 2반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 337,
+              "school_id": null,
+              "applicant_name": "김민성",
+              "student_id": "2022160105",
+              "status": "assigned",
+              "created_at": "2026-09-10T15:30:37.831165+00:00",
+              "round_id": 54,
+              "pref1_school_id": 79,
+              "pref2_school_id": null,
+              "assigned_school_id": 79,
+              "is_returning": false
+            }
+          }
+        ],
+        "raw": {
+          "id": 54,
+          "status": "open",
+          "open_at": "2026-09-10T15:30:00+00:00",
+          "close_at": "2026-09-10T15:35:00+00:00",
+          "created_at": "2026-09-10T15:26:41.571942+00:00",
+          "name": "2학기 1차 스쿨 신청",
           "prioritize_returning": false
         }
       }
