@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-14T13:11:59.897Z",
-  "generated_at_kst": "2026년 9월 14일 22시 11분 59초",
+  "generated_at": "2026-09-14T18:49:11.340Z",
+  "generated_at_kst": "2026년 9월 15일 3시 49분 11초",
   "source": "Supabase KUAGC Schedule",
   "purpose": "latest readable static backup for kuagc.kro.kr/backups.html",
   "counts": {
     "time_rounds": 12,
     "time_applications": 0,
     "school_rounds": 40,
-    "schools": 62,
+    "schools": 79,
     "school_applications": 64,
     "ensemble_rounds": 111,
     "song_applications": 163,
@@ -14694,7 +14694,229 @@
         "open_at": "",
         "close_at": "",
         "prioritize_returning": false,
-        "schools": [],
+        "schools": [
+          {
+            "id": 80,
+            "name": "기타입문 1반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 80,
+              "name": "기타입문 1반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 81,
+            "name": "기타 입문 2반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 81,
+              "name": "기타 입문 2반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 85,
+            "name": "기타 입문 3반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 85,
+              "name": "기타 입문 3반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 87,
+            "name": "기타 입문 4반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 87,
+              "name": "기타 입문 4반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 89,
+            "name": "기타 입문 5반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 89,
+              "name": "기타 입문 5반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 90,
+            "name": "기타 입문 6반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 90,
+              "name": "기타 입문 6반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 92,
+            "name": "기타 초급 1반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 92,
+              "name": "기타 초급 1반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 93,
+            "name": "기타 초급 2반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 93,
+              "name": "기타 초급 2반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 94,
+            "name": "기타 초급 3반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 94,
+              "name": "기타 초급 3반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 95,
+            "name": "기타 중급반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 95,
+              "name": "기타 중급반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 96,
+            "name": "핑거스타일",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 96,
+              "name": "핑거스타일",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 97,
+            "name": "베이스 입문",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 97,
+              "name": "베이스 입문",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 99,
+            "name": "베이스 심화",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 99,
+              "name": "베이스 심화",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 101,
+            "name": "드럼 입문 1반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 101,
+              "name": "드럼 입문 1반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 102,
+            "name": "드럼 입문 2반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 102,
+              "name": "드럼 입문 2반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 103,
+            "name": "드름 입문 3반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 103,
+              "name": "드름 입문 3반",
+              "round_id": 55
+            }
+          },
+          {
+            "id": 104,
+            "name": "드럼 초급반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 104,
+              "name": "드럼 초급반",
+              "round_id": 55
+            }
+          }
+        ],
         "applications": [],
         "raw": {
           "id": 55,
