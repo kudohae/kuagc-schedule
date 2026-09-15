@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-14T22:20:40.970Z",
-  "generated_at_kst": "2026년 9월 15일 7시 20분 40초",
+  "generated_at": "2026-09-15T00:49:17.869Z",
+  "generated_at_kst": "2026년 9월 15일 9시 49분 17초",
   "source": "Supabase KUAGC Schedule",
   "purpose": "latest readable static backup for kuagc.kro.kr/backups.html",
   "counts": {
@@ -1211,7 +1211,7 @@
           ""
         ],
         [
-          "(마감 일시 미기록) '2학기 1차 스쿨 신청' 마감",
+          "2026년 9월 17일 18시 00분 00초 '2학기 1차 스쿨 신청' 마감",
           "",
           "",
           "",
@@ -14691,9 +14691,9 @@
         "name": "2학기 1차 스쿨 신청",
         "status": "draft",
         "created_at": "2026-09-13T14:03:50.159015+00:00",
-        "open_at": "",
-        "close_at": "",
-        "prioritize_returning": false,
+        "open_at": "2026-09-15T09:00:00+00:00",
+        "close_at": "2026-09-17T09:00:00+00:00",
+        "prioritize_returning": true,
         "schools": [
           {
             "id": 80,
@@ -14921,11 +14921,11 @@
         "raw": {
           "id": 55,
           "status": "draft",
-          "open_at": null,
-          "close_at": null,
+          "open_at": "2026-09-15T09:00:00+00:00",
+          "close_at": "2026-09-17T09:00:00+00:00",
           "created_at": "2026-09-13T14:03:50.159015+00:00",
           "name": "2학기 1차 스쿨 신청",
-          "prioritize_returning": false
+          "prioritize_returning": true
         }
       }
     ]
