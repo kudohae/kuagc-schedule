@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-15T05:56:47.006Z",
-  "generated_at_kst": "2026년 9월 15일 14시 56분 47초",
+  "generated_at": "2026-09-15T11:32:16.505Z",
+  "generated_at_kst": "2026년 9월 15일 20시 32분 16초",
   "source": "Supabase KUAGC Schedule",
   "purpose": "latest readable static backup for kuagc.kro.kr/backups.html",
   "counts": {
     "time_rounds": 12,
     "time_applications": 0,
-    "school_rounds": 40,
-    "schools": 79,
-    "school_applications": 64,
+    "school_rounds": 41,
+    "schools": 96,
+    "school_applications": 136,
     "ensemble_rounds": 111,
     "song_applications": 163,
     "session_applications": 409,
@@ -17,7 +17,7 @@
   },
   "latest_timestamps": {
     "time_application": "",
-    "school_application": "2026-09-10T15:30:37.831165+00:00",
+    "school_application": "2026-09-15T11:13:17.166038+00:00",
     "song_application": "2026-06-26T02:37:54.206951+00:00",
     "session_application": "2026-06-27T07:27:56.333423+00:00",
     "manual_entry": ""
@@ -1209,6 +1209,524 @@
           "",
           "",
           ""
+        ],
+        [
+          "2026년 9월 15일 15시 01분 43초",
+          "희진",
+          "1111",
+          "드럼 초급반",
+          "기타 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 15시 02분 16초",
+          "ㅇㅇㅇㅇ",
+          "2222",
+          "기타 입문 5반",
+          "기타 입문 4반"
+        ],
+        [
+          "2026년 9월 15일 15시 04분 05초",
+          "ㄹㄹ",
+          "3333",
+          "기타 입문 5반",
+          "기타 입문 4반"
+        ],
+        [
+          "2026년 9월 15일 15시 04분 14초",
+          "ㅎㅎ",
+          "4444",
+          "기타 입문 5반",
+          "기타 입문 4반"
+        ],
+        [
+          "2026년 9월 15일 15시 04분 24초",
+          "ㅗㅗㅗㅗ",
+          "55555",
+          "기타 입문 5반",
+          "기타 입문 4반"
+        ],
+        [
+          "2026년 9월 15일 15시 04분 36초",
+          "ㅓㅓㅓㅓ",
+          "6666",
+          "기타 입문 5반",
+          "기타 입문 4반"
+        ],
+        [
+          "2026년 9월 15일 15시 04분 54초",
+          "ㅏㅏㅏㅏㅏ",
+          "77777",
+          "기타 입문 4반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 15시 05분 41초",
+          "ㄱㅇㅇㅇㅇ",
+          "88888",
+          "기타 입문 5반",
+          "기타 입문 4반"
+        ],
+        [
+          "2026년 9월 17일 18시 00분 00초 '2학기 1차 스쿨 신청' 마감",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "2026년 9월 15일 15시 06분 35초 '2학기 1차 스쿨 신청' 시작",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "2026년 9월 15일 18시 00분 11초",
+          "김세은",
+          "2024250112",
+          "기타 입문 1반",
+          "기타 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 11초",
+          "이태린",
+          "2024180067",
+          "기타 입문 2반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 12초",
+          "심민준",
+          "2025100055",
+          "베이스 심화반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 12초",
+          "김윤경",
+          "2026952054",
+          "기타 입문 1반",
+          "기타 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 16초",
+          "이수",
+          "2026171175",
+          "기타 입문 5반",
+          "기타 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 18초",
+          "Ester jung",
+          "2026952652",
+          "기타 입문 1반",
+          "기타 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 22초",
+          "이지윤",
+          "2026190602",
+          "기타 입문 4반",
+          "기타 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 22초",
+          "정희겸",
+          "2023170017",
+          "기타 초급 3반",
+          "기타 입문 5반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 23초",
+          "송유빈",
+          "2021190737",
+          "드럼 입문 1반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 23초",
+          "박지오",
+          "2026190529",
+          "기타 입문 4반",
+          "기타 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 24초",
+          "허승후",
+          "2026190782",
+          "기타 핑거스타일",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 24초",
+          "손유진",
+          "2025150003",
+          "드럼 초급반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 26초",
+          "백효찬",
+          "2026131343",
+          "드럼 입문 3반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 32초",
+          "Buis Maurits David",
+          "2026952711",
+          "기타 초급 2반(For International Students)",
+          "기타 입문 6반(For International Students)"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 32초",
+          "김보연",
+          "2026120335",
+          "드럼 입문 1반",
+          "드럼 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 34초",
+          "박민하",
+          "2025130877",
+          "드럼 입문 1반",
+          "드럼 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 35초",
+          "허라희",
+          "2025190308",
+          "드럼 초급반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 40초",
+          "유기현",
+          "2024120193",
+          "기타 입문 5반",
+          "기타 입문 4반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 40초",
+          "박민수",
+          "2026171212",
+          "기타 입문 4반",
+          "기타 입문 5반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 40초",
+          "서상현",
+          "2026090002",
+          "기타 입문 1반",
+          "기타 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 44초",
+          "조채윤",
+          "2025230028",
+          "베이스 입문반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 45초",
+          "이가현",
+          "2025150215",
+          "기타 초급 3반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 48초",
+          "Sasha",
+          "2025131643",
+          "드럼 입문 2반",
+          "드럼 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 49초",
+          "홍예령",
+          "2025180090",
+          "드럼 입문 3반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 55초",
+          "고나영",
+          "2025120378",
+          "기타 초급 1반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 00분 57초",
+          "신희준",
+          "2026120001",
+          "기타 핑거스타일",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 01분 11초",
+          "이준희",
+          "2025200027",
+          "기타 입문 3반",
+          "기타 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 01분 13초",
+          "이혜연",
+          "2025180020",
+          "기타 입문 3반",
+          "기타 입문 1반"
+        ],
+        [
+          "2026년 9월 15일 18시 01분 22초",
+          "이동준",
+          "2026130715",
+          "기타 입문 1반",
+          "기타 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 01분 22초",
+          "홍서진",
+          "2026171033",
+          "드럼 입문 3반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 01분 23초",
+          "조명혜",
+          "2026230423",
+          "기타 초급 1반",
+          "기타 초급 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 01분 27초",
+          "서혜빈",
+          "2026131257",
+          "기타 입문 5반",
+          "기타 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 01분 47초",
+          "김범석",
+          "2026120023",
+          "기타 초급 1반",
+          "기타 초급 2반(For International Students)"
+        ],
+        [
+          "2026년 9월 15일 18시 02분 00초",
+          "최유찬",
+          "2026171191",
+          "기타 입문 4반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 02분 05초",
+          "민경태",
+          "2026120015",
+          "기타 입문 1반",
+          "기타 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 02분 17초",
+          "조효인",
+          "2026250322",
+          "드럼 입문 2반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 02분 28초",
+          "고홍",
+          "2026190137",
+          "기타 입문 5반",
+          "기타 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 02분 32초",
+          "김석현",
+          "2025200030",
+          "기타 초급 3반",
+          "기타 초급 1반"
+        ],
+        [
+          "2026년 9월 15일 18시 02분 39초",
+          "Guellue",
+          "2025470054",
+          "드럼 입문 1반",
+          "드럼 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 02분 44초",
+          "백지수",
+          "2022150437",
+          "베이스 심화반",
+          "베이스 입문반"
+        ],
+        [
+          "2026년 9월 15일 18시 02분 47초",
+          "유환민",
+          "2026171188",
+          "기타 초급 3반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 03분 08초",
+          "손승완",
+          "2022170936",
+          "기타 입문 3반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 03분 20초",
+          "임재영",
+          "2026171161",
+          "기타 입문 4반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 03분 28초",
+          "김건민",
+          "2026350220",
+          "기타 초급 1반",
+          "베이스 심화반"
+        ],
+        [
+          "2026년 9월 15일 18시 04분 02초",
+          "정병찬",
+          "2025170825",
+          "베이스 입문반",
+          "베이스 심화반"
+        ],
+        [
+          "2026년 9월 15일 18시 04분 08초",
+          "이권라온",
+          "2026350019",
+          "드럼 입문 2반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 05분 08초",
+          "잘레스카야 마리아",
+          "2026120433",
+          "기타 초급 1반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 05분 21초",
+          "이윤서",
+          "2026340027",
+          "기타 입문 2반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 06분 11초",
+          "조소연",
+          "2026170297",
+          "기타 입문 2반",
+          "드럼 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 06분 27초",
+          "손채연",
+          "2026120350",
+          "기타 입문 2반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 08분 29초",
+          "Emilia Molly Ru Yi Gustavsson",
+          "2026972115",
+          "기타 입문 1반",
+          "기타 입문 6반(For International Students)"
+        ],
+        [
+          "2026년 9월 15일 18시 09분 54초",
+          "강민희",
+          "2025200035",
+          "기타 핑거스타일",
+          "드럼 입문 3반"
+        ],
+        [
+          "2026년 9월 15일 18시 10분 11초",
+          "노성원",
+          "2026230051",
+          "드럼 입문 2반",
+          "드럼 입문 1반"
+        ],
+        [
+          "2026년 9월 15일 18시 11분 37초",
+          "민서준",
+          "2023150501",
+          "기타 초급 1반",
+          "기타 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 18시 15분 36초",
+          "나용훈",
+          "2026100197",
+          "기타 입문 3반",
+          "베이스 입문반"
+        ],
+        [
+          "2026년 9월 15일 18시 16분 49초",
+          "박시윤",
+          "2026130133",
+          "기타 입문 3반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 17분 12초",
+          "박민순",
+          "2026120288",
+          "기타 입문 2반",
+          "기타 입문 1반"
+        ],
+        [
+          "2026년 9월 15일 18시 19분 23초",
+          "Dono",
+          "2026230108",
+          "기타 입문 6반(For International Students)",
+          "기타 초급 2반(For International Students)"
+        ],
+        [
+          "2026년 9월 15일 18시 20분 19초",
+          "전지현",
+          "2026170844",
+          "기타 입문 3반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 21분 10초",
+          "우하민",
+          "2025230050",
+          "베이스 입문반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 18시 27분 12초",
+          "임예린",
+          "2026203209",
+          "드럼 초급반",
+          "베이스 입문반"
+        ],
+        [
+          "2026년 9월 15일 18시 48분 22초",
+          "김연우",
+          "2025150042",
+          "기타 입문 2반",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 20시 00분 10초",
+          "박시은",
+          "2023140426",
+          "기타 입문 6반(For International Students)",
+          "기타 초급 2반(For International Students)"
+        ],
+        [
+          "2026년 9월 15일 20시 13분 17초",
+          "노채린",
+          "2021130203",
+          "기타 입문 6반(For International Students)",
+          "—"
         ],
         [
           "2026년 9월 17일 18시 00분 00초 '2학기 1차 스쿨 신청' 마감",
@@ -14689,7 +15207,7 @@
       {
         "id": 55,
         "name": "2학기 1차 스쿨 신청",
-        "status": "draft",
+        "status": "closed",
         "created_at": "2026-09-13T14:03:50.159015+00:00",
         "open_at": "2026-09-15T09:00:00+00:00",
         "close_at": "2026-09-17T09:00:00+00:00",
@@ -14917,15 +15435,1987 @@
             }
           }
         ],
-        "applications": [],
+        "applications": [
+          {
+            "id": 338,
+            "created_at": "2026-09-15T06:01:43.393554+00:00",
+            "applicant_name": "희진",
+            "student_id": "1111",
+            "pref1_school": "드럼 초급반",
+            "pref2_school": "기타 입문 3반",
+            "assigned_school": "드럼 초급반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 338,
+              "school_id": null,
+              "applicant_name": "희진",
+              "student_id": "1111",
+              "status": "assigned",
+              "created_at": "2026-09-15T06:01:43.393554+00:00",
+              "round_id": 55,
+              "pref1_school_id": 104,
+              "pref2_school_id": 87,
+              "assigned_school_id": 104,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 339,
+            "created_at": "2026-09-15T06:02:16.804144+00:00",
+            "applicant_name": "ㅇㅇㅇㅇ",
+            "student_id": "2222",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 4반",
+            "assigned_school": "기타 입문 5반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 339,
+              "school_id": null,
+              "applicant_name": "ㅇㅇㅇㅇ",
+              "student_id": "2222",
+              "status": "assigned",
+              "created_at": "2026-09-15T06:02:16.804144+00:00",
+              "round_id": 55,
+              "pref1_school_id": 90,
+              "pref2_school_id": 89,
+              "assigned_school_id": 90,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 340,
+            "created_at": "2026-09-15T06:04:05.752037+00:00",
+            "applicant_name": "ㄹㄹ",
+            "student_id": "3333",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 4반",
+            "assigned_school": "기타 입문 5반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 340,
+              "school_id": null,
+              "applicant_name": "ㄹㄹ",
+              "student_id": "3333",
+              "status": "assigned",
+              "created_at": "2026-09-15T06:04:05.752037+00:00",
+              "round_id": 55,
+              "pref1_school_id": 90,
+              "pref2_school_id": 89,
+              "assigned_school_id": 90,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 341,
+            "created_at": "2026-09-15T06:04:14.715417+00:00",
+            "applicant_name": "ㅎㅎ",
+            "student_id": "4444",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 4반",
+            "assigned_school": "기타 입문 5반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 341,
+              "school_id": null,
+              "applicant_name": "ㅎㅎ",
+              "student_id": "4444",
+              "status": "assigned",
+              "created_at": "2026-09-15T06:04:14.715417+00:00",
+              "round_id": 55,
+              "pref1_school_id": 90,
+              "pref2_school_id": 89,
+              "assigned_school_id": 90,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 342,
+            "created_at": "2026-09-15T06:04:24.108629+00:00",
+            "applicant_name": "ㅗㅗㅗㅗ",
+            "student_id": "55555",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 4반",
+            "assigned_school": "기타 입문 5반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 342,
+              "school_id": null,
+              "applicant_name": "ㅗㅗㅗㅗ",
+              "student_id": "55555",
+              "status": "assigned",
+              "created_at": "2026-09-15T06:04:24.108629+00:00",
+              "round_id": 55,
+              "pref1_school_id": 90,
+              "pref2_school_id": 89,
+              "assigned_school_id": 90,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 343,
+            "created_at": "2026-09-15T06:04:36.405716+00:00",
+            "applicant_name": "ㅓㅓㅓㅓ",
+            "student_id": "6666",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 4반",
+            "assigned_school": "기타 입문 4반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 343,
+              "school_id": null,
+              "applicant_name": "ㅓㅓㅓㅓ",
+              "student_id": "6666",
+              "status": "assigned",
+              "created_at": "2026-09-15T06:04:36.405716+00:00",
+              "round_id": 55,
+              "pref1_school_id": 90,
+              "pref2_school_id": 89,
+              "assigned_school_id": 89,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 344,
+            "created_at": "2026-09-15T06:04:54.586021+00:00",
+            "applicant_name": "ㅏㅏㅏㅏㅏ",
+            "student_id": "77777",
+            "pref1_school": "기타 입문 4반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 4반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 344,
+              "school_id": null,
+              "applicant_name": "ㅏㅏㅏㅏㅏ",
+              "student_id": "77777",
+              "status": "assigned",
+              "created_at": "2026-09-15T06:04:54.586021+00:00",
+              "round_id": 55,
+              "pref1_school_id": 89,
+              "pref2_school_id": null,
+              "assigned_school_id": 89,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 345,
+            "created_at": "2026-09-15T06:05:41.816655+00:00",
+            "applicant_name": "ㄱㅇㅇㅇㅇ",
+            "student_id": "88888",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 4반",
+            "assigned_school": "기타 입문 4반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 345,
+              "school_id": null,
+              "applicant_name": "ㄱㅇㅇㅇㅇ",
+              "student_id": "88888",
+              "status": "assigned",
+              "created_at": "2026-09-15T06:05:41.816655+00:00",
+              "round_id": 55,
+              "pref1_school_id": 90,
+              "pref2_school_id": 89,
+              "assigned_school_id": 89,
+              "is_returning": false
+            }
+          }
+        ],
         "raw": {
           "id": 55,
-          "status": "draft",
+          "status": "closed",
           "open_at": "2026-09-15T09:00:00+00:00",
           "close_at": "2026-09-17T09:00:00+00:00",
           "created_at": "2026-09-13T14:03:50.159015+00:00",
           "name": "2학기 1차 스쿨 신청",
           "prioritize_returning": true
+        }
+      },
+      {
+        "id": 56,
+        "name": "2학기 1차 스쿨 신청",
+        "status": "open",
+        "created_at": "2026-09-15T06:06:35.834137+00:00",
+        "open_at": "2026-09-15T09:00:00+00:00",
+        "close_at": "2026-09-17T09:00:00+00:00",
+        "prioritize_returning": false,
+        "schools": [
+          {
+            "id": 126,
+            "name": "기타 입문 6반(For International Students)",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 126,
+              "name": "기타 입문 6반(For International Students)",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 128,
+            "name": "기타 초급 2반(For International Students)",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 128,
+              "name": "기타 초급 2반(For International Students)",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 108,
+            "name": "기타 입문 1반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 108,
+              "name": "기타 입문 1반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 121,
+            "name": "기타 입문 2반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 121,
+              "name": "기타 입문 2반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 122,
+            "name": "기타 입문 3반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 122,
+              "name": "기타 입문 3반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 123,
+            "name": "기타 입문 4반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 123,
+              "name": "기타 입문 4반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 124,
+            "name": "기타 입문 5반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 124,
+              "name": "기타 입문 5반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 127,
+            "name": "기타 초급 1반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 127,
+              "name": "기타 초급 1반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 129,
+            "name": "기타 초급 3반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 129,
+              "name": "기타 초급 3반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 130,
+            "name": "기타 중급반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 130,
+              "name": "기타 중급반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 131,
+            "name": "기타 핑거스타일",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 131,
+              "name": "기타 핑거스타일",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 132,
+            "name": "베이스 입문반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 132,
+              "name": "베이스 입문반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 133,
+            "name": "베이스 심화반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 133,
+              "name": "베이스 심화반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 135,
+            "name": "드럼 입문 2반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 135,
+              "name": "드럼 입문 2반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 136,
+            "name": "드럼 입문 3반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 136,
+              "name": "드럼 입문 3반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 137,
+            "name": "드럼 초급반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 137,
+              "name": "드럼 초급반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 134,
+            "name": "드럼 입문 1반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 134,
+              "name": "드럼 입문 1반",
+              "round_id": 56
+            }
+          }
+        ],
+        "applications": [
+          {
+            "id": 346,
+            "created_at": "2026-09-15T09:00:11.053978+00:00",
+            "applicant_name": "김세은",
+            "student_id": "2024250112",
+            "pref1_school": "기타 입문 1반",
+            "pref2_school": "기타 입문 3반",
+            "assigned_school": "기타 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 346,
+              "school_id": null,
+              "applicant_name": "김세은",
+              "student_id": "2024250112",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:11.053978+00:00",
+              "round_id": 56,
+              "pref1_school_id": 108,
+              "pref2_school_id": 122,
+              "assigned_school_id": 108,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 347,
+            "created_at": "2026-09-15T09:00:11.408616+00:00",
+            "applicant_name": "이태린",
+            "student_id": "2024180067",
+            "pref1_school": "기타 입문 2반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 347,
+              "school_id": null,
+              "applicant_name": "이태린",
+              "student_id": "2024180067",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:11.408616+00:00",
+              "round_id": 56,
+              "pref1_school_id": 121,
+              "pref2_school_id": null,
+              "assigned_school_id": 121,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 348,
+            "created_at": "2026-09-15T09:00:12.338021+00:00",
+            "applicant_name": "심민준",
+            "student_id": "2025100055",
+            "pref1_school": "베이스 심화반",
+            "pref2_school": "—",
+            "assigned_school": "베이스 심화반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 348,
+              "school_id": null,
+              "applicant_name": "심민준",
+              "student_id": "2025100055",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:12.338021+00:00",
+              "round_id": 56,
+              "pref1_school_id": 133,
+              "pref2_school_id": null,
+              "assigned_school_id": 133,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 349,
+            "created_at": "2026-09-15T09:00:12.911942+00:00",
+            "applicant_name": "김윤경",
+            "student_id": "2026952054",
+            "pref1_school": "기타 입문 1반",
+            "pref2_school": "기타 입문 3반",
+            "assigned_school": "기타 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 349,
+              "school_id": null,
+              "applicant_name": "김윤경",
+              "student_id": "2026952054",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:12.911942+00:00",
+              "round_id": 56,
+              "pref1_school_id": 108,
+              "pref2_school_id": 122,
+              "assigned_school_id": 108,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 350,
+            "created_at": "2026-09-15T09:00:16.642976+00:00",
+            "applicant_name": "이수",
+            "student_id": "2026171175",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 3반",
+            "assigned_school": "기타 입문 5반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 350,
+              "school_id": null,
+              "applicant_name": "이수",
+              "student_id": "2026171175",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:16.642976+00:00",
+              "round_id": 56,
+              "pref1_school_id": 124,
+              "pref2_school_id": 122,
+              "assigned_school_id": 124,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 351,
+            "created_at": "2026-09-15T09:00:18.631158+00:00",
+            "applicant_name": "Ester jung",
+            "student_id": "2026952652",
+            "pref1_school": "기타 입문 1반",
+            "pref2_school": "기타 입문 3반",
+            "assigned_school": "기타 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 351,
+              "school_id": null,
+              "applicant_name": "Ester jung",
+              "student_id": "2026952652",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:18.631158+00:00",
+              "round_id": 56,
+              "pref1_school_id": 108,
+              "pref2_school_id": 122,
+              "assigned_school_id": 108,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 352,
+            "created_at": "2026-09-15T09:00:22.498734+00:00",
+            "applicant_name": "이지윤",
+            "student_id": "2026190602",
+            "pref1_school": "기타 입문 4반",
+            "pref2_school": "기타 입문 2반",
+            "assigned_school": "기타 입문 4반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 352,
+              "school_id": null,
+              "applicant_name": "이지윤",
+              "student_id": "2026190602",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:22.498734+00:00",
+              "round_id": 56,
+              "pref1_school_id": 123,
+              "pref2_school_id": 121,
+              "assigned_school_id": 123,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 353,
+            "created_at": "2026-09-15T09:00:22.577551+00:00",
+            "applicant_name": "정희겸",
+            "student_id": "2023170017",
+            "pref1_school": "기타 초급 3반",
+            "pref2_school": "기타 입문 5반",
+            "assigned_school": "기타 초급 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 353,
+              "school_id": null,
+              "applicant_name": "정희겸",
+              "student_id": "2023170017",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:22.577551+00:00",
+              "round_id": 56,
+              "pref1_school_id": 129,
+              "pref2_school_id": 124,
+              "assigned_school_id": 129,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 354,
+            "created_at": "2026-09-15T09:00:23.02491+00:00",
+            "applicant_name": "송유빈",
+            "student_id": "2021190737",
+            "pref1_school": "드럼 입문 1반",
+            "pref2_school": "—",
+            "assigned_school": "드럼 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 354,
+              "school_id": null,
+              "applicant_name": "송유빈",
+              "student_id": "2021190737",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:23.02491+00:00",
+              "round_id": 56,
+              "pref1_school_id": 134,
+              "pref2_school_id": null,
+              "assigned_school_id": 134,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 356,
+            "created_at": "2026-09-15T09:00:23.808427+00:00",
+            "applicant_name": "박지오",
+            "student_id": "2026190529",
+            "pref1_school": "기타 입문 4반",
+            "pref2_school": "기타 입문 2반",
+            "assigned_school": "기타 입문 4반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 356,
+              "school_id": null,
+              "applicant_name": "박지오",
+              "student_id": "2026190529",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:23.808427+00:00",
+              "round_id": 56,
+              "pref1_school_id": 123,
+              "pref2_school_id": 121,
+              "assigned_school_id": 123,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 357,
+            "created_at": "2026-09-15T09:00:24.049946+00:00",
+            "applicant_name": "허승후",
+            "student_id": "2026190782",
+            "pref1_school": "기타 핑거스타일",
+            "pref2_school": "—",
+            "assigned_school": "기타 핑거스타일",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 357,
+              "school_id": null,
+              "applicant_name": "허승후",
+              "student_id": "2026190782",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:24.049946+00:00",
+              "round_id": 56,
+              "pref1_school_id": 131,
+              "pref2_school_id": null,
+              "assigned_school_id": 131,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 358,
+            "created_at": "2026-09-15T09:00:24.729007+00:00",
+            "applicant_name": "손유진",
+            "student_id": "2025150003",
+            "pref1_school": "드럼 초급반",
+            "pref2_school": "—",
+            "assigned_school": "드럼 초급반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 358,
+              "school_id": null,
+              "applicant_name": "손유진",
+              "student_id": "2025150003",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:24.729007+00:00",
+              "round_id": 56,
+              "pref1_school_id": 137,
+              "pref2_school_id": null,
+              "assigned_school_id": 137,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 359,
+            "created_at": "2026-09-15T09:00:26.179006+00:00",
+            "applicant_name": "백효찬",
+            "student_id": "2026131343",
+            "pref1_school": "드럼 입문 3반",
+            "pref2_school": "—",
+            "assigned_school": "드럼 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 359,
+              "school_id": null,
+              "applicant_name": "백효찬",
+              "student_id": "2026131343",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:26.179006+00:00",
+              "round_id": 56,
+              "pref1_school_id": 136,
+              "pref2_school_id": null,
+              "assigned_school_id": 136,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 361,
+            "created_at": "2026-09-15T09:00:32.592428+00:00",
+            "applicant_name": "Buis Maurits David",
+            "student_id": "2026952711",
+            "pref1_school": "기타 초급 2반(For International Students)",
+            "pref2_school": "기타 입문 6반(For International Students)",
+            "assigned_school": "기타 초급 2반(For International Students)",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 361,
+              "school_id": null,
+              "applicant_name": "Buis Maurits David",
+              "student_id": "2026952711",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:32.592428+00:00",
+              "round_id": 56,
+              "pref1_school_id": 128,
+              "pref2_school_id": 126,
+              "assigned_school_id": 128,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 362,
+            "created_at": "2026-09-15T09:00:32.719168+00:00",
+            "applicant_name": "김보연",
+            "student_id": "2026120335",
+            "pref1_school": "드럼 입문 1반",
+            "pref2_school": "드럼 입문 2반",
+            "assigned_school": "드럼 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 362,
+              "school_id": null,
+              "applicant_name": "김보연",
+              "student_id": "2026120335",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:32.719168+00:00",
+              "round_id": 56,
+              "pref1_school_id": 134,
+              "pref2_school_id": 135,
+              "assigned_school_id": 134,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 363,
+            "created_at": "2026-09-15T09:00:34.492186+00:00",
+            "applicant_name": "박민하",
+            "student_id": "2025130877",
+            "pref1_school": "드럼 입문 1반",
+            "pref2_school": "드럼 입문 2반",
+            "assigned_school": "드럼 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 363,
+              "school_id": null,
+              "applicant_name": "박민하",
+              "student_id": "2025130877",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:34.492186+00:00",
+              "round_id": 56,
+              "pref1_school_id": 134,
+              "pref2_school_id": 135,
+              "assigned_school_id": 134,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 364,
+            "created_at": "2026-09-15T09:00:35.841275+00:00",
+            "applicant_name": "허라희",
+            "student_id": "2025190308",
+            "pref1_school": "드럼 초급반",
+            "pref2_school": "—",
+            "assigned_school": "드럼 초급반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 364,
+              "school_id": null,
+              "applicant_name": "허라희",
+              "student_id": "2025190308",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:35.841275+00:00",
+              "round_id": 56,
+              "pref1_school_id": 137,
+              "pref2_school_id": null,
+              "assigned_school_id": 137,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 365,
+            "created_at": "2026-09-15T09:00:40.09588+00:00",
+            "applicant_name": "유기현",
+            "student_id": "2024120193",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 4반",
+            "assigned_school": "기타 입문 5반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 365,
+              "school_id": null,
+              "applicant_name": "유기현",
+              "student_id": "2024120193",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:40.09588+00:00",
+              "round_id": 56,
+              "pref1_school_id": 124,
+              "pref2_school_id": 123,
+              "assigned_school_id": 124,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 366,
+            "created_at": "2026-09-15T09:00:40.850477+00:00",
+            "applicant_name": "박민수",
+            "student_id": "2026171212",
+            "pref1_school": "기타 입문 4반",
+            "pref2_school": "기타 입문 5반",
+            "assigned_school": "기타 입문 4반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 366,
+              "school_id": null,
+              "applicant_name": "박민수",
+              "student_id": "2026171212",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:40.850477+00:00",
+              "round_id": 56,
+              "pref1_school_id": 123,
+              "pref2_school_id": 124,
+              "assigned_school_id": 123,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 367,
+            "created_at": "2026-09-15T09:00:40.894022+00:00",
+            "applicant_name": "서상현",
+            "student_id": "2026090002",
+            "pref1_school": "기타 입문 1반",
+            "pref2_school": "기타 입문 2반",
+            "assigned_school": "기타 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 367,
+              "school_id": null,
+              "applicant_name": "서상현",
+              "student_id": "2026090002",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:40.894022+00:00",
+              "round_id": 56,
+              "pref1_school_id": 108,
+              "pref2_school_id": 121,
+              "assigned_school_id": 108,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 368,
+            "created_at": "2026-09-15T09:00:44.029474+00:00",
+            "applicant_name": "조채윤",
+            "student_id": "2025230028",
+            "pref1_school": "베이스 입문반",
+            "pref2_school": "—",
+            "assigned_school": "베이스 입문반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 368,
+              "school_id": null,
+              "applicant_name": "조채윤",
+              "student_id": "2025230028",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:44.029474+00:00",
+              "round_id": 56,
+              "pref1_school_id": 132,
+              "pref2_school_id": null,
+              "assigned_school_id": 132,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 369,
+            "created_at": "2026-09-15T09:00:45.12841+00:00",
+            "applicant_name": "이가현",
+            "student_id": "2025150215",
+            "pref1_school": "기타 초급 3반",
+            "pref2_school": "—",
+            "assigned_school": "기타 초급 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 369,
+              "school_id": null,
+              "applicant_name": "이가현",
+              "student_id": "2025150215",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:45.12841+00:00",
+              "round_id": 56,
+              "pref1_school_id": 129,
+              "pref2_school_id": null,
+              "assigned_school_id": 129,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 370,
+            "created_at": "2026-09-15T09:00:48.668403+00:00",
+            "applicant_name": "Sasha",
+            "student_id": "2025131643",
+            "pref1_school": "드럼 입문 2반",
+            "pref2_school": "드럼 입문 3반",
+            "assigned_school": "드럼 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 370,
+              "school_id": null,
+              "applicant_name": "Sasha",
+              "student_id": "2025131643",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:48.668403+00:00",
+              "round_id": 56,
+              "pref1_school_id": 135,
+              "pref2_school_id": 136,
+              "assigned_school_id": 135,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 371,
+            "created_at": "2026-09-15T09:00:49.891361+00:00",
+            "applicant_name": "홍예령",
+            "student_id": "2025180090",
+            "pref1_school": "드럼 입문 3반",
+            "pref2_school": "—",
+            "assigned_school": "드럼 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 371,
+              "school_id": null,
+              "applicant_name": "홍예령",
+              "student_id": "2025180090",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:49.891361+00:00",
+              "round_id": 56,
+              "pref1_school_id": 136,
+              "pref2_school_id": null,
+              "assigned_school_id": 136,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 372,
+            "created_at": "2026-09-15T09:00:55.427717+00:00",
+            "applicant_name": "고나영",
+            "student_id": "2025120378",
+            "pref1_school": "기타 초급 1반",
+            "pref2_school": "—",
+            "assigned_school": "기타 초급 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 372,
+              "school_id": null,
+              "applicant_name": "고나영",
+              "student_id": "2025120378",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:55.427717+00:00",
+              "round_id": 56,
+              "pref1_school_id": 127,
+              "pref2_school_id": null,
+              "assigned_school_id": 127,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 373,
+            "created_at": "2026-09-15T09:00:57.996147+00:00",
+            "applicant_name": "신희준",
+            "student_id": "2026120001",
+            "pref1_school": "기타 핑거스타일",
+            "pref2_school": "—",
+            "assigned_school": "기타 핑거스타일",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 373,
+              "school_id": null,
+              "applicant_name": "신희준",
+              "student_id": "2026120001",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:00:57.996147+00:00",
+              "round_id": 56,
+              "pref1_school_id": 131,
+              "pref2_school_id": null,
+              "assigned_school_id": 131,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 375,
+            "created_at": "2026-09-15T09:01:11.000734+00:00",
+            "applicant_name": "이준희",
+            "student_id": "2025200027",
+            "pref1_school": "기타 입문 3반",
+            "pref2_school": "기타 입문 2반",
+            "assigned_school": "기타 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 375,
+              "school_id": null,
+              "applicant_name": "이준희",
+              "student_id": "2025200027",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:01:11.000734+00:00",
+              "round_id": 56,
+              "pref1_school_id": 122,
+              "pref2_school_id": 121,
+              "assigned_school_id": 122,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 376,
+            "created_at": "2026-09-15T09:01:13.469395+00:00",
+            "applicant_name": "이혜연",
+            "student_id": "2025180020",
+            "pref1_school": "기타 입문 3반",
+            "pref2_school": "기타 입문 1반",
+            "assigned_school": "기타 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 376,
+              "school_id": null,
+              "applicant_name": "이혜연",
+              "student_id": "2025180020",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:01:13.469395+00:00",
+              "round_id": 56,
+              "pref1_school_id": 122,
+              "pref2_school_id": 108,
+              "assigned_school_id": 122,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 377,
+            "created_at": "2026-09-15T09:01:22.258089+00:00",
+            "applicant_name": "이동준",
+            "student_id": "2026130715",
+            "pref1_school": "기타 입문 1반",
+            "pref2_school": "기타 입문 2반",
+            "assigned_school": "기타 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 377,
+              "school_id": null,
+              "applicant_name": "이동준",
+              "student_id": "2026130715",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:01:22.258089+00:00",
+              "round_id": 56,
+              "pref1_school_id": 108,
+              "pref2_school_id": 121,
+              "assigned_school_id": 108,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 378,
+            "created_at": "2026-09-15T09:01:22.656162+00:00",
+            "applicant_name": "홍서진",
+            "student_id": "2026171033",
+            "pref1_school": "드럼 입문 3반",
+            "pref2_school": "—",
+            "assigned_school": "드럼 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 378,
+              "school_id": null,
+              "applicant_name": "홍서진",
+              "student_id": "2026171033",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:01:22.656162+00:00",
+              "round_id": 56,
+              "pref1_school_id": 136,
+              "pref2_school_id": null,
+              "assigned_school_id": 136,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 379,
+            "created_at": "2026-09-15T09:01:23.483266+00:00",
+            "applicant_name": "조명혜",
+            "student_id": "2026230423",
+            "pref1_school": "기타 초급 1반",
+            "pref2_school": "기타 초급 3반",
+            "assigned_school": "기타 초급 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 379,
+              "school_id": null,
+              "applicant_name": "조명혜",
+              "student_id": "2026230423",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:01:23.483266+00:00",
+              "round_id": 56,
+              "pref1_school_id": 127,
+              "pref2_school_id": 129,
+              "assigned_school_id": 127,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 380,
+            "created_at": "2026-09-15T09:01:27.1534+00:00",
+            "applicant_name": "서혜빈",
+            "student_id": "2026131257",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 2반",
+            "assigned_school": "기타 입문 5반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 380,
+              "school_id": null,
+              "applicant_name": "서혜빈",
+              "student_id": "2026131257",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:01:27.1534+00:00",
+              "round_id": 56,
+              "pref1_school_id": 124,
+              "pref2_school_id": 121,
+              "assigned_school_id": 124,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 381,
+            "created_at": "2026-09-15T09:01:47.957667+00:00",
+            "applicant_name": "김범석",
+            "student_id": "2026120023",
+            "pref1_school": "기타 초급 1반",
+            "pref2_school": "기타 초급 2반(For International Students)",
+            "assigned_school": "기타 초급 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 381,
+              "school_id": null,
+              "applicant_name": "김범석",
+              "student_id": "2026120023",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:01:47.957667+00:00",
+              "round_id": 56,
+              "pref1_school_id": 127,
+              "pref2_school_id": 128,
+              "assigned_school_id": 127,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 382,
+            "created_at": "2026-09-15T09:02:00.016171+00:00",
+            "applicant_name": "최유찬",
+            "student_id": "2026171191",
+            "pref1_school": "기타 입문 4반",
+            "pref2_school": "—",
+            "assigned_school": "",
+            "status": "unassigned",
+            "is_returning": false,
+            "raw": {
+              "id": 382,
+              "school_id": null,
+              "applicant_name": "최유찬",
+              "student_id": "2026171191",
+              "status": "unassigned",
+              "created_at": "2026-09-15T09:02:00.016171+00:00",
+              "round_id": 56,
+              "pref1_school_id": 123,
+              "pref2_school_id": null,
+              "assigned_school_id": null,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 383,
+            "created_at": "2026-09-15T09:02:05.795396+00:00",
+            "applicant_name": "민경태",
+            "student_id": "2026120015",
+            "pref1_school": "기타 입문 1반",
+            "pref2_school": "기타 입문 3반",
+            "assigned_school": "기타 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 383,
+              "school_id": null,
+              "applicant_name": "민경태",
+              "student_id": "2026120015",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:02:05.795396+00:00",
+              "round_id": 56,
+              "pref1_school_id": 108,
+              "pref2_school_id": 122,
+              "assigned_school_id": 108,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 385,
+            "created_at": "2026-09-15T09:02:17.547838+00:00",
+            "applicant_name": "조효인",
+            "student_id": "2026250322",
+            "pref1_school": "드럼 입문 2반",
+            "pref2_school": "—",
+            "assigned_school": "드럼 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 385,
+              "school_id": null,
+              "applicant_name": "조효인",
+              "student_id": "2026250322",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:02:17.547838+00:00",
+              "round_id": 56,
+              "pref1_school_id": 135,
+              "pref2_school_id": null,
+              "assigned_school_id": 135,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 386,
+            "created_at": "2026-09-15T09:02:28.705477+00:00",
+            "applicant_name": "고홍",
+            "student_id": "2026190137",
+            "pref1_school": "기타 입문 5반",
+            "pref2_school": "기타 입문 3반",
+            "assigned_school": "기타 입문 5반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 386,
+              "school_id": null,
+              "applicant_name": "고홍",
+              "student_id": "2026190137",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:02:28.705477+00:00",
+              "round_id": 56,
+              "pref1_school_id": 124,
+              "pref2_school_id": 122,
+              "assigned_school_id": 124,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 387,
+            "created_at": "2026-09-15T09:02:32.390938+00:00",
+            "applicant_name": "김석현",
+            "student_id": "2025200030",
+            "pref1_school": "기타 초급 3반",
+            "pref2_school": "기타 초급 1반",
+            "assigned_school": "기타 초급 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 387,
+              "school_id": null,
+              "applicant_name": "김석현",
+              "student_id": "2025200030",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:02:32.390938+00:00",
+              "round_id": 56,
+              "pref1_school_id": 129,
+              "pref2_school_id": 127,
+              "assigned_school_id": 129,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 388,
+            "created_at": "2026-09-15T09:02:39.132693+00:00",
+            "applicant_name": "Guellue",
+            "student_id": "2025470054",
+            "pref1_school": "드럼 입문 1반",
+            "pref2_school": "드럼 입문 2반",
+            "assigned_school": "드럼 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 388,
+              "school_id": null,
+              "applicant_name": "Guellue",
+              "student_id": "2025470054",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:02:39.132693+00:00",
+              "round_id": 56,
+              "pref1_school_id": 134,
+              "pref2_school_id": 135,
+              "assigned_school_id": 135,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 389,
+            "created_at": "2026-09-15T09:02:44.486799+00:00",
+            "applicant_name": "백지수",
+            "student_id": "2022150437",
+            "pref1_school": "베이스 심화반",
+            "pref2_school": "베이스 입문반",
+            "assigned_school": "베이스 심화반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 389,
+              "school_id": null,
+              "applicant_name": "백지수",
+              "student_id": "2022150437",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:02:44.486799+00:00",
+              "round_id": 56,
+              "pref1_school_id": 133,
+              "pref2_school_id": 132,
+              "assigned_school_id": 133,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 390,
+            "created_at": "2026-09-15T09:02:47.859117+00:00",
+            "applicant_name": "유환민",
+            "student_id": "2026171188",
+            "pref1_school": "기타 초급 3반",
+            "pref2_school": "—",
+            "assigned_school": "기타 초급 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 390,
+              "school_id": null,
+              "applicant_name": "유환민",
+              "student_id": "2026171188",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:02:47.859117+00:00",
+              "round_id": 56,
+              "pref1_school_id": 129,
+              "pref2_school_id": null,
+              "assigned_school_id": 129,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 391,
+            "created_at": "2026-09-15T09:03:08.065609+00:00",
+            "applicant_name": "손승완",
+            "student_id": "2022170936",
+            "pref1_school": "기타 입문 3반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 391,
+              "school_id": null,
+              "applicant_name": "손승완",
+              "student_id": "2022170936",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:03:08.065609+00:00",
+              "round_id": 56,
+              "pref1_school_id": 122,
+              "pref2_school_id": null,
+              "assigned_school_id": 122,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 392,
+            "created_at": "2026-09-15T09:03:20.677941+00:00",
+            "applicant_name": "임재영",
+            "student_id": "2026171161",
+            "pref1_school": "기타 입문 4반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 4반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 392,
+              "school_id": null,
+              "applicant_name": "임재영",
+              "student_id": "2026171161",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:03:20.677941+00:00",
+              "round_id": 56,
+              "pref1_school_id": 123,
+              "pref2_school_id": null,
+              "assigned_school_id": 123,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 393,
+            "created_at": "2026-09-15T09:03:28.721281+00:00",
+            "applicant_name": "김건민",
+            "student_id": "2026350220",
+            "pref1_school": "기타 초급 1반",
+            "pref2_school": "베이스 심화반",
+            "assigned_school": "기타 초급 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 393,
+              "school_id": null,
+              "applicant_name": "김건민",
+              "student_id": "2026350220",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:03:28.721281+00:00",
+              "round_id": 56,
+              "pref1_school_id": 127,
+              "pref2_school_id": 133,
+              "assigned_school_id": 127,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 394,
+            "created_at": "2026-09-15T09:04:02.842089+00:00",
+            "applicant_name": "정병찬",
+            "student_id": "2025170825",
+            "pref1_school": "베이스 입문반",
+            "pref2_school": "베이스 심화반",
+            "assigned_school": "베이스 입문반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 394,
+              "school_id": null,
+              "applicant_name": "정병찬",
+              "student_id": "2025170825",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:04:02.842089+00:00",
+              "round_id": 56,
+              "pref1_school_id": 132,
+              "pref2_school_id": 133,
+              "assigned_school_id": 132,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 396,
+            "created_at": "2026-09-15T09:04:08.472165+00:00",
+            "applicant_name": "이권라온",
+            "student_id": "2026350019",
+            "pref1_school": "드럼 입문 2반",
+            "pref2_school": "—",
+            "assigned_school": "드럼 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 396,
+              "school_id": null,
+              "applicant_name": "이권라온",
+              "student_id": "2026350019",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:04:08.472165+00:00",
+              "round_id": 56,
+              "pref1_school_id": 135,
+              "pref2_school_id": null,
+              "assigned_school_id": 135,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 397,
+            "created_at": "2026-09-15T09:05:08.673355+00:00",
+            "applicant_name": "잘레스카야 마리아",
+            "student_id": "2026120433",
+            "pref1_school": "기타 초급 1반",
+            "pref2_school": "—",
+            "assigned_school": "기타 초급 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 397,
+              "school_id": null,
+              "applicant_name": "잘레스카야 마리아",
+              "student_id": "2026120433",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:05:08.673355+00:00",
+              "round_id": 56,
+              "pref1_school_id": 127,
+              "pref2_school_id": null,
+              "assigned_school_id": 127,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 398,
+            "created_at": "2026-09-15T09:05:21.628845+00:00",
+            "applicant_name": "이윤서",
+            "student_id": "2026340027",
+            "pref1_school": "기타 입문 2반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 398,
+              "school_id": null,
+              "applicant_name": "이윤서",
+              "student_id": "2026340027",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:05:21.628845+00:00",
+              "round_id": 56,
+              "pref1_school_id": 121,
+              "pref2_school_id": null,
+              "assigned_school_id": 121,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 400,
+            "created_at": "2026-09-15T09:06:11.654584+00:00",
+            "applicant_name": "조소연",
+            "student_id": "2026170297",
+            "pref1_school": "기타 입문 2반",
+            "pref2_school": "드럼 입문 2반",
+            "assigned_school": "기타 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 400,
+              "school_id": null,
+              "applicant_name": "조소연",
+              "student_id": "2026170297",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:06:11.654584+00:00",
+              "round_id": 56,
+              "pref1_school_id": 121,
+              "pref2_school_id": 135,
+              "assigned_school_id": 121,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 401,
+            "created_at": "2026-09-15T09:06:27.450751+00:00",
+            "applicant_name": "손채연",
+            "student_id": "2026120350",
+            "pref1_school": "기타 입문 2반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 401,
+              "school_id": null,
+              "applicant_name": "손채연",
+              "student_id": "2026120350",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:06:27.450751+00:00",
+              "round_id": 56,
+              "pref1_school_id": 121,
+              "pref2_school_id": null,
+              "assigned_school_id": 121,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 403,
+            "created_at": "2026-09-15T09:08:29.426101+00:00",
+            "applicant_name": "Emilia Molly Ru Yi Gustavsson",
+            "student_id": "2026972115",
+            "pref1_school": "기타 입문 1반",
+            "pref2_school": "기타 입문 6반(For International Students)",
+            "assigned_school": "기타 입문 6반(For International Students)",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 403,
+              "school_id": null,
+              "applicant_name": "Emilia Molly Ru Yi Gustavsson",
+              "student_id": "2026972115",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:08:29.426101+00:00",
+              "round_id": 56,
+              "pref1_school_id": 108,
+              "pref2_school_id": 126,
+              "assigned_school_id": 126,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 404,
+            "created_at": "2026-09-15T09:09:54.235775+00:00",
+            "applicant_name": "강민희",
+            "student_id": "2025200035",
+            "pref1_school": "기타 핑거스타일",
+            "pref2_school": "드럼 입문 3반",
+            "assigned_school": "기타 핑거스타일",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 404,
+              "school_id": null,
+              "applicant_name": "강민희",
+              "student_id": "2025200035",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:09:54.235775+00:00",
+              "round_id": 56,
+              "pref1_school_id": 131,
+              "pref2_school_id": 136,
+              "assigned_school_id": 131,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 405,
+            "created_at": "2026-09-15T09:10:11.295772+00:00",
+            "applicant_name": "노성원",
+            "student_id": "2026230051",
+            "pref1_school": "드럼 입문 2반",
+            "pref2_school": "드럼 입문 1반",
+            "assigned_school": "드럼 입문 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 405,
+              "school_id": null,
+              "applicant_name": "노성원",
+              "student_id": "2026230051",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:10:11.295772+00:00",
+              "round_id": 56,
+              "pref1_school_id": 135,
+              "pref2_school_id": 134,
+              "assigned_school_id": 134,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 406,
+            "created_at": "2026-09-15T09:11:37.340698+00:00",
+            "applicant_name": "민서준",
+            "student_id": "2023150501",
+            "pref1_school": "기타 초급 1반",
+            "pref2_school": "기타 입문 2반",
+            "assigned_school": "기타 초급 1반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 406,
+              "school_id": null,
+              "applicant_name": "민서준",
+              "student_id": "2023150501",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:11:37.340698+00:00",
+              "round_id": 56,
+              "pref1_school_id": 127,
+              "pref2_school_id": 121,
+              "assigned_school_id": 127,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 407,
+            "created_at": "2026-09-15T09:15:36.872263+00:00",
+            "applicant_name": "나용훈",
+            "student_id": "2026100197",
+            "pref1_school": "기타 입문 3반",
+            "pref2_school": "베이스 입문반",
+            "assigned_school": "기타 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 407,
+              "school_id": null,
+              "applicant_name": "나용훈",
+              "student_id": "2026100197",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:15:36.872263+00:00",
+              "round_id": 56,
+              "pref1_school_id": 122,
+              "pref2_school_id": 132,
+              "assigned_school_id": 122,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 408,
+            "created_at": "2026-09-15T09:16:49.539643+00:00",
+            "applicant_name": "박시윤",
+            "student_id": "2026130133",
+            "pref1_school": "기타 입문 3반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 408,
+              "school_id": null,
+              "applicant_name": "박시윤",
+              "student_id": "2026130133",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:16:49.539643+00:00",
+              "round_id": 56,
+              "pref1_school_id": 122,
+              "pref2_school_id": null,
+              "assigned_school_id": 122,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 409,
+            "created_at": "2026-09-15T09:17:12.400392+00:00",
+            "applicant_name": "박민순",
+            "student_id": "2026120288",
+            "pref1_school": "기타 입문 2반",
+            "pref2_school": "기타 입문 1반",
+            "assigned_school": "기타 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 409,
+              "school_id": null,
+              "applicant_name": "박민순",
+              "student_id": "2026120288",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:17:12.400392+00:00",
+              "round_id": 56,
+              "pref1_school_id": 121,
+              "pref2_school_id": 108,
+              "assigned_school_id": 121,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 411,
+            "created_at": "2026-09-15T09:19:23.165441+00:00",
+            "applicant_name": "Dono",
+            "student_id": "2026230108",
+            "pref1_school": "기타 입문 6반(For International Students)",
+            "pref2_school": "기타 초급 2반(For International Students)",
+            "assigned_school": "기타 입문 6반(For International Students)",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 411,
+              "school_id": null,
+              "applicant_name": "Dono",
+              "student_id": "2026230108",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:19:23.165441+00:00",
+              "round_id": 56,
+              "pref1_school_id": 126,
+              "pref2_school_id": 128,
+              "assigned_school_id": 126,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 413,
+            "created_at": "2026-09-15T09:20:19.074087+00:00",
+            "applicant_name": "전지현",
+            "student_id": "2026170844",
+            "pref1_school": "기타 입문 3반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 3반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 413,
+              "school_id": null,
+              "applicant_name": "전지현",
+              "student_id": "2026170844",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:20:19.074087+00:00",
+              "round_id": 56,
+              "pref1_school_id": 122,
+              "pref2_school_id": null,
+              "assigned_school_id": 122,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 414,
+            "created_at": "2026-09-15T09:21:10.004664+00:00",
+            "applicant_name": "우하민",
+            "student_id": "2025230050",
+            "pref1_school": "베이스 입문반",
+            "pref2_school": "—",
+            "assigned_school": "베이스 입문반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 414,
+              "school_id": null,
+              "applicant_name": "우하민",
+              "student_id": "2025230050",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:21:10.004664+00:00",
+              "round_id": 56,
+              "pref1_school_id": 132,
+              "pref2_school_id": null,
+              "assigned_school_id": 132,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 415,
+            "created_at": "2026-09-15T09:27:12.008007+00:00",
+            "applicant_name": "임예린",
+            "student_id": "2026203209",
+            "pref1_school": "드럼 초급반",
+            "pref2_school": "베이스 입문반",
+            "assigned_school": "드럼 초급반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 415,
+              "school_id": null,
+              "applicant_name": "임예린",
+              "student_id": "2026203209",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:27:12.008007+00:00",
+              "round_id": 56,
+              "pref1_school_id": 137,
+              "pref2_school_id": 132,
+              "assigned_school_id": 137,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 416,
+            "created_at": "2026-09-15T09:48:22.672589+00:00",
+            "applicant_name": "김연우",
+            "student_id": "2025150042",
+            "pref1_school": "기타 입문 2반",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 2반",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 416,
+              "school_id": null,
+              "applicant_name": "김연우",
+              "student_id": "2025150042",
+              "status": "assigned",
+              "created_at": "2026-09-15T09:48:22.672589+00:00",
+              "round_id": 56,
+              "pref1_school_id": 121,
+              "pref2_school_id": null,
+              "assigned_school_id": 121,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 417,
+            "created_at": "2026-09-15T11:00:10.51948+00:00",
+            "applicant_name": "박시은",
+            "student_id": "2023140426",
+            "pref1_school": "기타 입문 6반(For International Students)",
+            "pref2_school": "기타 초급 2반(For International Students)",
+            "assigned_school": "기타 입문 6반(For International Students)",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 417,
+              "school_id": null,
+              "applicant_name": "박시은",
+              "student_id": "2023140426",
+              "status": "assigned",
+              "created_at": "2026-09-15T11:00:10.51948+00:00",
+              "round_id": 56,
+              "pref1_school_id": 126,
+              "pref2_school_id": 128,
+              "assigned_school_id": 126,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 418,
+            "created_at": "2026-09-15T11:13:17.166038+00:00",
+            "applicant_name": "노채린",
+            "student_id": "2021130203",
+            "pref1_school": "기타 입문 6반(For International Students)",
+            "pref2_school": "—",
+            "assigned_school": "기타 입문 6반(For International Students)",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 418,
+              "school_id": null,
+              "applicant_name": "노채린",
+              "student_id": "2021130203",
+              "status": "assigned",
+              "created_at": "2026-09-15T11:13:17.166038+00:00",
+              "round_id": 56,
+              "pref1_school_id": 126,
+              "pref2_school_id": null,
+              "assigned_school_id": 126,
+              "is_returning": false
+            }
+          }
+        ],
+        "raw": {
+          "id": 56,
+          "status": "open",
+          "open_at": "2026-09-15T09:00:00+00:00",
+          "close_at": "2026-09-17T09:00:00+00:00",
+          "created_at": "2026-09-15T06:06:35.834137+00:00",
+          "name": "2학기 1차 스쿨 신청",
+          "prioritize_returning": false
         }
       }
     ]
