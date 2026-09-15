@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-15T11:32:16.505Z",
-  "generated_at_kst": "2026년 9월 15일 20시 32분 16초",
+  "generated_at": "2026-09-15T16:33:13.085Z",
+  "generated_at_kst": "2026년 9월 16일 1시 33분 13초",
   "source": "Supabase KUAGC Schedule",
   "purpose": "latest readable static backup for kuagc.kro.kr/backups.html",
   "counts": {
@@ -9,7 +9,7 @@
     "time_applications": 0,
     "school_rounds": 41,
     "schools": 96,
-    "school_applications": 136,
+    "school_applications": 139,
     "ensemble_rounds": 111,
     "song_applications": 163,
     "session_applications": 409,
@@ -17,7 +17,7 @@
   },
   "latest_timestamps": {
     "time_application": "",
-    "school_application": "2026-09-15T11:13:17.166038+00:00",
+    "school_application": "2026-09-15T14:46:39.839762+00:00",
     "song_application": "2026-06-26T02:37:54.206951+00:00",
     "session_application": "2026-06-27T07:27:56.333423+00:00",
     "manual_entry": ""
@@ -1726,6 +1726,27 @@
           "노채린",
           "2021130203",
           "기타 입문 6반(For International Students)",
+          "—"
+        ],
+        [
+          "2026년 9월 15일 21시 51분 08초",
+          "김은총",
+          "2026952466",
+          "드럼 입문 1반",
+          "드럼 입문 2반"
+        ],
+        [
+          "2026년 9월 15일 22시 08분 25초",
+          "서동환",
+          "2021170918",
+          "기타 초급 1반",
+          "기타 초급 2반(For International Students)"
+        ],
+        [
+          "2026년 9월 15일 23시 46분 39초",
+          "강태이",
+          "2024180066",
+          "기타 초급 2반(For International Students)",
           "—"
         ],
         [
@@ -15649,32 +15670,6 @@
         "prioritize_returning": false,
         "schools": [
           {
-            "id": 126,
-            "name": "기타 입문 6반(For International Students)",
-            "teacher_name": "",
-            "capacity": "",
-            "schedule": "—",
-            "description": "",
-            "raw": {
-              "id": 126,
-              "name": "기타 입문 6반(For International Students)",
-              "round_id": 56
-            }
-          },
-          {
-            "id": 128,
-            "name": "기타 초급 2반(For International Students)",
-            "teacher_name": "",
-            "capacity": "",
-            "schedule": "—",
-            "description": "",
-            "raw": {
-              "id": 128,
-              "name": "기타 초급 2반(For International Students)",
-              "round_id": 56
-            }
-          },
-          {
             "id": 108,
             "name": "기타 입문 1반",
             "teacher_name": "",
@@ -15684,6 +15679,19 @@
             "raw": {
               "id": 108,
               "name": "기타 입문 1반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 135,
+            "name": "드럼 입문 2반",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 135,
+              "name": "드럼 입문 2반",
               "round_id": 56
             }
           },
@@ -15740,6 +15748,19 @@
             }
           },
           {
+            "id": 126,
+            "name": "기타 입문 6반(For International Students)",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 126,
+              "name": "기타 입문 6반(For International Students)",
+              "round_id": 56
+            }
+          },
+          {
             "id": 127,
             "name": "기타 초급 1반",
             "teacher_name": "",
@@ -15749,6 +15770,19 @@
             "raw": {
               "id": 127,
               "name": "기타 초급 1반",
+              "round_id": 56
+            }
+          },
+          {
+            "id": 128,
+            "name": "기타 초급 2반(For International Students)",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 128,
+              "name": "기타 초급 2반(For International Students)",
               "round_id": 56
             }
           },
@@ -15779,15 +15813,15 @@
             }
           },
           {
-            "id": 131,
-            "name": "기타 핑거스타일",
+            "id": 133,
+            "name": "베이스 심화반",
             "teacher_name": "",
             "capacity": "",
             "schedule": "—",
             "description": "",
             "raw": {
-              "id": 131,
-              "name": "기타 핑거스타일",
+              "id": 133,
+              "name": "베이스 심화반",
               "round_id": 56
             }
           },
@@ -15805,28 +15839,15 @@
             }
           },
           {
-            "id": 133,
-            "name": "베이스 심화반",
+            "id": 134,
+            "name": "드럼 입문 1반",
             "teacher_name": "",
             "capacity": "",
             "schedule": "—",
             "description": "",
             "raw": {
-              "id": 133,
-              "name": "베이스 심화반",
-              "round_id": 56
-            }
-          },
-          {
-            "id": 135,
-            "name": "드럼 입문 2반",
-            "teacher_name": "",
-            "capacity": "",
-            "schedule": "—",
-            "description": "",
-            "raw": {
-              "id": 135,
-              "name": "드럼 입문 2반",
+              "id": 134,
+              "name": "드럼 입문 1반",
               "round_id": 56
             }
           },
@@ -15844,6 +15865,19 @@
             }
           },
           {
+            "id": 131,
+            "name": "기타 핑거스타일",
+            "teacher_name": "",
+            "capacity": "",
+            "schedule": "—",
+            "description": "",
+            "raw": {
+              "id": 131,
+              "name": "기타 핑거스타일",
+              "round_id": 56
+            }
+          },
+          {
             "id": 137,
             "name": "드럼 초급반",
             "teacher_name": "",
@@ -15853,19 +15887,6 @@
             "raw": {
               "id": 137,
               "name": "드럼 초급반",
-              "round_id": 56
-            }
-          },
-          {
-            "id": 134,
-            "name": "드럼 입문 1반",
-            "teacher_name": "",
-            "capacity": "",
-            "schedule": "—",
-            "description": "",
-            "raw": {
-              "id": 134,
-              "name": "드럼 입문 1반",
               "round_id": 56
             }
           }
@@ -17404,6 +17425,78 @@
               "pref1_school_id": 126,
               "pref2_school_id": null,
               "assigned_school_id": 126,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 420,
+            "created_at": "2026-09-15T12:51:08.312812+00:00",
+            "applicant_name": "김은총",
+            "student_id": "2026952466",
+            "pref1_school": "드럼 입문 1반",
+            "pref2_school": "드럼 입문 2반",
+            "assigned_school": "",
+            "status": "unassigned",
+            "is_returning": false,
+            "raw": {
+              "id": 420,
+              "school_id": null,
+              "applicant_name": "김은총",
+              "student_id": "2026952466",
+              "status": "unassigned",
+              "created_at": "2026-09-15T12:51:08.312812+00:00",
+              "round_id": 56,
+              "pref1_school_id": 134,
+              "pref2_school_id": 135,
+              "assigned_school_id": null,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 421,
+            "created_at": "2026-09-15T13:08:25.389338+00:00",
+            "applicant_name": "서동환",
+            "student_id": "2021170918",
+            "pref1_school": "기타 초급 1반",
+            "pref2_school": "기타 초급 2반(For International Students)",
+            "assigned_school": "기타 초급 2반(For International Students)",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 421,
+              "school_id": null,
+              "applicant_name": "서동환",
+              "student_id": "2021170918",
+              "status": "assigned",
+              "created_at": "2026-09-15T13:08:25.389338+00:00",
+              "round_id": 56,
+              "pref1_school_id": 127,
+              "pref2_school_id": 128,
+              "assigned_school_id": 128,
+              "is_returning": false
+            }
+          },
+          {
+            "id": 422,
+            "created_at": "2026-09-15T14:46:39.839762+00:00",
+            "applicant_name": "강태이",
+            "student_id": "2024180066",
+            "pref1_school": "기타 초급 2반(For International Students)",
+            "pref2_school": "—",
+            "assigned_school": "기타 초급 2반(For International Students)",
+            "status": "assigned",
+            "is_returning": false,
+            "raw": {
+              "id": 422,
+              "school_id": null,
+              "applicant_name": "강태이",
+              "student_id": "2024180066",
+              "status": "assigned",
+              "created_at": "2026-09-15T14:46:39.839762+00:00",
+              "round_id": 56,
+              "pref1_school_id": 128,
+              "pref2_school_id": null,
+              "assigned_school_id": 128,
               "is_returning": false
             }
           }
