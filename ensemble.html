@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>location.replace('index.html#ensemble');</script>
+<title>합주 신청 | 그루터기</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/ensemble.css">
+</head>
+<body>
+<div class="ld" id="ld" role="status" aria-label="로딩 중"><div class="ld-logo-wrap"><img class="ld-logo-gray" src="img/logo.png" alt=""><div class="ld-logo-fill"></div></div></div>
+
+<header>
+  <a class="logo" href="myskill.html"><span class="logo-img"></span></a>
+  <div class="nav">
+    <a class="nav-btn" href="index.html">시간표</a>
+  </div>
+  <div style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></div>
+  <a class="hdr-apply-btn" href="timeassign.html">📅 시간 배정</a>
+  <a class="hdr-school-btn" href="school.html">🏫 스쿨 신청</a>
+  <a class="hdr-ensemble-btn active" href="ensemble.html">🎸 합주 신청</a>
+  <div class="type-toggle">
+    <button class="type-btn active" id="tb-regular" onclick="switchType('regular')">일반</button>
+    <button class="type-btn" id="tb-busking" onclick="switchType('busking')">버스킹</button>
+  </div>
+  <div class="hdr-right">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="다크/라이트 모드 전환">🌙</button>
+  </div>
+</header>
+
+<div class="container" id="mainContainer"></div>
+
+<div class="modal-bd" id="modalBd" style="display:none" onclick="onMBd(event)">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-ttl" id="modalTtl"></div><button class="modal-x" onclick="closeModal()" aria-label="닫기">×</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<script type="module" src="js/ensemble/main.js"></script>
+</body>
+</html>

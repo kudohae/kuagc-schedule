@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기술 로직 명세 | 그루터기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+:root{
+  --bg:#f4f4f5;--surface:#ffffff;--surface2:#f0f0f2;--border:#dddde0;
+  --accent:#5c9e00;--accent2:#0077cc;--danger:#d93025;--warn:#c8760a;
+  --text:#111111;--text2:#555555;--text3:#999999;--radius:8px;--hh:48px;
+  --header-bg:rgba(244,244,245,.97);
+}
+body.dark{
+  --bg:#121212;--surface:#1e1e1e;--surface2:#2a2a2e;--border:#333338;
+  --accent:#e8ff47;--accent2:#47c5ff;--danger:#ff4747;--warn:#ffaa47;
+  --text:#f0f0f0;--text2:#888888;--text3:#505055;
+  --header-bg:rgba(18,18,18,.97);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.7;}
+
+header{height:var(--hh);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;background:var(--header-bg);backdrop-filter:blur(8px);z-index:100;}
+.logo{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;color:var(--accent);text-decoration:none;}
+.hdr-title{font-size:13px;color:var(--text2);font-weight:500;}
+.hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.theme-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 9px;font-size:13px;cursor:pointer;line-height:1;transition:all .12s;}
+.theme-btn:hover{border-color:var(--text2);}
+
+.layout{display:flex;max-width:1200px;margin:0 auto;padding:32px 20px;gap:28px;align-items:flex-start;}
+
+/* sidebar nav */
+.sidebar{width:200px;flex-shrink:0;position:sticky;top:calc(var(--hh) + 16px);max-height:calc(100vh - var(--hh) - 32px);overflow-y:auto;}
+.sidebar-title{font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--text3);text-transform:uppercase;padding:0 8px;margin-bottom:8px;}
+.sidebar-nav{display:flex;flex-direction:column;gap:1px;}
+.sn-item{display:block;padding:6px 10px;border-radius:6px;text-decoration:none;font-size:12px;color:var(--text2);transition:all .1s;}
+.sn-item:hover{background:var(--surface);color:var(--text);}
+.sn-item.active{background:rgba(92,158,0,.1);color:var(--accent);font-weight:700;}
+body.dark .sn-item.active{background:rgba(232,255,71,.08);}
+.sn-group{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text3);padding:8px 10px 3px;text-transform:uppercase;}
+.sn-sub{padding-left:18px;font-size:11px;}
+
+/* main content */
+.content{flex:1;min-width:0;display:flex;flex-direction:column;gap:36px;}
+
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.section-hdr{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.section-icon{font-size:20px;line-height:1;}
+.section-num{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;}
+.section-ttl{font-size:16px;font-weight:700;}
+.section-sub{font-size:12px;color:var(--text2);margin-top:1px;}
+.section-body{padding:20px 24px;display:flex;flex-direction:column;gap:24px;}
+
+h3{font-size:13px;font-weight:700;color:var(--text2);letter-spacing:.4px;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:2px;}
+
+p{font-size:14px;color:var(--text);line-height:1.75;}
+
+/* DB schema card */
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.db-table{border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.db-table-hdr{padding:8px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);}
+.db-table-hdr span{color:var(--text3);font-weight:400;font-size:10px;margin-left:6px;}
+.db-col{display:flex;justify-content:space-between;align-items:center;padding:5px 14px;border-bottom:1px solid var(--border);font-size:12px;gap:8px;}
+.db-col:last-child{border-bottom:none;}
+.db-col-name{font-family:'Space Mono',monospace;font-size:11px;color:var(--text);}
+.db-col-name.pk{color:var(--warn);}
+.db-col-name.fk{color:var(--accent2);}
+.db-col-type{font-size:10px;color:var(--text3);white-space:nowrap;}
+.db-col-note{font-size:10px;color:var(--text2);flex:1;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* code block */
+.code{font-family:'Space Mono',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:12px 16px;color:var(--text);white-space:pre;overflow-x:auto;line-height:1.65;}
+.code .cm{color:var(--text3);font-style:italic;}
+.code .kw{color:var(--accent2);}
+.code .str{color:var(--accent);}
+
+/* step list */
+.steps{display:flex;flex-direction:column;gap:8px;}
+.step{display:flex;gap:12px;align-items:flex-start;}
+.step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px;}
+body.dark .step-num{color:#000;}
+.step-body{flex:1;font-size:13px;line-height:1.65;}
+.step-body strong{font-weight:700;}
+
+/* bullet list */
+ul.blist{list-style:none;display:flex;flex-direction:column;gap:5px;padding-left:4px;}
+ul.blist li{font-size:13px;color:var(--text);padding-left:16px;position:relative;line-height:1.65;}
+ul.blist li::before{content:'·';position:absolute;left:0;color:var(--text3);}
+
+/* info box */
+.info-box{background:rgba(0,119,204,.05);border:1px solid rgba(0,119,204,.2);border-radius:6px;padding:11px 14px;font-size:13px;color:var(--text);}
+body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255,.15);}
+.info-box.warn{background:rgba(200,118,10,.05);border-color:rgba(200,118,10,.2);}
+.info-box.danger{background:rgba(217,48,37,.05);border-color:rgba(217,48,37,.2);}
+.info-box strong{font-weight:700;}
+
+/* phase flow */
+.phase-flow{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+.ph{font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;white-space:nowrap;}
+.ph.prep{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.ph.song{background:rgba(92,158,0,.12);color:var(--accent);}
+.ph.wait{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.ph.sess{background:rgba(0,119,204,.1);color:var(--accent2);}
+.ph.sess2{background:rgba(200,118,10,.1);color:var(--warn);}
+.ph.done{background:rgba(92,158,0,.18);color:var(--accent);}
+.ph-arrow{color:var(--text3);font-size:12px;}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{text-align:left;padding:7px 12px;background:var(--surface2);font-weight:700;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 12px;border-bottom:1px solid var(--border);line-height:1.5;vertical-align:top;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl td:first-child{font-family:'Space Mono',monospace;font-size:11px;white-space:nowrap;}
+
+/* badge */
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;vertical-align:middle;}
+.badge.green{background:rgba(92,158,0,.12);color:var(--accent);}
+.badge.blue{background:rgba(0,119,204,.1);color:var(--accent2);}
+.badge.gray{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.badge.orange{background:rgba(200,118,10,.1);color:var(--warn);}
+.badge.red{background:rgba(217,48,37,.1);color:var(--danger);}
+
+/* divider within section */
+.sub-divider{border:none;border-top:1px solid var(--border);}
+
+/* algorithm box */
+.algo-box{background:var(--surface2);border-radius:6px;padding:14px 16px;font-size:13px;line-height:1.75;}
+.algo-box ol{padding-left:18px;display:flex;flex-direction:column;gap:6px;}
+.algo-box li{font-size:13px;}
+
+/* relation label */
+.rel{font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;}
+
+@media(max-width:800px){
+  .sidebar{display:none;}
+  .layout{padding:20px 14px;}
+  .section-body{padding:16px;}
+  .db-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="/">KUAGC</a>
+  <span style="color:var(--border)">|</span>
+  <span class="hdr-title">기술 로직 명세</span>
+  <div class="hdr-right">
+    <button class="theme-btn" onclick="toggleDark()">🌓</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-title">목차</div>
+    <div class="sidebar-nav">
+      <div class="sn-group">A. 시간 배정</div>
+      <a class="sn-item sn-sub" href="#a1">DB 테이블</a>
+      <a class="sn-item sn-sub" href="#a2">시간표 렌더링</a>
+      <a class="sn-item sn-sub" href="#a3">요청 처리</a>
+      <a class="sn-item sn-sub" href="#a4">배정 회차</a>
+      <a class="sn-item sn-sub" href="#a5">실시간 구독</a>
+      <div class="sn-group">B. 스쿨 신청</div>
+      <a class="sn-item sn-sub" href="#b1">DB 테이블</a>
+      <a class="sn-item sn-sub" href="#b2">신청 처리</a>
+      <a class="sn-item sn-sub" href="#b3">마감 후 배정</a>
+      <a class="sn-item sn-sub" href="#b4">반 삭제</a>
+      <a class="sn-item sn-sub" href="#b5">예약 자동 전환</a>
+      <div class="sn-group">C. 합주 신청</div>
+      <a class="sn-item sn-sub" href="#c1">DB 테이블</a>
+      <a class="sn-item sn-sub" href="#c2">단계별 전환</a>
+      <a class="sn-item sn-sub" href="#c3">곡 신청 검증</a>
+      <a class="sn-item sn-sub" href="#c4">세션 신청 검증</a>
+      <a class="sn-item sn-sub" href="#c5">내 세션 제한</a>
+      <a class="sn-item sn-sub" href="#c6">신청자 세션 필터</a>
+      <a class="sn-item sn-sub" href="#c7">DnD 초기화</a>
+      <a class="sn-item sn-sub" href="#c8">DnD 확정</a>
+      <a class="sn-item sn-sub" href="#c9">pending 자동 처리</a>
+      <a class="sn-item sn-sub" href="#c10">2차 세션 모드</a>
+      <a class="sn-item sn-sub" href="#c11">신청자 고정</a>
+      <a class="sn-item sn-sub" href="#c12">결과 표시</a>
+      <a class="sn-item sn-sub" href="#c13">이전 단계 되돌리기</a>
+      <div class="sn-group">D. 공통</div>
+      <a class="sn-item sn-sub" href="#d1">관리자 인증</a>
+      <a class="sn-item sn-sub" href="#d2">Realtime 채널</a>
+      <a class="sn-item sn-sub" href="#d3">시간 포맷</a>
+      <a class="sn-item sn-sub" href="#d4">세션 목록</a>
+    </div>
+  </nav>
+
+  <!-- content -->
+  <main class="content">
+
+    <!-- ═══════════════════════════════════════════════════════ A. 시간 배정 -->
+    <section class="section" id="a1">
+      <div class="section-hdr">
+        <span class="section-icon">📅</span>
+        <span class="section-num">A</span>
+        <div>
+          <div class="section-ttl">시간 배정 (Time Assignment)</div>
+          <div class="section-sub">팀별 동아리방 사용 시간 신청 · 배정 시스템의 데이터 모델 및 알고리즘</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div>
+          <h3>A-1. DB 테이블</h3>
+          <div class="db-grid">
+
+            <div class="db-table">
+              <div class="db-table-hdr">teams <span>팀 마스터</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">name</span><span class="db-col-type">text</span><span class="db-col-note">팀명</span></div>
+              <div class="db-col"><span class="db-col-name">type</span><span class="db-col-type">text</span><span class="db-col-note">'합주'|'스쿨'|'이외'</span></div>
+              <div class="db-col"><span class="db-col-name">color</span><span class="db-col-type">text</span><span class="db-col-note">CSS hex/이름</span></div>
+              <div class="db-col"><span class="db-col-name">info</span><span class="db-col-type">text</span><span class="db-col-note">소개</span></div>
+              <div class="db-col"><span class="db-col-name">members</span><span class="db-col-type">text[]</span><span class="db-col-note">"이름 학번 세션" 행 배열</span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">base_slots <span>시즌 고정 슬롯</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">team_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ teams</span></div>
+              <div class="db-col"><span class="db-col-name">day</span><span class="db-col-type">integer</span><span class="db-col-note">0=월 ~ 6=일</span></div>
+              <div class="db-col"><span class="db-col-name">hour</span><span class="db-col-type">integer</span><span class="db-col-note">8~25 (25=새벽 1시)</span></div>
+              <div class="db-col"><span class="db-col-name">season</span><span class="db-col-type">text</span><span class="db-col-note">예: "2025-1"</span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">slot_exceptions <span>주차별 예외</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">team_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ teams</span></div>
+              <div class="db-col"><span class="db-col-name">day / hour</span><span class="db-col-type">integer</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">week_offset</span><span class="db-col-type">integer</span><span class="db-col-note">0=이번주, ±n</span></div>
+              <div class="db-col"><span class="db-col-name">exception_type</span><span class="db-col-type">text</span><span class="db-col-note">'absent'|'override'|'extra'</span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">requests <span>팀원 신청/신고</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">team_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ teams</span></div>
+              <div class="db-col"><span class="db-col-name">type</span><span class="db-col-type">text</span><span class="db-col-note">'absent'|'extra'|'terminate'</span></div>
+              <div class="db-col"><span class="db-col-name">day / hour</span><span class="db-col-type">integer</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">week_offset</span><span class="db-col-type">integer</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">reason</span><span class="db-col-type">text</span><span class="db-col-note">신청 사유</span></div>
+              <div class="db-col"><span class="db-col-name">requester_name</span><span class="db-col-type">text</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">status</span><span class="db-col-type">text</span><span class="db-col-note">'pending'|'approved'|'rejected'</span></div>
+              <div class="db-col"><span class="db-col-name">reviewed_at</span><span class="db-col-type">timestamptz</span><span class="db-col-note"></span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">application_rounds <span>시간 배정 회차</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">season</span><span class="db-col-type">text</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">status</span><span class="db-col-type">text</span><span class="db-col-note">'open'|'closed'|'finished'</span></div>
+              <div class="db-col"><span class="db-col-name">open_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note">예약 오픈</span></div>
+              <div class="db-col"><span class="db-col-name">close_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note">예약 마감</span></div>
+              <div class="db-col"><span class="db-col-name">draft_approved</span><span class="db-col-type">boolean</span><span class="db-col-note">배정 초안 승인 여부</span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">time_applications <span>시간 배정 신청</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">round_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ application_rounds</span></div>
+              <div class="db-col"><span class="db-col-name fk">team_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ teams</span></div>
+              <div class="db-col"><span class="db-col-name">submitted_at</span><span class="db-col-type">timestamptz</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">pref1_day/hour</span><span class="db-col-type">integer</span><span class="db-col-note">1지망 (필수)</span></div>
+              <div class="db-col"><span class="db-col-name">pref2_day/hour</span><span class="db-col-type">integer?</span><span class="db-col-note">2지망</span></div>
+              <div class="db-col"><span class="db-col-name">pref3_day/hour</span><span class="db-col-type">integer?</span><span class="db-col-note">3지망</span></div>
+              <div class="db-col"><span class="db-col-name">assigned_day/hour</span><span class="db-col-type">integer?</span><span class="db-col-note">배정 결과</span></div>
+              <div class="db-col"><span class="db-col-name">assigned_pref</span><span class="db-col-type">integer?</span><span class="db-col-note">1|2|3, 어느 지망에 배정됐는지</span></div>
+            </div>
+
+          </div>
+          <div class="info-box" style="margin-top:10px">
+            <strong>컬럼 색상 범례:</strong>
+            <span style="color:var(--warn);font-family:'Space Mono',monospace;font-size:11px"> pk</span> = Primary Key &nbsp;
+            <span style="color:var(--accent2);font-family:'Space Mono',monospace;font-size:11px"> fk</span> = Foreign Key
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="a2">
+        <div>
+          <h3>A-2. 시간표 렌더링 로직</h3>
+          <p style="margin-bottom:10px">매주 시간표는 <code style="font-family:'Space Mono',monospace;font-size:12px">base_slots</code> + <code style="font-family:'Space Mono',monospace;font-size:12px">slot_exceptions</code>를 병합해 생성한다.</p>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">해당 <code style="font-family:'Space Mono',monospace;font-size:12px">week_offset</code>의 exceptions를 모두 로드</div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">각 [day, hour] 셀에 대해 아래 규칙 적용</div>
+            </div>
+          </div>
+          <table class="tbl" style="margin-top:10px">
+            <tr><th>조건</th><th>렌더</th></tr>
+            <tr><td>base_slot 있음, exception 없음</td><td>정상 슬롯 — 팀 색상으로 표시</td></tr>
+            <tr><td>base_slot 있음 + <span class="badge gray">absent</span></td><td>미사용 — 빗금 패턴, 회색</td></tr>
+            <tr><td>base_slot 있음 + <span class="badge orange">override</span></td><td>원래 슬롯은 absent 처리, 새 시간에 override 슬롯 표시</td></tr>
+            <tr><td><span class="badge blue">extra</span> (base_slot 없음)</td><td>추가 슬롯 — 팀 색상, "추가" 레이블</td></tr>
+            <tr><td>어느 슬롯에도 해당 없음</td><td>빈 칸 (클릭 시 신청 가능)</td></tr>
+          </table>
+          <div class="code" style="margin-top:10px"><span class="cm">// week_offset 계산</span>
+이번 주 월요일 = new Date() 기준 최근 월요일
+화면 날짜   = 이번 주 월요일 + (weekOff × 7) + day</div>
+        </div>
+
+        <hr class="sub-divider" id="a3">
+        <div>
+          <h3>A-3. 요청(request) 처리 로직</h3>
+          <table class="tbl">
+            <tr><th>타입</th><th>승인 시</th><th>거절 시</th></tr>
+            <tr>
+              <td><span class="badge gray">absent</span></td>
+              <td>slot_exceptions에 {exception_type:'absent', week_offset, day, hour} 삽입. 이미 absent exception이 있으면 중복 삽입 건너뜀.</td>
+              <td rowspan="3" style="vertical-align:middle">requests.status = 'rejected'만 업데이트. exception 미생성.</td>
+            </tr>
+            <tr>
+              <td><span class="badge blue">extra</span></td>
+              <td>slot_exceptions에 {exception_type:'extra'} 삽입</td>
+            </tr>
+            <tr>
+              <td><span class="badge red">terminate</span></td>
+              <td>해당 팀의 base_slots에서 day/hour 일치 레코드 영구 <strong>DELETE</strong> + 기존 exception도 삭제. (예외가 아닌 base_slots 자체를 수정하는 유일한 경우)</td>
+            </tr>
+          </table>
+        </div>
+
+        <hr class="sub-divider" id="a4">
+        <div>
+          <h3>A-4. 시간 배정 회차 로직</h3>
+          <div class="phase-flow" style="margin-bottom:12px">
+            <span class="ph song">open</span>
+            <span class="ph-arrow">→ close_at 도달 또는 수동 마감 →</span>
+            <span class="ph wait">closed</span>
+            <span class="ph-arrow">→ 배정 실행 + 초안 승인 →</span>
+            <span class="ph done">finished</span>
+          </div>
+          <div class="algo-box" style="margin-bottom:12px">
+            <strong>배정 알고리즘 (schedule.js → assignSlots)</strong>
+            <ol style="margin-top:8px">
+              <li>round_id에 해당하는 신청 중 team_id별 <strong>최신(submitted_at) 1건</strong>만 추출 (마지막 제출이 이전 제출 무효화)</li>
+              <li>submitted_at 오름차순 정렬 (선착순 기준)</li>
+              <li>1지망 순회 — <code style="font-family:'Space Mono',monospace;font-size:11px">occupied</code> Set에 없으면 배정 + Set에 추가</li>
+              <li>1지망 미배정 → 2지망 순회 (동일 방식)</li>
+              <li>2지망 미배정 → 3지망 순회</li>
+              <li>결과를 time_applications.assigned_day/hour/pref에 일괄 UPDATE</li>
+            </ol>
+          </div>
+          <div class="algo-box">
+            <strong>초안 승인 (schedule.js → approveDraft)</strong>
+            <ol style="margin-top:8px">
+              <li>base_slots에서 해당 season의 모든 레코드 DELETE</li>
+              <li>assigned_day/hour가 not null인 applications에서 {team_id, day, hour, season} 추출</li>
+              <li>base_slots에 INSERT</li>
+              <li>application_rounds.draft_approved = true로 UPDATE</li>
+            </ol>
+          </div>
+          <div class="info-box" style="margin-top:12px">
+            <strong>예약 오픈/마감:</strong> open_at / close_at이 설정된 경우, 클라이언트에서 setInterval(1s)로 체크. new Date(open_at) &le; Date.now() 이면 자동으로 status UPDATE.
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="a5">
+        <div>
+          <h3>A-5. 실시간 구독 채널</h3>
+          <table class="tbl">
+            <tr><th>채널명</th><th>테이블</th><th>반응</th></tr>
+            <tr><td>base-ch</td><td>base_slots</td><td rowspan="5" style="vertical-align:middle">INSERT/UPDATE/DELETE → 시간표 즉시 재렌더</td></tr>
+            <tr><td>ex-ch</td><td>slot_exceptions</td></tr>
+            <tr><td>req-ch</td><td>requests</td></tr>
+            <tr><td>round-ch</td><td>application_rounds</td></tr>
+            <tr><td>app-ch</td><td>time_applications</td></tr>
+          </table>
+          <p style="margin-top:8px;font-size:13px">Supabase Realtime postgres_changes 방식. index.html / timeassign.html 양쪽에 동일 구독 적용.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ B. 스쿨 신청 -->
+    <section class="section" id="b1">
+      <div class="section-hdr">
+        <span class="section-icon">🎸</span>
+        <span class="section-num">B</span>
+        <div>
+          <div class="section-ttl">스쿨 신청 (School Application)</div>
+          <div class="section-sub">반 개설 · 신청 · 배정 · 마감 로직</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div>
+          <h3>B-1. DB 테이블</h3>
+          <div class="db-grid">
+
+            <div class="db-table">
+              <div class="db-table-hdr">school_rounds <span>스쿨 신청 회차</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">name</span><span class="db-col-type">text</span><span class="db-col-note">자동생성 "{n}학기 {m}차 스쿨 신청"</span></div>
+              <div class="db-col"><span class="db-col-name">status</span><span class="db-col-type">text</span><span class="db-col-note">'draft'|'open'|'closed'</span></div>
+              <div class="db-col"><span class="db-col-name">open_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note">예약 오픈</span></div>
+              <div class="db-col"><span class="db-col-name">close_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note">예약 마감</span></div>
+              <div class="db-col"><span class="db-col-name">prioritize_returning</span><span class="db-col-type">boolean</span><span class="db-col-note">이전 수강생 우선순위 설정</span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">schools <span>반 정보</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">round_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ school_rounds</span></div>
+              <div class="db-col"><span class="db-col-name">name</span><span class="db-col-type">text</span><span class="db-col-note">반 이름</span></div>
+              <div class="db-col"><span class="db-col-name">teacher_name</span><span class="db-col-type">text</span><span class="db-col-note">담당 이름</span></div>
+              <div class="db-col"><span class="db-col-name">capacity</span><span class="db-col-type">integer</span><span class="db-col-note">정원</span></div>
+              <div class="db-col"><span class="db-col-name">schedule_day</span><span class="db-col-type">text?</span><span class="db-col-note">'월'|'화'|…|'일'</span></div>
+              <div class="db-col"><span class="db-col-name">schedule_hour</span><span class="db-col-type">integer?</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">description</span><span class="db-col-type">text?</span><span class="db-col-note">소개 (접힘 표시)</span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">school_applications <span>스쿨 신청</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">round_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ school_rounds</span></div>
+              <div class="db-col"><span class="db-col-name">applicant_name</span><span class="db-col-type">text</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">student_id</span><span class="db-col-type">text</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">pref1_school_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ schools (필수)</span></div>
+              <div class="db-col"><span class="db-col-name fk">pref2_school_id</span><span class="db-col-type">integer FK?</span><span class="db-col-note">→ schools</span></div>
+              <div class="db-col"><span class="db-col-name fk">assigned_school_id</span><span class="db-col-type">integer FK?</span><span class="db-col-note">→ schools (배정 결과)</span></div>
+              <div class="db-col"><span class="db-col-name">is_returning</span><span class="db-col-type">boolean</span><span class="db-col-note">이전 회차 수강생 여부</span></div>
+              <div class="db-col"><span class="db-col-name">status</span><span class="db-col-type">text</span><span class="db-col-note">'assigned'|'unassigned'|'pending'</span></div>
+              <div class="db-col"><span class="db-col-name">created_at</span><span class="db-col-type">timestamptz</span><span class="db-col-note"></span></div>
+            </div>
+
+          </div>
+          <div class="info-box warn" style="margin-top:10px">
+            <strong>status 의미:</strong> <span class="badge green">assigned</span> 배정 완료 · <span class="badge gray">unassigned</span> 미배정 · <span class="badge orange">pending</span> 이전 수강생으로 마감 후 일괄 처리 대기 중
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="b2">
+        <div>
+          <h3>B-2. 신청 처리 로직 (school.html → submitApplication)</h3>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body"><strong>사전 체크:</strong> round.status === 'open' 확인. close_at &le; now() 이면 자동 마감 후 거부.</div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body"><strong>중복 체크:</strong> 동일 round_id + student_id 신청이 이미 있으면 거부. (취소 후 재신청 시: 기존 레코드 DELETE → 새로 INSERT)</div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body"><strong>is_returning 판별:</strong> 이전 회차(가장 최근 closed round)에서 student_id가 assigned_school_id is not null인 레코드가 있으면 is_returning = true.</div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body"><strong>분기 처리:</strong> 아래 표 참조</div>
+            </div>
+          </div>
+          <table class="tbl" style="margin-top:10px">
+            <tr><th>조건</th><th>처리</th></tr>
+            <tr>
+              <td>prioritize_returning = false<br>OR is_returning = false</td>
+              <td><strong>즉시 배정:</strong> pref1 가용 시 배정. 불가 시 pref2 시도. 모두 불가 시 status = 'unassigned'.</td>
+            </tr>
+            <tr>
+              <td>prioritize_returning = true<br>AND is_returning = true</td>
+              <td><strong>대기:</strong> assigned_school_id = null, status = 'pending'. 마감 후 adminSchoolClose()에서 일괄 처리.</td>
+            </tr>
+          </table>
+          <div class="info-box" style="margin-top:10px">
+            가용 여부 체크: <code style="font-family:'Space Mono',monospace;font-size:12px">COUNT(assigned_school_id === prefN && status === 'assigned') &lt; capacity</code>
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="b3">
+        <div>
+          <h3>B-3. 마감 후 배정 로직 (admin.html → adminSchoolClose)</h3>
+          <div class="algo-box">
+            <ol>
+              <li>round.status = 'closed'로 업데이트</li>
+              <li>status = 'pending'인 applications를 created_at ASC로 정렬 (선착순)</li>
+              <li>각 pending app에 대해 pref1 → pref2 순으로 가용 여부 체크 후 배정</li>
+              <li>내부 <code style="font-family:'Space Mono',monospace;font-size:11px">counts</code> 맵을 루프 내에서 실시간 갱신 (이미 처리된 배정도 반영)</li>
+              <li>각 결과를 school_applications UPDATE</li>
+            </ol>
+          </div>
+          <div class="info-box" style="margin-top:10px">
+            counts 맵 초기값: 이미 assigned 상태인 레코드 수로 초기화. 배정 확정 시마다 <code style="font-family:'Space Mono',monospace;font-size:12px">counts[schoolId]++</code>.
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="b4">
+        <div>
+          <h3>B-4. 반 삭제 로직 (admin.html → deleteClass)</h3>
+          <p style="margin-bottom:10px">단순히 <code style="font-family:'Space Mono',monospace;font-size:12px">assigned_school_id</code>만 체크하면 pref 데이터가 남으므로, <strong>세 컬럼 모두</strong>를 체크해야 한다.</p>
+          <div class="code">WHERE pref1_school_id = id
+   OR pref2_school_id = id
+   OR assigned_school_id = id</div>
+          <div class="steps" style="margin-top:10px">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">위 조건에 해당하는 application id 목록 추출</div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body"><code style="font-family:'Space Mono',monospace;font-size:12px">school_applications.delete().in('id', appIds)</code></div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body"><code style="font-family:'Space Mono',monospace;font-size:12px">schools.delete().eq('id', id)</code></div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="b5">
+        <div>
+          <h3>B-5. 예약 오픈/마감 자동 전환</h3>
+          <table class="tbl">
+            <tr><th>파일</th><th>로직</th></tr>
+            <tr><td>school.html</td><td>로드 시 round.status === 'open'이고 close_at &le; now() 이면 즉시 adminSchoolClose() 실행. close_at &gt; now() 이면 countdown 타이머 시작, 만료 시 자동 호출.</td></tr>
+            <tr><td>admin.html</td><td>동일 로직 (startSchoolCd 함수). 관리자 페이지에서도 자동 마감 가능.</td></tr>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ C. 합주 신청 -->
+    <section class="section" id="c1">
+      <div class="section-hdr">
+        <span class="section-icon">🎵</span>
+        <span class="section-num">C</span>
+        <div>
+          <div class="section-ttl">합주 신청 (Ensemble Application)</div>
+          <div class="section-sub">곡 신청 · 세션 배정 · DnD 팀 구성 · 단계 관리의 세부 로직</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div>
+          <h3>C-1. DB 테이블</h3>
+          <div class="db-grid">
+
+            <div class="db-table">
+              <div class="db-table-hdr">ensemble_rounds <span>합주 회차</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">type</span><span class="db-col-type">text</span><span class="db-col-note">'regular'|'busking'</span></div>
+              <div class="db-col"><span class="db-col-name">name</span><span class="db-col-type">text</span><span class="db-col-note">예: "2025-1 합주"</span></div>
+              <div class="db-col"><span class="db-col-name">phase</span><span class="db-col-type">text</span><span class="db-col-note">아래 단계 표 참조</span></div>
+              <div class="db-col"><span class="db-col-name">max_songs</span><span class="db-col-type">integer</span><span class="db-col-note">전체 최대 곡 수</span></div>
+              <div class="db-col"><span class="db-col-name">max_songs_per_person</span><span class="db-col-type">integer</span><span class="db-col-note">1인 최대 신청 곡 수</span></div>
+              <div class="db-col"><span class="db-col-name">max_sessions_per_person</span><span class="db-col-type">integer</span><span class="db-col-note">1인 최대 세션 참여 곡 수</span></div>
+              <div class="db-col"><span class="db-col-name">song_scheduled_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note">곡 신청 오픈 예약</span></div>
+              <div class="db-col"><span class="db-col-name">song_close_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note">곡 신청 마감 예약</span></div>
+              <div class="db-col"><span class="db-col-name">session_scheduled_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note">세션 신청 오픈 예약</span></div>
+              <div class="db-col"><span class="db-col-name">session_close_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note">세션 신청 마감 예약</span></div>
+              <div class="db-col"><span class="db-col-name">has_session2</span><span class="db-col-type">boolean</span><span class="db-col-note">2차 세션 신청 유무</span></div>
+              <div class="db-col"><span class="db-col-name">session2_mode</span><span class="db-col-type">text?</span><span class="db-col-note">'any_song'|'missing_only'</span></div>
+              <div class="db-col"><span class="db-col-name">session2_scheduled_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">session2_close_at</span><span class="db-col-type">timestamptz?</span><span class="db-col-note"></span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">song_applications <span>곡 신청</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">round_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ ensemble_rounds</span></div>
+              <div class="db-col"><span class="db-col-name">applicant_name</span><span class="db-col-type">text</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">student_id</span><span class="db-col-type">text</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">title</span><span class="db-col-type">text</span><span class="db-col-note">곡명</span></div>
+              <div class="db-col"><span class="db-col-name">artist</span><span class="db-col-type">text</span><span class="db-col-note">아티스트</span></div>
+              <div class="db-col"><span class="db-col-name">sessions</span><span class="db-col-type">text[]</span><span class="db-col-note">이 곡에 필요한 세션 목록</span></div>
+              <div class="db-col"><span class="db-col-name">status</span><span class="db-col-type">text</span><span class="db-col-note">'pending'|'confirmed'|'rejected'</span></div>
+              <div class="db-col"><span class="db-col-name">created_at</span><span class="db-col-type">timestamptz</span><span class="db-col-note"></span></div>
+            </div>
+
+            <div class="db-table">
+              <div class="db-table-hdr">session_applications <span>세션 신청</span></div>
+              <div class="db-col"><span class="db-col-name pk">id</span><span class="db-col-type">integer PK</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name fk">song_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ song_applications</span></div>
+              <div class="db-col"><span class="db-col-name fk">round_id</span><span class="db-col-type">integer FK</span><span class="db-col-note">→ ensemble_rounds</span></div>
+              <div class="db-col"><span class="db-col-name">applicant_name</span><span class="db-col-type">text</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">student_id</span><span class="db-col-type">text</span><span class="db-col-note"></span></div>
+              <div class="db-col"><span class="db-col-name">sessions</span><span class="db-col-type">text[]</span><span class="db-col-note">이 사람이 맡을 세션</span></div>
+              <div class="db-col"><span class="db-col-name">status</span><span class="db-col-type">text</span><span class="db-col-note">'pending'|'confirmed'|'rejected'</span></div>
+              <div class="db-col"><span class="db-col-name">session_round</span><span class="db-col-type">integer</span><span class="db-col-note">1 = 1차, 2 = 2차</span></div>
+              <div class="db-col"><span class="db-col-name">created_at</span><span class="db-col-type">timestamptz</span><span class="db-col-note"></span></div>
+            </div>
+
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="c2">
+        <div>
+          <h3>C-2. 단계별 자동 전환 로직</h3>
+          <div class="phase-flow" style="margin-bottom:14px">
+            <span class="ph prep">1 준비</span>
+            <span class="ph-arrow">→</span>
+            <span class="ph song">2 곡 신청</span>
+            <span class="ph-arrow">→</span>
+            <span class="ph wait">3 대기</span>
+            <span class="ph-arrow">→</span>
+            <span class="ph sess">4 1차 세션</span>
+            <span class="ph-arrow">→</span>
+            <span class="ph wait">5 대기</span>
+            <span class="ph-arrow">→ (has_session2) →</span>
+            <span class="ph sess2">6 2차 세션</span>
+            <span class="ph-arrow">→</span>
+            <span class="ph wait">7 최종 구성</span>
+            <span class="ph-arrow">→</span>
+            <span class="ph done">8 완료</span>
+          </div>
+          <table class="tbl">
+            <tr><th>현재 phase</th><th>트리거</th><th>다음 phase</th><th>부가 동작</th></tr>
+            <tr><td>draft</td><td>song_scheduled_at 도달 또는 수동</td><td>song</td><td>—</td></tr>
+            <tr><td>song</td><td>song_close_at 도달</td><td>song_end</td><td>—</td></tr>
+            <tr><td>song_end</td><td>session_scheduled_at 도달 또는 수동</td><td>session</td><td>pending 곡 자동 rejected 처리</td></tr>
+            <tr><td>session</td><td>session_close_at 도달</td><td>session_end</td><td>—</td></tr>
+            <tr><td>session_end</td><td>수동 (관리자)</td><td>session2 또는 closed</td><td>session2 이동 시: 1차 pending 레코드 일괄 DELETE</td></tr>
+            <tr><td>session2</td><td>session2_close_at 도달</td><td>session2_end</td><td>—</td></tr>
+            <tr><td>session2_end</td><td>수동 (관리자)</td><td>closed</td><td>—</td></tr>
+          </table>
+          <div class="info-box" style="margin-top:10px">
+            자동 전환은 ensemble.html / admin.html 양쪽에서 setInterval(1s)로 구현. DB UPDATE: <code style="font-family:'Space Mono',monospace;font-size:12px">ensemble_rounds SET phase = 'next', scheduled_at = null</code>
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="c3">
+        <div>
+          <h3>C-3. 곡 신청 유효성 검사 (ensemble.html → submitSong)</h3>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div class="step-body">phase === 'song' 확인. song_close_at &le; now() 이면 거부.</div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-body">필드 전부 입력 확인 (name, sid, title, artist)</div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-body">필요 세션 1개 이상, 내가 담당할 세션 1개 이상 체크</div></div>
+            <div class="step"><div class="step-num">4</div><div class="step-body"><strong>중복 곡 체크:</strong> title + artist 소문자 비교, status ≠ 'rejected'인 곡 대상</div></div>
+            <div class="step"><div class="step-num">5</div><div class="step-body"><strong>1인 최대 신청 수 체크:</strong> <code style="font-family:'Space Mono',monospace;font-size:12px">songs.filter(s.student_id === sid && s.status !== 'rejected').length &ge; max_songs_per_person</code></div></div>
+            <div class="step"><div class="step-num">6</div><div class="step-body"><strong>전체 최대 수 체크:</strong> <code style="font-family:'Space Mono',monospace;font-size:12px">songs.filter(s.status !== 'rejected').length &ge; max_songs</code></div></div>
+            <div class="step"><div class="step-num">7</div><div class="step-body"><strong>통과 시:</strong> song_applications INSERT → 반환된 id 획득 → session_applications INSERT (신청자 세션을 session_round=1, status='pending'으로 즉시 등록)</div></div>
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="c4">
+        <div>
+          <h3>C-4. 세션 신청 유효성 검사 (ensemble.html → doSubmitSession)</h3>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div class="step-body">phase === 'session' 또는 'session2' 확인. 해당 마감 시각 체크.</div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-body"><strong>최대 참여 곡 수 체크:</strong> 현재 session_round에서 내가 신청한 distinct song_id 수가 max_sessions_per_person 이상이면 거부. (단, 이미 해당 songId에 신청한 경우 제외)</div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-body"><strong>동일 곡 중복 신청 체크:</strong> 같은 songId + student_id + session_round + status ≠ 'rejected'인 레코드가 이미 있으면 거부</div></div>
+            <div class="step"><div class="step-num">4</div><div class="step-body"><strong>신청자 담당 세션 충돌 체크 (본인 곡 제외):</strong></div></div>
+          </div>
+          <div class="code" style="margin-top:2px">applicantApp = sessionMap[songId].find(
+  a => a.student_id === songObj.student_id &amp;&amp; a.status !== 'rejected'
+)
+conflict = sessions.filter(s => applicantApp.sessions.includes(s))
+if (conflict.length > 0) → "신청자가 담당한 세션(X)에는 신청할 수 없습니다" 거부</div>
+          <div class="info-box" style="margin-top:10px">
+            <strong>세션 의존성 규칙 (곡 신청 시 필요 세션 체크박스에만 적용):</strong><br>
+            보컬2 → 보컬1 필수 &nbsp;|&nbsp; 기타2 → 기타1 필수 &nbsp;|&nbsp; 키보드2 → 키보드1 필수<br>
+            하위 해제 시 상위도 자동 해제 (gates 로직)
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="c5">
+        <div>
+          <h3>C-5. 내가 담당할 세션 제한 (syncMySessionCheckboxes)</h3>
+          <p style="margin-bottom:10px">onSessionChkChange(필요 세션 체크박스 변경) 호출 마지막에 실행.</p>
+          <div class="code">SESSIONS.forEach(s => {
+  nsEl = document.getElementById('ns_' + s)  <span class="cm">// 필요 세션 체크박스</span>
+  msEl = document.getElementById('ms_' + s)  <span class="cm">// 내 세션 체크박스</span>
+  msEl.disabled = !nsEl.checked
+  if (!nsEl.checked) msEl.checked = false
+})</div>
+          <p style="margin-top:8px;font-size:13px">"필요 세션"에서 체크 해제 시 "내 세션"도 자동 비활성 + 해제. 초기 로드 시 모든 ms_* 체크박스는 disabled 상태로 시작.</p>
+        </div>
+
+        <hr class="sub-divider" id="c6">
+        <div>
+          <h3>C-6. 세션 신청 UI에서 신청자 담당 세션 필터링</h3>
+          <p style="margin-bottom:10px">세 진입점 모두에서 동일 로직 적용: openSessionModal, onSongSelect, onSess2SongSelect.</p>
+          <div class="code">songObj = songs[currentType].find(s => s.id === songId)
+applicantApp = sessionMap[songId].find(
+  a => a.student_id === songObj.student_id &amp;&amp; a.status !== 'rejected'
+)
+applicantSessions = new Set(applicantApp?.sessions || [])
+availableSessions = neededSessions.filter(s => !applicantSessions.has(s))</div>
+          <p style="margin-top:8px;font-size:13px">UI에 "신청자 담당 세션(X)은 선택 불가" 안내 + 해당 세션 체크박스 제외.</p>
+        </div>
+
+        <hr class="sub-divider" id="c7">
+        <div>
+          <h3>C-7. DnD 팀 구성 초기 상태 계산 (computeEnsDndInitial)</h3>
+          <p style="margin-bottom:10px"><strong>slot 구조:</strong> <code style="font-family:'Space Mono',monospace;font-size:12px">{ id: "${appId}-${session}", appId, session, applicantName, studentId, createdAt, songTitle, sessionRound, isApplicant }</code></p>
+          <div class="info-box" style="margin-bottom:12px">
+            <strong>isApplicant 판별:</strong> session_app.student_id === song_app.student_id (곡 신청자 본인 여부)
+          </div>
+          <table class="tbl">
+            <tr><th>우선순위</th><th>경로</th><th>처리</th></tr>
+            <tr>
+              <td><span class="badge orange">경로 1</span></td>
+              <td>localStorage 임시저장 있음</td>
+              <td>locMap { slotId → songId | 'pool' }으로 위치 복원. 단, isApplicant = true인 slot은 locMap 무시하고 항상 자신의 곡에 배치.</td>
+            </tr>
+            <tr>
+              <td><span class="badge blue">경로 2</span></td>
+              <td>이미 confirmed/rejected 앱 있음</td>
+              <td>confirmed → 해당 곡에 배치. pending + isApplicant = true → 해당 곡에 배치. pending + isApplicant = false → unassigned pool.</td>
+            </tr>
+            <tr>
+              <td><span class="badge gray">경로 3</span></td>
+              <td>최초 DnD 열기</td>
+              <td>created_at ASC 정렬. isApplicant = true → 무조건 slots + claimed 등록. 나머지 → claimed에 해당 session 없으면 slots, 있으면 pool.</td>
+            </tr>
+          </table>
+          <div class="info-box" style="margin-top:10px">
+            <strong>충돌 감지 (getConflictedSlotIds):</strong> 동일 곡에서 동일 session을 두 명 이상이 담당하면 Set&lt;slotId&gt; 반환 → 주황색으로 표시.
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="c8">
+        <div>
+          <h3>C-8. DnD 확정 로직 (confirmEnsembleTeams)</h3>
+          <div class="algo-box">
+            <ol>
+              <li>eDndSt.songs에 배치된 slots를 appId별로 그룹핑: <code style="font-family:'Space Mono',monospace;font-size:11px">appAssign = { appId: { songId, sessions: Set } }</code></li>
+              <li>같은 appId가 여러 곡에 걸쳐 있으면 가장 많은 sessions를 가진 곡을 best로 선택</li>
+              <li>각 appId에 대해 DB UPDATE: <code style="font-family:'Space Mono',monospace;font-size:11px">session_applications SET status='confirmed', song_id=best.songId, sessions=[...best.sessions]</code></li>
+              <li>unassigned pool에 남은 slot들의 appId → <code style="font-family:'Space Mono',monospace;font-size:11px">status='rejected'</code></li>
+              <li>phase는 변경하지 않음 (DnD 확정 ≠ 단계 전환)</li>
+            </ol>
+          </div>
+          <div class="info-box warn" style="margin-top:10px">
+            <strong>슬롯 ID 파싱:</strong> <code style="font-family:'Space Mono',monospace;font-size:12px">slot.id = "${appId}-${session}"</code> 이므로 appId = parseInt(slotId.split('-')[0])
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="c9">
+        <div>
+          <h3>C-9. 단계별 pending 곡 자동 처리 (loadEnsemble)</h3>
+          <p style="margin-bottom:10px">song_end 이후 단계에서 loadEnsemble 호출 시, status = 'pending'인 곡들을 'rejected'로 자동 업데이트.</p>
+          <div class="code"><span class="cm">// 자동 rejected 처리하는 phase 목록</span>
+['song_end','session','session_end','session2','session2_end','closed']</div>
+          <p style="margin-top:8px;font-size:13px">phase = 'song'이면 실행하지 않음. 관리자가 명시적으로 확정(confirmed)하지 않은 곡은 자동 거절 처리.</p>
+        </div>
+
+        <hr class="sub-divider" id="c10">
+        <div>
+          <h3>C-10. 2차 세션 신청 모드 (session2_mode)</h3>
+          <table class="tbl">
+            <tr><th>모드</th><th>동작</th></tr>
+            <tr>
+              <td><span class="badge blue">any_song</span></td>
+              <td>confirmedSongs의 sessions 전체를 그대로 신청 대상으로 제공</td>
+            </tr>
+            <tr>
+              <td><span class="badge orange">missing_only</span></td>
+              <td>각 곡에 대해 1차 confirmed 세션 목록을 구한 뒤, 곡의 sessions에서 미충족 세션만 추출. 빈 세션이 있는 곡만 드롭다운에 표시.</td>
+            </tr>
+          </table>
+          <div class="code" style="margin-top:10px"><span class="cm">// missing_only 필터링 로직</span>
+confirmed1st = session_applications
+  .filter(song_id === song.id &amp;&amp; status === 'confirmed')
+  .flatMap(a => a.sessions)
+available = song.sessions.filter(s => !confirmed1st.includes(s))
+<span class="cm">// available.length > 0인 곡만 드롭다운에 표시</span></div>
+          <div class="info-box" style="margin-top:10px">양 모드 모두 신청자 담당 세션 필터(C-6)가 추가로 적용됨.</div>
+        </div>
+
+        <hr class="sub-divider" id="c11">
+        <div>
+          <h3>C-11. 신청자 고정 (Applicant Pin)</h3>
+          <p style="margin-bottom:10px"><strong>식별:</strong> session_app.student_id === song_app.student_id</p>
+          <table class="tbl">
+            <tr><th>속성</th><th>값</th></tr>
+            <tr><td>draggable 속성</td><td>"false" (HTML 속성으로 직접 지정, ondragstart 없음)</td></tr>
+            <tr><td>CSS class</td><td>'ens-member-card applicant' → 녹색 배경</td></tr>
+            <tr><td>이름</td><td>font-weight: 900 (bold)</td></tr>
+            <tr><td>배지</td><td><span class="badge green">신청자</span> 표시</td></tr>
+            <tr><td>DnD 초기화</td><td>세 경로(C-7) 모두에서 신청자 slot은 항상 자신의 곡에 배치, unassigned pool에 절대 들어가지 않음</td></tr>
+          </table>
+        </div>
+
+        <hr class="sub-divider" id="c12">
+        <div>
+          <h3>C-12. 합주 결과 표시 로직 (renderSongItem)</h3>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>closedLike 조건:</strong> phase ∈ {closed, session_end, session2, session2_end}
+          </div>
+          <table class="tbl">
+            <tr><th>조건</th><th>표시</th></tr>
+            <tr><td>closedLike = true + session_app.status = 'rejected'</td><td>행 opacity: 0.55, 이름에 text-decoration: line-through, color: text3</td></tr>
+            <tr><td>session_app.student_id === song.student_id (신청자)</td><td>font-weight: 700, <span class="badge green">신청자</span> 배지</td></tr>
+            <tr><td>session_round === 2 + phase ∈ {session2, session2_end, closed}</td><td><span class="badge orange">2차</span> 배지 표시</td></tr>
+          </table>
+          <p style="margin-top:8px;font-size:13px"><strong>admin.html mkConfirmedSongHtml:</strong> confirmed + rejected 모두 표시. rejected는 opacity 0.45 + line-through + 빨간 점. confirmed는 정상 표시 + 녹색 점.</p>
+        </div>
+
+        <hr class="sub-divider" id="c13">
+        <div>
+          <h3>C-13. 이전 단계 되돌리기 (revertPhase)</h3>
+          <div class="code"><span class="cm">// prevMap</span>
+song       → draft
+song_end   → song
+session    → song_end
+session_end → session
+session2   → session_end
+session2_end → session2
+closed     → (has_session2 ? session2_end : session_end)</div>
+          <div class="steps" style="margin-top:10px">
+            <div class="step"><div class="step-num">1</div><div class="step-body">확인 다이얼로그 표시</div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-body">ensemble_rounds UPDATE {phase: prev}</div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-body">loadEnsemble() + renderEnsemble() 재렌더</div></div>
+          </div>
+          <div class="info-box danger" style="margin-top:10px">
+            <strong>주의:</strong> session_applications / song_applications 데이터는 삭제되지 않음. 2차 → 1차로 돌아가도 session2 신청 데이터가 남아 있을 수 있음. 실 사용 시 해당 데이터를 DB에서 직접 정리 필요.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ D. 공통 -->
+    <section class="section" id="d1">
+      <div class="section-hdr">
+        <span class="section-icon">⚙️</span>
+        <span class="section-num">D</span>
+        <div>
+          <div class="section-ttl">공통 사항</div>
+          <div class="section-sub">인증, 실시간 구독, 시간 포맷, 세션 목록</div>
+        </div>
+      </div>
+      <div class="section-body">
+
+        <div>
+          <h3>D-1. 관리자 인증</h3>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div class="step-body">admin.html 접속 시 비밀번호 입력 요구</div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-body"><code style="font-family:'Space Mono',monospace;font-size:12px">app_config</code> 테이블의 key='admin_password' 값과 비교</div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-body">일치 시 sessionStorage에 'adminAuth=1' 저장</div></div>
+            <div class="step"><div class="step-num">4</div><div class="step-body">페이지 로드마다 sessionStorage 확인, 없으면 입력 폼 표시</div></div>
+            <div class="step"><div class="step-num">5</div><div class="step-body">탭/브라우저 닫으면 sessionStorage 소멸 → 자동 로그아웃</div></div>
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="d2">
+        <div>
+          <h3>D-2. Realtime 구독 채널</h3>
+          <table class="tbl">
+            <tr><th>파일</th><th>채널명</th><th>테이블</th><th>반응</th></tr>
+            <tr><td rowspan="3">ensemble.html</td><td rowspan="3">ens-rt</td><td>song_applications</td><td>refreshList()</td></tr>
+            <tr><td>session_applications</td><td>refreshList()</td></tr>
+            <tr><td>ensemble_rounds</td><td>loadAll() — 전체 재렌더, phase 전환 감지</td></tr>
+            <tr><td rowspan="8">admin.html</td><td>base-ch, ex-ch, req-ch, round-ch, app-ch</td><td>시간표 테이블</td><td>시간표 즉시 재렌더</td></tr>
+            <tr><td>school-rd-ch, school-cls-ch, school-app-ch</td><td>스쿨 테이블</td><td>스쿨 섹션 재렌더</td></tr>
+            <tr><td>ens-rd-ch, ens-song-ch, ens-sess-ch</td><td>합주 테이블</td><td>합주 섹션 재렌더</td></tr>
+          </table>
+          <div class="info-box" style="margin-top:10px">
+            <strong>폴링 폴백 (ensemble.html):</strong> setInterval(refreshList, 8000). 탭이 백그라운드일 때 clearInterval, 포그라운드 복귀 시 재시작.
+          </div>
+        </div>
+
+        <hr class="sub-divider" id="d3">
+        <div>
+          <h3>D-3. 시간 표시 포맷</h3>
+          <table class="tbl">
+            <tr><th>함수</th><th>용도</th><th>출력 형식</th></tr>
+            <tr><td>fmtScheduled(ts)</td><td>예약 시각</td><td>"M월 D일 HH:MM" (한국 로컬)</td></tr>
+            <tr><td>fmtTime(ts)</td><td>신청 시각</td><td>"M/D HH:MM"</td></tr>
+            <tr><td>diffToHMS(ms)</td><td>카운트다운 잔여</td><td>1시간 이상: "HH:MM:SS" / 미만: "MM:SS"</td></tr>
+            <tr><td>toLocal(ts)</td><td>datetime-local input 변환</td><td>"YYYY-MM-DDTHH:MM"</td></tr>
+          </table>
+        </div>
+
+        <hr class="sub-divider" id="d4">
+        <div>
+          <h3>D-4. 세션 목록 및 의존성</h3>
+          <div class="code"><span class="cm">// SESSIONS 배열 (ensemble.html 내 상수, 순서 그대로 정렬 기준)</span>
+['보컬1', '보컬2', '기타1', '기타2', '베이스', '키보드1', '키보드2', '드럼', '현악', '관악', '기타']</div>
+          <table class="tbl" style="margin-top:12px">
+            <tr><th>규칙</th><th>세션</th><th>조건</th></tr>
+            <tr><td><span class="badge orange">requires</span></td><td>보컬2</td><td>보컬1 필수 체크</td></tr>
+            <tr><td><span class="badge orange">requires</span></td><td>기타2</td><td>기타1 필수 체크</td></tr>
+            <tr><td><span class="badge orange">requires</span></td><td>키보드2</td><td>키보드1 필수 체크</td></tr>
+            <tr><td><span class="badge red">gates</span></td><td>보컬1 해제</td><td>보컬2 자동 해제</td></tr>
+            <tr><td><span class="badge red">gates</span></td><td>기타1 해제</td><td>기타2 자동 해제</td></tr>
+            <tr><td><span class="badge red">gates</span></td><td>키보드1 해제</td><td>키보드2 자동 해제</td></tr>
+          </table>
+          <div class="info-box" style="margin-top:10px">
+            <strong>정렬 기준:</strong> SESSIONS 배열 인덱스 순서 (sessOrder 함수). 동일 세션 내에서는 createdAt 오름차순.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  if(localStorage.getItem('theme')==='dark') document.body.classList.add('dark');
+})();
+
+function toggleDark(){
+  document.body.classList.toggle('dark');
+  localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+}
+
+// IntersectionObserver scroll-active sidebar
+const sideLinks = document.querySelectorAll('.sn-item[href^="#"]');
+const anchors = [...document.querySelectorAll('section[id], hr[id]')];
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const id = e.target.id;
+      sideLinks.forEach(l=>{
+        l.classList.toggle('active', l.getAttribute('href')==='#'+id);
+      });
+    }
+  });
+},{rootMargin:'-20% 0px -70% 0px'});
+anchors.forEach(a=>io.observe(a));
+</script>
+</body>
+</html>
