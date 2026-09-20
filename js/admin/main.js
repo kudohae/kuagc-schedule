@@ -1319,7 +1319,7 @@ window.openAddTeamModal=function(){
      </div>
      <div id="grayNote" style="font-size:11px;color:var(--text3)">합주 팀은 자동으로 회색 표시됩니다</div>
      <div>
-       <div class="fl">구성원</div>
+       <div class="fl">구성원(선택)</div>
        <div style="display:grid;grid-template-columns:1fr 48px 1fr 22px;gap:4px;font-size:10px;color:var(--text3);padding:0 2px;margin-bottom:3px">
          <span>이름</span><span style="text-align:center">학번</span><span>세션 (쉼표 구분)</span><span></span>
        </div>
