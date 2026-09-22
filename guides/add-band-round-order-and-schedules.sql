@@ -44,5 +44,5 @@ $$;
 
 revoke execute on function public.apply_band_round_schedules() from public, anon, authenticated;
 grant execute on function public.apply_band_round_schedules() to postgres;
-select cron.schedule('band-round-schedule-sync', '30 seconds', 'select public.apply_band_round_schedules()');
+select cron.schedule('band-round-schedule-sync', '5 seconds', 'select public.apply_band_round_schedules()');
 select public.apply_band_round_schedules();
