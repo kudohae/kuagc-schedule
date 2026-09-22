@@ -125,14 +125,13 @@ A-4. 시간 배정 회차 로직
     (= 마지막 제출이 이전 제출을 무효화)
   - 1지망은 반드시 입력, 2·3지망은 선택
 
-  배정 알고리즘 (schedule.js → assignSlots):
+  배정 알고리즘 (utils/timeAssignment.js → calculateTimeAssignments):
   1. round_id에 해당하는 신청 중 team_id별 최신 1건만 추출
   2. submitted_at 오름차순 정렬 (선착순 기준)
-  3. 1지망 순회: occupied = Set()
-     - app의 pref1_day/hour가 occupied에 없으면 배정 + occupied에 추가
-  4. 1지망 미배정된 것들 2지망 순회 (동일 방식)
-  5. 2지망 미배정된 것들 3지망 순회
-  6. 결과를 time_applications.assigned_day/hour/pref에 일괄 UPDATE
+  3. 첫 신청부터 차례로 각 팀의 1지망 → 2지망 → 3지망 확인
+     - 처음 만난 빈 시간을 배정하고 occupied Set에 추가한 뒤 다음 팀으로 이동
+  4. 세 지망이 모두 찼거나 입력되지 않았으면 미배정
+  5. 결과를 time_applications.assigned_day/hour/pref에 일괄 UPDATE
 
   초안 승인 (schedule.js → approveDraft):
   1. base_slots에서 해당 season의 모든 레코드 DELETE

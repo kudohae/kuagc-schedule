@@ -1,5 +1,6 @@
 // js/schedule.js
 import { supabase } from './supabase.js';
+import { calculateTimeAssignments } from './utils/timeAssignment.js';
 
 function weekStart(date = new Date()) {
   const d = new Date(date);
@@ -286,48 +287,12 @@ export async function deleteApplication(id) {
 // ─── ASSIGNMENT LOGIC ────────────────────────────────────────────────
 // 신청 마감 후 관리자가 호출 — base_slots 초안 생성
 export async function runAssignment(round, applications, season) {
-  const cmpSubmit = (a, b) => {
-    const dt = new Date(a.submitted_at) - new Date(b.submitted_at);
-    return dt !== 0 ? dt : a.id - b.id;
-  };
-  // 팀별 최신 신청만 사용 (re-submit 시 마지막 신청이 유효)
-  const latestPerTeam = new Map();
-  for (const app of applications) {
-    const ex = latestPerTeam.get(app.team_id);
-    if (!ex || cmpSubmit(app, ex) > 0) {
-      latestPerTeam.set(app.team_id, app);
-    }
-  }
-
-  const assigned = new Map();
-  const results  = [];
-
-  // 최신 신청을 제출 시각 순(선착순)으로 정렬
-  const sorted = [...latestPerTeam.values()].sort(cmpSubmit);
-
-  for (const pref of [1, 2, 3]) {
-    for (const app of sorted) {
-      if (results.find(r => r.id === app.id)) continue;
-      const day  = app[`pref${pref}_day`];
-      const hour = app[`pref${pref}_hour`];
-      if (day == null || hour == null) continue;
-      const key = `${day}-${hour}`;
-      if (!assigned.has(key)) {
-        assigned.set(key, app.team_id);
-        results.push({ id: app.id, assigned_day: day, assigned_hour: hour, assigned_pref: pref });
-      }
-    }
-  }
-
-  for (const app of sorted) {
-    if (!results.find(r => r.id === app.id)) {
-      results.push({ id: app.id, assigned_day: null, assigned_hour: null, assigned_pref: null });
-    }
-  }
+  const results = calculateTimeAssignments(applications);
+  const latestApplicationIds = new Set(results.map(result => result.id));
 
   // 무효(이전) 신청은 배정 null로 초기화
   for (const app of applications) {
-    if (app.id !== latestPerTeam.get(app.team_id)?.id) {
+    if (!latestApplicationIds.has(app.id)) {
       await supabase.from('time_applications').update({
         assigned_day: null, assigned_hour: null, assigned_pref: null
       }).eq('id', app.id);

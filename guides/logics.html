@@ -340,13 +340,13 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
             <span class="ph done">finished</span>
           </div>
           <div class="algo-box" style="margin-bottom:12px">
-            <strong>배정 알고리즘 (schedule.js → assignSlots)</strong>
+            <strong>배정 알고리즘 (utils/timeAssignment.js → calculateTimeAssignments)</strong>
             <ol style="margin-top:8px">
               <li>round_id에 해당하는 신청 중 team_id별 <strong>최신(submitted_at) 1건</strong>만 추출 (마지막 제출이 이전 제출 무효화)</li>
               <li>submitted_at 오름차순 정렬 (선착순 기준)</li>
-              <li>1지망 순회 — <code style="font-family:'Space Mono',monospace;font-size:11px">occupied</code> Set에 없으면 배정 + Set에 추가</li>
-              <li>1지망 미배정 → 2지망 순회 (동일 방식)</li>
-              <li>2지망 미배정 → 3지망 순회</li>
+              <li>첫 신청부터 차례로 각 팀의 1지망 → 2지망 → 3지망을 확인</li>
+              <li>처음 만난 빈 시간을 배정하고 <code style="font-family:'Space Mono',monospace;font-size:11px">occupied</code> Set에 추가한 뒤 다음 팀으로 이동</li>
+              <li>세 지망이 모두 찼거나 입력되지 않았으면 미배정</li>
               <li>결과를 time_applications.assigned_day/hour/pref에 일괄 UPDATE</li>
             </ol>
           </div>
