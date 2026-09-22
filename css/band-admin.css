@@ -488,6 +488,12 @@ body.band-admin-mode #view-dynamic {
   grid-column: 1 / -1;
 }
 
+.band-admin-team-flags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .band-admin-formed {
   min-height: 58px;
   display: flex !important;
@@ -631,6 +637,10 @@ body.band-admin-mode #view-dynamic {
   display: inline;
 }
 
+.band-admin-member-info time span + span {
+  margin-left: 5px;
+}
+
 .band-admin-members article p {
   display: flex;
   flex-wrap: wrap;
@@ -650,6 +660,22 @@ body.band-admin-mode #view-dynamic {
 .band-admin-member-actions {
   display: flex;
   gap: 5px;
+}
+
+.band-admin-member-actions > span {
+  padding: 5px 7px;
+  border-radius: 4px;
+  background: #e7f3ee;
+  color: var(--green);
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.band-admin-inclusion.is-applicant {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green) !important;
 }
 
 .band-admin-participants {
@@ -1225,6 +1251,16 @@ body.band-admin-mode #view-dynamic {
 }
 
 @media (max-width: 820px) {
+  @keyframes band-admin-sheet-in {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes band-admin-sheet-out {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
+  }
+
   .band-admin-topbar {
     height: 50px;
     padding: 0 16px;
@@ -1325,6 +1361,11 @@ body.band-admin-mode #view-dynamic {
     width: 100%;
     max-height: 92dvh;
     border-radius: 12px 12px 0 0;
+    animation: band-admin-sheet-in 220ms cubic-bezier(.2, .75, .25, 1) both;
+  }
+
+  .band-admin-modal.is-closing > section {
+    animation: band-admin-sheet-out 190ms ease-in both;
   }
 
   .band-admin-song-modal > section {
@@ -1369,6 +1410,16 @@ body.band-admin-mode #view-dynamic {
 
   .band-admin-grid .is-wide {
     grid-column: auto;
+  }
+
+  .band-admin-grid .band-admin-team-flags {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .band-admin-team-flags .band-admin-formed {
+    min-width: 0;
+    padding: 10px;
   }
 
   .band-admin-members article {
@@ -1428,8 +1479,7 @@ body.band-admin-mode #view-dynamic {
     align-items: stretch;
   }
 
-  .band-admin-round form > input,
-  .band-admin-round button {
+  .band-admin-round form > input {
     width: 100%;
   }
 
@@ -1478,5 +1528,28 @@ body.band-admin-mode #view-dynamic {
   .band-admin-card,
   .band-admin-members {
     margin: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .band-admin-round .band-admin-round-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .band-admin-round .band-admin-round-head > button {
+    width: 100%;
+  }
+
+  .band-admin-member-actions {
+    flex-direction: column;
+  }
+
+  .band-admin-member-info time {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  .band-admin-member-info time span + span {
+    margin-left: 0;
   }
 }
