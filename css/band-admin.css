@@ -379,6 +379,15 @@ body.band-admin-mode #view-dynamic {
   box-shadow: inset 3px 0 var(--green);
 }
 
+.band-admin-song-list > div > button.is-fixed:hover {
+  background: #f2f6ff;
+}
+
+.band-admin-song-list > div > button.is-fixed.is-selected {
+  background: #edf3ff;
+  box-shadow: inset 3px 0 #2563eb;
+}
+
 .band-admin-song-list button span {
   min-width: 0;
   display: flex;
@@ -403,6 +412,30 @@ body.band-admin-mode #view-dynamic {
   font-size: 9px;
   font-style: normal;
 }
+
+.band-admin-song-meta {
+  align-items: flex-end;
+  gap: 7px !important;
+}
+
+.band-admin-song-meta strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.band-admin-song-meta strong i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.band-admin-song-meta .is-formed { color: var(--green); }
+.band-admin-song-meta .is-fixed { color: #2563eb; }
+.band-admin-song-meta .is-open { color: #d95f21; }
 
 .band-admin-editor {
   min-width: 0;
@@ -511,6 +544,21 @@ body.band-admin-mode #view-dynamic {
 .band-admin-formed:has(input:checked) {
   border-color: var(--green);
   background: #edf7f2;
+}
+
+.band-admin-team-flags .band-admin-formed:last-child {
+  border-color: #9cb9f3;
+  background: #f4f7ff;
+}
+
+.band-admin-team-flags .band-admin-formed:last-child:has(input:checked) {
+  border-color: #2563eb;
+  background: #eaf1ff;
+  color: #173f99;
+}
+
+.band-admin-team-flags .band-admin-formed:last-child input {
+  accent-color: #2563eb;
 }
 
 .band-admin-formed input {
@@ -1541,7 +1589,14 @@ body.band-admin-mode #view-dynamic {
   }
 
   .band-admin-member-actions {
-    flex-direction: column;
+    grid-column: 2 / -1;
+    grid-row: 3;
+    width: 100%;
+    flex-direction: row;
+  }
+
+  .band-admin-member-actions button {
+    flex: 1;
   }
 
   .band-admin-member-info time {

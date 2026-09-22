@@ -25,12 +25,14 @@ const ROLE_ORDER = ['보컬', '기타', '베이스', '키보드', '드럼', '그
 const FIXED_ROLE_MARKER = '__BAND_FIXED__';
 const APPLICANT_ROLE_PREFIX = '__BAND_APPLICANT_ROLE__:';
 
-const isMetadataRole = value => value === FIXED_ROLE_MARKER || String(value || '').startsWith(APPLICANT_ROLE_PREFIX);
+const fixedMarkerPattern = /^_+BAND_FIXED_+$/i;
+const applicantMarkerPattern = /^_+BAND_APPLICANT_ROLE_+:(.+)$/i;
+const isMetadataRole = value => fixedMarkerPattern.test(String(value || '').trim()) || applicantMarkerPattern.test(String(value || '').trim());
 const visibleWantedRoles = song => (song?.wanted_roles || []).filter(role => !isMetadataRole(role));
-const isFixedSong = song => (song?.wanted_roles || []).includes(FIXED_ROLE_MARKER);
+const isFixedSong = song => (song?.wanted_roles || []).some(role => fixedMarkerPattern.test(String(role || '').trim()));
 const getApplicantRole = song => {
-  const marker = (song?.wanted_roles || []).find(role => String(role).startsWith(APPLICANT_ROLE_PREFIX));
-  return marker ? String(marker).slice(APPLICANT_ROLE_PREFIX.length) : '';
+  const match = (song?.wanted_roles || []).map(role => String(role || '').trim().match(applicantMarkerPattern)).find(Boolean);
+  return match?.[1] || '';
 };
 
 function normalizeRole(value) {
@@ -129,6 +131,7 @@ function visibleSongs() {
 }
 
 function renderStatus(song) {
+  if (isFixedSong(song)) return '<span class="band-status band-status-fixed"><i></i>고정</span>';
   return song.is_formed
     ? '<span class="band-status band-status-formed"><i></i>결성</span>'
     : '<span class="band-status band-status-open"><i></i>미결성</span>';
@@ -154,7 +157,7 @@ function renderList() {
     return;
   }
   if (!filtered.some(song => song.id === selectedSongId)) selectedSongId = filtered[0].id;
-  list.innerHTML = filtered.map((song, index) => `<button class="band-song${song.id === selectedSongId ? ' is-selected' : ''}" type="button" data-song-id="${song.id}">
+  list.innerHTML = filtered.map((song, index) => `<button class="band-song${song.id === selectedSongId ? ' is-selected' : ''}${isFixedSong(song) ? ' is-fixed' : ''}" type="button" data-song-id="${song.id}">
     <span class="band-song-index">${String(index + 1).padStart(2, '0')}</span>
     <span class="band-song-main"><span class="band-song-title">${esc(song.title)}</span><span class="band-song-artist">${esc(song.artist)}</span><span class="band-song-sessions">${renderRoleSummary(song)}</span></span>
     <span class="band-song-meta">${renderStatus(song)}<span>${getIncludedMembers(song).length}명</span></span>
@@ -191,6 +194,7 @@ function renderDetail(song, detail = host.querySelector('[data-band-detail]')) {
   const missing = getMissingRoles(song);
   const fixed = isFixedSong(song);
   const canApply = Boolean(round?.session_application_open) && !fixed;
+  detail.classList.toggle('band-detail-fixed', fixed);
   detail.innerHTML = `<div class="band-detail-head">
       <div><div class="band-detail-status">${renderStatus(song)}</div><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p></div>
       <div class="band-applicant"><span>곡 신청자</span><b>${esc(song.applicant_name)}</b></div>
@@ -207,7 +211,7 @@ function renderDetail(song, detail = host.querySelector('[data-band-detail]')) {
       }).join('') : '<span class="band-muted">정해진 자리가 없습니다. 원하는 세션으로 신청할 수 있습니다.</span>'}</div>
       ${requirements.length ? (missing.length ? `<div class="band-missing"><b>빈자리</b>${missing.map(item => `<span>${esc(item.role)} ${item.missing}명</span>`).join('')}</div>` : '<div class="band-complete">필요한 자리가 모두 채워졌습니다.</div>') : ''}
     </section>
-    <button class="band-primary band-apply-session" type="button" data-apply-session ${canApply ? '' : 'disabled'}>${fixed ? '고정 팀 · 세션 신청 없음' : canApply ? '이 곡에 세션 신청' : '세션 신청 닫힘'}</button>
+    <button class="band-primary band-apply-session${fixed ? ' is-fixed' : ''}" type="button" data-apply-session ${canApply ? '' : 'disabled'}>${fixed ? '사전구성하여 고정된 팀입니다.' : canApply ? '이 곡에 세션 신청' : '세션 신청 닫힘'}</button>
     <section class="band-detail-section">
       <div class="band-section-title"><h3>세션 신청 현황</h3><span>${includedMembers.length}명 포함 · ${members.length}건</span></div>
       ${members.length ? `<ul class="band-member-list">${members.map(renderMember).join('')}</ul>` : '<div class="band-no-members">아직 세션 신청이 없습니다.</div>'}

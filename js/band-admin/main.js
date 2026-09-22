@@ -25,12 +25,14 @@ const APPLICANT_ROLE_PREFIX = '__BAND_APPLICANT_ROLE__:';
 const parseRoles = value => String(value || '').split(/[,\n]/).map(item => item.trim()).filter(Boolean);
 const rolesText = roles => (roles || []).join(', ');
 const byCreated = (a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id));
-const isMetadataRole = value => value === FIXED_ROLE_MARKER || String(value || '').startsWith(APPLICANT_ROLE_PREFIX);
+const fixedMarkerPattern = /^_+BAND_FIXED_+$/i;
+const applicantMarkerPattern = /^_+BAND_APPLICANT_ROLE_+:(.+)$/i;
+const isMetadataRole = value => fixedMarkerPattern.test(String(value || '').trim()) || applicantMarkerPattern.test(String(value || '').trim());
 const visibleWantedRoles = song => (song?.wanted_roles || []).filter(role => !isMetadataRole(role));
-const isFixedSong = song => (song?.wanted_roles || []).includes(FIXED_ROLE_MARKER);
+const isFixedSong = song => (song?.wanted_roles || []).some(role => fixedMarkerPattern.test(String(role || '').trim()));
 const getApplicantRole = song => {
-  const marker = (song?.wanted_roles || []).find(role => String(role).startsWith(APPLICANT_ROLE_PREFIX));
-  return marker ? String(marker).slice(APPLICANT_ROLE_PREFIX.length) : '';
+  const match = (song?.wanted_roles || []).map(role => String(role || '').trim().match(applicantMarkerPattern)).find(Boolean);
+  return match?.[1] || '';
 };
 
 function normalizeRole(value) {
@@ -171,7 +173,8 @@ function renderSongList() {
   list.innerHTML = songs.map(song => {
     const rows = songMembers(song);
     const included = rows.filter(member => member.is_included !== false).length;
-    return `<button type="button" class="${song.id === selectedSongId ? 'is-selected' : ''}" data-song-id="${song.id}"><span><b>${esc(song.title)}</b><small>${esc(song.artist)}</small></span><em>${included}/${rows.length}명</em></button>`;
+    const status = isFixedSong(song) ? '고정' : song.is_formed ? '결성' : '미결성';
+    return `<button type="button" class="${song.id === selectedSongId ? 'is-selected' : ''}${isFixedSong(song) ? ' is-fixed' : ''}" data-song-id="${song.id}"><span><b>${esc(song.title)}</b><small>${esc(song.artist)}</small></span><span class="band-admin-song-meta"><strong class="is-${isFixedSong(song) ? 'fixed' : song.is_formed ? 'formed' : 'open'}"><i></i>${status}</strong><em>${included}/${rows.length}명</em></span></button>`;
   }).join('');
   list.querySelectorAll('[data-song-id]').forEach(button => button.addEventListener('click', () => {
     selectedSongId = Number(button.dataset.songId);
@@ -179,6 +182,23 @@ function renderSongList() {
     renderEditor();
     if (window.matchMedia('(max-width: 820px)').matches) openSongEditorModal(songs.find(item => item.id === selectedSongId));
   }));
+}
+
+function updateSongListItem(song) {
+  const button = host.querySelector(`[data-song-id="${song.id}"]`);
+  if (!button) return;
+  const fixed = isFixedSong(song);
+  const status = fixed ? '고정' : song.is_formed ? '결성' : '미결성';
+  button.classList.toggle('is-fixed', fixed);
+  const title = button.querySelector('b');
+  const artist = button.querySelector('small');
+  const badge = button.querySelector('.band-admin-song-meta strong');
+  if (title) title.textContent = song.title;
+  if (artist) artist.textContent = song.artist;
+  if (badge) {
+    badge.className = `is-${fixed ? 'fixed' : song.is_formed ? 'formed' : 'open'}`;
+    badge.innerHTML = `<i></i>${status}`;
+  }
 }
 
 function renderParticipants(target = host.querySelector('[data-participants]')) {
@@ -214,12 +234,16 @@ function renderEditor(editor = host.querySelector('[data-editor]')) {
   const rows = songMembers(song);
   const includedCount = rows.filter(member => member.is_included !== false).length;
   editor.innerHTML = `<header><div><span>SONG #${song.id}</span><h2>${esc(song.title)}</h2></div><button class="is-danger" type="button" data-delete-song>곡 삭제</button></header>
-    <form class="band-admin-card" data-song-form data-song-id="${song.id}">${songFields(song)}<div class="band-admin-actions"><button type="submit">곡 정보 저장</button></div></form>
+    <form class="band-admin-card" data-song-form data-song-id="${song.id}">${songFields(song)}</form>
     <section class="band-admin-members"><header><div><h3>세션 신청</h3><span>${includedCount}명 포함 · ${rows.length}건 · 신청 시각순</span></div><button type="button" data-add-member ${isFixedSong(song) ? 'disabled' : ''}>+ 세션 추가</button></header><div>${rows.length ? rows.map(member => `<article class="${member.is_included === false ? 'is-excluded' : ''}${member.is_song_applicant ? ' is-song-applicant' : ''}">${member.is_song_applicant ? '<span class="band-admin-inclusion is-applicant">신청자</span>' : `<button class="band-admin-inclusion ${member.is_included === false ? 'is-off' : 'is-on'}" type="button" data-toggle-member="${member.id}" aria-label="${esc(member.applicant_name)} 팀 포함 상태 변경">${member.is_included === false ? 'OFF' : 'ON'}</button>`}<div class="band-admin-member-info"><b>${esc(member.applicant_name)}</b><small><span>${esc(member.student_id)}</span>${formatMemberTimestamp(member.created_at)}</small></div><p>${(member.roles || []).map(role => `<span>${esc(role)}</span>`).join('') || '<span>자유 세션</span>'}</p>${member.is_song_applicant ? '<div class="band-admin-member-actions"><span>곡 신청자</span></div>' : `<div class="band-admin-member-actions"><button type="button" data-edit-member="${member.id}">수정</button><button class="band-admin-move" type="button" data-move-member="${member.id}">이동</button><button class="is-danger" type="button" data-delete-member="${member.id}">삭제</button></div>`}</article>`).join('') : '<div class="band-admin-empty">세션 신청이 없습니다.</div>'}</div></section>`;
   const songForm = editor.querySelector('[data-song-form]');
-  songForm.addEventListener('submit', event => saveSong(event, song));
+  songForm.addEventListener('submit', event => event.preventDefault());
   songForm.addEventListener('input', () => { songForm.dataset.dirty = 'true'; });
-  songForm.addEventListener('change', () => { songForm.dataset.dirty = 'true'; });
+  songForm.querySelectorAll('input:not([type="checkbox"]), textarea').forEach(input => input.addEventListener('blur', () => saveSongForm(songForm, song)));
+  songForm.querySelectorAll('input[type="checkbox"]').forEach(input => input.addEventListener('change', () => {
+    songForm.dataset.dirty = 'true';
+    saveSongForm(songForm, song);
+  }));
   editor.querySelector('[data-delete-song]').addEventListener('click', () => deleteSong(song));
   editor.querySelector('[data-add-member]').addEventListener('click', () => openMemberModal(song));
   editor.querySelectorAll('[data-toggle-member]').forEach(button => button.addEventListener('click', () => toggleMember(members.find(item => item.id === Number(button.dataset.toggleMember)))));
@@ -491,13 +515,28 @@ async function toggleMember(member) {
   showMessage(next ? '팀에 포함했습니다.' : '팀에서 제외했습니다.', 'success');
 }
 
-async function saveSong(event, song) {
-  event.preventDefault();
-  const { error } = await supabase.from('band_songs').update(songPayload(new FormData(event.currentTarget), round.id)).eq('id', song.id);
+async function saveSongForm(form, song) {
+  if (!form || !song || form.dataset.dirty !== 'true') return;
+  if (form.dataset.saving === 'true') { form.dataset.pendingSave = 'true'; return; }
+  form.dataset.saving = 'true';
+  const payload = songPayload(new FormData(form), round.id);
+  const { error } = await supabase.from('band_songs').update(payload).eq('id', song.id);
+  form.dataset.saving = 'false';
   if (error) { showMessage(error.message, 'error'); return; }
+  Object.assign(song, payload);
+  form.dataset.dirty = 'false';
   await announceRealtimeChange('song_updated', song.id);
-  await loadRoundData();
-  showMessage('곡 정보를 저장했습니다.', 'success');
+  updateSongListItem(song);
+  const header = form.closest('[data-editor], [data-mobile-editor]')?.querySelector(':scope > header h2');
+  if (header) header.textContent = song.title;
+  const addMember = form.closest('[data-editor], [data-mobile-editor]')?.querySelector('[data-add-member]');
+  if (addMember) addMember.disabled = isFixedSong(song);
+  showMessage('변경사항을 저장했습니다.', 'success');
+  if (form.dataset.pendingSave === 'true') {
+    form.dataset.pendingSave = 'false';
+    form.dataset.dirty = 'true';
+    await saveSongForm(form, song);
+  }
 }
 
 async function deleteSong(song) {

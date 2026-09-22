@@ -214,6 +214,12 @@ body.band-mode #view-dynamic {
   cursor: not-allowed;
 }
 
+.band-apply-session.is-fixed:disabled {
+  background: #2563eb;
+  color: #fff;
+  opacity: 1;
+}
+
 .band-secondary {
   border-color: var(--band-line);
   background: #fff;
@@ -393,6 +399,15 @@ body.band-mode #view-dynamic {
   box-shadow: inset 3px 0 var(--band-green);
 }
 
+.band-song.is-fixed:hover {
+  background: #f2f6ff;
+}
+
+.band-song.is-fixed.is-selected {
+  background: #edf3ff;
+  box-shadow: inset 3px 0 #2563eb;
+}
+
 .band-song-index {
   color: #a1a8ae;
   font-family: "SFMono-Regular", Consolas, monospace;
@@ -477,6 +492,10 @@ body.band-mode #view-dynamic {
 
 .band-status-formed {
   color: var(--band-green);
+}
+
+.band-status-fixed {
+  color: #2563eb;
 }
 
 .band-status-open {
@@ -983,6 +1002,19 @@ body.band-mode #view-dynamic {
   color: var(--band-green);
 }
 
+.band-detail-fixed .band-requirement,
+.band-detail-fixed .band-requirement.is-full,
+.band-detail-fixed .band-requirement:disabled {
+  border-color: #9cb9f3;
+  background: #eef4ff;
+  color: #1d4ed8;
+  opacity: 1;
+}
+
+.band-detail-fixed .band-requirement i {
+  background: #2563eb;
+}
+
 .band-requirement strong {
   font-size: 14px;
 }
@@ -1027,6 +1059,10 @@ body.band-mode #view-dynamic {
 .band-complete {
   color: var(--band-green);
   font-weight: 750;
+}
+
+.band-detail-fixed .band-complete {
+  color: #1d4ed8;
 }
 
 .band-member-list {
