@@ -3,6 +3,7 @@ import {
   getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchActiveRound, fetchApplications, submitApplication
 } from '../schedule.js';
+import { calculateTimeAssignments } from '../utils/timeAssignment.js';
 import { diffToHMS } from '../utils/time.js';
 import { syncServerTime, serverNow } from '../utils/serverTime.js';
 
@@ -63,29 +64,10 @@ function latestApplicationsByTeam(apps){
 }
 
 function expectedAssignments(apps){
-  const latest=latestApplicationsByTeam(apps);
-  const sorted=[...latest.values()].sort(cmpSubmitted);
-  const assigned=new Set();
-  const result=new Map();
-
-  for(const pref of [1,2,3]){
-    for(const app of sorted){
-      if(result.has(app.id)) continue;
-      const day=app[`pref${pref}_day`];
-      const hour=app[`pref${pref}_hour`];
-      if(day==null||hour==null) continue;
-      const key=`${day}-${hour}`;
-      if(assigned.has(key)) continue;
-      assigned.add(key);
-      result.set(app.id,{day,hour});
-    }
-  }
-
-  for(const app of sorted){
-    if(!result.has(app.id)) result.set(app.id,{day:null,hour:null});
-  }
-
-  return result;
+  return new Map(calculateTimeAssignments(apps).map(result => [
+    result.id,
+    {day:result.assigned_day,hour:result.assigned_hour},
+  ]));
 }
 
 function dayHour(day,hour){
