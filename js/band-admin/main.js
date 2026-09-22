@@ -110,6 +110,29 @@ function showMessage(message, type = '') {
   window.setTimeout(() => el?.classList.remove('is-visible'), 3500);
 }
 
+const scheduleField = (kind, suffix) => suffix === 'mode' ? `${kind}_schedule_mode` : `${kind}_${suffix === 'opens_at' ? 'open_at' : 'close_at'}`;
+const scheduleMode = (item, kind) => item?.[scheduleField(kind, 'mode')] || 'manual';
+const padDatePart = value => String(value).padStart(2, '0');
+
+function toDateTimeInput(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}:${padDatePart(date.getSeconds())}`;
+}
+
+function formatScheduleDate(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return 'yy.mm.dd hh:mm:ss';
+  return `${padDatePart(date.getFullYear() % 100)}.${padDatePart(date.getMonth() + 1)}.${padDatePart(date.getDate())} ${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}:${padDatePart(date.getSeconds())}`;
+}
+
+function renderRoundControls(item) {
+  const control = (kind, label) => scheduleMode(item, kind) === 'auto'
+    ? `<button class="band-round-scheduled" type="button" data-open-schedule aria-label="${label} 예약 설정 열기"><span aria-hidden="true">⏰</span><span>${label}</span></button>`
+    : `<label><input name="${kind}_application_open" type="checkbox" ${item[`${kind}_application_open`] ? 'checked' : ''}><span>${label}</span></label>`;
+  return `${control('song', '곡 신청')}${control('session', '세션 신청')}<button class="band-admin-schedule" type="button" data-manage-schedule>예약</button><button class="band-admin-blind${item.is_blinded ? ' is-active' : ''}" type="button" data-toggle-blind>${item.is_blinded ? '블라인드 해제' : '회차 블라인드'}</button>`;
+}
+
 function renderLogin(errorMessage = '') {
   host.innerHTML = `<main class="band-admin-app band-admin-login"><form data-login-form>
     <a href="#band" class="band-admin-mark"><img src="img/logo.png" alt=""><span>BAND BOARD</span></a>
@@ -143,7 +166,7 @@ function renderShell() {
   host.innerHTML = `<main class="band-admin-app" data-realtime="${realtimeStatus}" data-realtime-events="${realtimeEventCount}">
     <header class="band-admin-topbar"><a class="band-admin-brand" href="#band-admin"><img src="img/logo.png" alt=""><span>BAND ADMIN</span></a></header>
     <div class="band-admin-page">
-      <section class="band-admin-round"><div class="band-admin-round-head"><label class="band-admin-round-picker"><span>회차:</span><select data-round-select aria-label="회차 선택">${rounds.map(item => `<option value="${item.id}" ${item.id === round?.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label><button type="button" data-manage-rounds>+ 회차 관리</button></div>${round ? `<div class="band-round-options band-admin-round-options" data-round-controls><label><input name="song_application_open" type="checkbox" ${round.song_application_open ? 'checked' : ''}><span>곡 신청</span></label><label><input name="session_application_open" type="checkbox" ${round.session_application_open ? 'checked' : ''}><span>세션 신청</span></label><button class="band-admin-blind${round.is_blinded ? ' is-active' : ''}" type="button" data-toggle-blind>${round.is_blinded ? '블라인드 해제' : '회차 블라인드'}</button></div>` : '<p>회차 관리에서 회차를 추가하세요.</p>'}</section>
+      <section class="band-admin-round"><div class="band-admin-round-head"><label class="band-admin-round-picker"><span>회차:</span><select data-round-select aria-label="회차 선택">${rounds.map(item => `<option value="${item.id}" ${item.id === round?.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label><button type="button" data-manage-rounds>+ 회차 관리</button></div>${round ? `<div class="band-round-options band-admin-round-options" data-round-controls>${renderRoundControls(round)}</div>` : '<p>회차 관리에서 회차를 추가하세요.</p>'}</section>
       <button class="band-admin-participants-trigger" type="button" data-show-participants>신청자 확인 <span>${participantRows().length}명</span></button>
       <div class="band-admin-columns"><section class="band-admin-song-list"><header><div><h1>곡</h1><span>${songs.length}곡</span></div><button type="button" data-add-song ${round ? '' : 'disabled'}>+ 곡 추가</button></header><div data-song-list></div></section><section class="band-admin-editor" data-editor></section><aside class="band-admin-participants" data-participants></aside></div>
     </div><div class="band-admin-message" data-admin-message role="status"></div>
@@ -160,10 +183,70 @@ function bindShell() {
   host.querySelector('[data-add-song]').addEventListener('click', () => openSongModal());
   host.querySelectorAll('[data-round-controls] input').forEach(input => input.addEventListener('change', () => updateRoundSetting(input)));
   host.querySelector('[data-toggle-blind]')?.addEventListener('click', openBlindModal);
+  host.querySelectorAll('[data-manage-schedule], [data-open-schedule]').forEach(button => button.addEventListener('click', openScheduleModal));
   host.querySelector('[data-round-select]')?.addEventListener('change', async event => {
     round = rounds.find(item => item.id === Number(event.target.value)) || null;
     selectedSongId = null;
     await loadRoundData();
+  });
+}
+
+function bindRoundControls(scope) {
+  scope.querySelectorAll('input').forEach(input => input.addEventListener('change', () => updateRoundSetting(input)));
+  scope.querySelector('[data-toggle-blind]')?.addEventListener('click', openBlindModal);
+  scope.querySelectorAll('[data-manage-schedule], [data-open-schedule]').forEach(button => button.addEventListener('click', openScheduleModal));
+}
+
+function openScheduleModal() {
+  if (!round) return;
+  closeModal(true);
+  const panel = (kind, title) => {
+    const mode = scheduleMode(round, kind);
+    return `<section class="band-schedule-panel${mode === 'manual' ? ' is-manual' : ''}" data-schedule-kind="${kind}"><header><h3>${title}</h3><label class="band-schedule-switch"><input type="checkbox" name="${kind}_auto" ${mode === 'auto' ? 'checked' : ''}><span>${mode === 'auto' ? '자동' : '수동'}</span></label></header><div class="band-schedule-fields"><label><span>신청 시작</span><input type="datetime-local" step="1" name="${kind}_opens_at" value="${toDateTimeInput(round[scheduleField(kind, 'opens_at')])}" ${mode === 'manual' ? 'disabled' : ''}><small>${formatScheduleDate(round[scheduleField(kind, 'opens_at')])}</small></label><label><span>신청 종료</span><input type="datetime-local" step="1" name="${kind}_closes_at" value="${toDateTimeInput(round[scheduleField(kind, 'closes_at')])}" ${mode === 'manual' ? 'disabled' : ''}><small>${formatScheduleDate(round[scheduleField(kind, 'closes_at')])}</small></label></div></section>`;
+  };
+  host.insertAdjacentHTML('beforeend', `<div class="band-admin-modal" data-admin-modal><section class="band-schedule-manager" role="dialog" aria-modal="true"><header><h2>신청 예약</h2><button type="button" data-close aria-label="닫기">×</button></header><form><div class="band-schedule-grid">${panel('song', '곡 신청')}${panel('session', '세션 신청')}</div><p class="band-round-manager-error" data-error role="status"></p><footer><button type="button" data-close>취소</button><button type="submit">예약 저장</button></footer></form></section></div>`);
+  const modal = host.querySelector('[data-admin-modal]');
+  const form = modal.querySelector('form');
+  const syncPanel = kind => {
+    const section = form.querySelector(`[data-schedule-kind="${kind}"]`);
+    const automatic = form.elements[`${kind}_auto`].checked;
+    section.classList.toggle('is-manual', !automatic);
+    section.querySelector('.band-schedule-switch span').textContent = automatic ? '자동' : '수동';
+    section.querySelectorAll('input[type="datetime-local"]').forEach(input => { input.disabled = !automatic; });
+  };
+  modal.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeModal));
+  modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+  ['song', 'session'].forEach(kind => {
+    form.elements[`${kind}_auto`].addEventListener('change', () => syncPanel(kind));
+    ['opens_at', 'closes_at'].forEach(suffix => form.elements[`${kind}_${suffix}`].addEventListener('input', event => { event.target.nextElementSibling.textContent = formatScheduleDate(event.target.value); }));
+  });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const payload = {};
+    try {
+      ['song', 'session'].forEach(kind => {
+        const automatic = form.elements[`${kind}_auto`].checked;
+        payload[scheduleField(kind, 'mode')] = automatic ? 'auto' : 'manual';
+        if (!automatic) return;
+        const opensAt = form.elements[`${kind}_opens_at`].value;
+        const closesAt = form.elements[`${kind}_closes_at`].value;
+        if (!opensAt || !closesAt || new Date(opensAt) >= new Date(closesAt)) throw new Error(`${kind === 'song' ? '곡' : '세션'} 신청의 시작·종료 시간을 올바르게 입력해주세요.`);
+        payload[scheduleField(kind, 'opens_at')] = new Date(opensAt).toISOString();
+        payload[scheduleField(kind, 'closes_at')] = new Date(closesAt).toISOString();
+        payload[`${kind}_application_open`] = Date.now() >= new Date(opensAt).getTime() && Date.now() < new Date(closesAt).getTime();
+      });
+      const submit = form.querySelector('[type="submit"]');
+      submit.disabled = true;
+      const { error } = await supabase.from('band_rounds').update(payload).eq('id', round.id);
+      if (error) throw error;
+      Object.assign(round, payload);
+      Object.assign(rounds.find(item => item.id === round.id), payload);
+      await announceRealtimeChange('round_schedule', round.id);
+      closeModal();
+      const controls = host.querySelector('[data-round-controls]');
+      if (controls) { controls.innerHTML = renderRoundControls(round); bindRoundControls(controls); }
+      showMessage('신청 예약을 저장했습니다.', 'success');
+    } catch (error) { form.querySelector('[data-error]').textContent = error.message; form.querySelector('[type="submit"]').disabled = false; }
   });
 }
 
@@ -333,7 +416,7 @@ function openRoundManagerModal() {
   host.insertAdjacentHTML('beforeend', `<div class="band-admin-modal" data-admin-modal><section class="band-round-manager" role="dialog" aria-modal="true"><header><h2>회차 관리</h2><button type="button" data-close aria-label="닫기">×</button></header><div class="band-admin-modal-body">
     <div class="band-round-manager-summary"><div><span>현재 열린 신청</span><strong>${openApplicationCount}개</strong></div><button type="button" data-show-round-add>+ 추가</button></div>
     <form class="band-round-add" data-round-add hidden><label><span>새 회차 이름</span><input name="name" required placeholder="2027-1 정기공연 합주"></label><button type="submit">추가</button></form>
-    <div class="band-round-list">${rounds.map(item => `<article data-round-item="${item.id}"><div class="band-round-item-head"><input name="name" value="${esc(item.name)}" aria-label="회차 이름"><button class="is-danger" type="button" data-delete-round="${item.id}">삭제</button></div><div class="band-round-options"><label><input name="song_application_open" type="checkbox" ${item.song_application_open ? 'checked' : ''}><span>곡 신청</span></label><label><input name="session_application_open" type="checkbox" ${item.session_application_open ? 'checked' : ''}><span>세션 신청</span></label></div></article>`).join('') || '<div class="band-admin-empty">등록된 회차가 없습니다.</div>'}</div>
+    <div class="band-round-list">${rounds.map(item => `<article data-round-item="${item.id}"><div class="band-round-item-head"><button class="band-round-drag-handle" type="button" aria-label="${esc(item.name)} 순서 변경" title="드래그하거나 방향키로 순서 변경">三</button><input name="name" value="${esc(item.name)}" aria-label="회차 이름"><button class="is-danger" type="button" data-delete-round="${item.id}">삭제</button></div><div class="band-round-options"><label><input name="song_application_open" type="checkbox" ${item.song_application_open ? 'checked' : ''}><span>곡 신청</span></label><label><input name="session_application_open" type="checkbox" ${item.session_application_open ? 'checked' : ''}><span>세션 신청</span></label></div></article>`).join('') || '<div class="band-admin-empty">등록된 회차가 없습니다.</div>'}</div>
     <p class="band-round-manager-error" data-round-manager-error role="status"></p>
   </div></section></div>`);
   const modal = host.querySelector('[data-admin-modal]');
@@ -351,7 +434,7 @@ function openRoundManagerModal() {
     const name = String(data.get('name')).trim();
     if (!confirm(`'${name}' 회차를 추가하시겠습니까?`)) return;
     try {
-      const { data: created, error } = await supabase.from('band_rounds').insert({ name, is_active: false }).select().single();
+      const { data: created, error } = await supabase.from('band_rounds').insert({ name, is_active: false, sort_order: 0 }).select().single();
       if (error) throw error;
       round = created;
       await announceRealtimeChange('round_created', created.id);
@@ -361,6 +444,19 @@ function openRoundManagerModal() {
     } catch (error) { showMessage(error.message, 'error'); }
   });
   const managerError = modal.querySelector('[data-round-manager-error]');
+  const roundList = modal.querySelector('.band-round-list');
+  const persistRoundOrder = async () => {
+    const ids = [...roundList.querySelectorAll('[data-round-item]')].map(card => Number(card.dataset.roundItem));
+    const previous = [...rounds];
+    rounds = ids.map((id, index) => ({ ...rounds.find(item => item.id === id), sort_order: index + 1 }));
+    managerError.textContent = '';
+    const results = await Promise.all(rounds.map(item => supabase.from('band_rounds').update({ sort_order: item.sort_order }).eq('id', item.id)));
+    const failure = results.find(result => result.error)?.error;
+    if (failure) { rounds = previous; managerError.textContent = failure.message; openRoundManagerModal(); return; }
+    await announceRealtimeChange('round_order', round?.id);
+    const select = host.querySelector('[data-round-select]');
+    if (select) select.innerHTML = rounds.map(item => `<option value="${item.id}" ${item.id === round?.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('');
+  };
   const refreshOpenCount = () => {
     const count = rounds.reduce((sum, item) => sum + Number(Boolean(item.song_application_open)) + Number(Boolean(item.session_application_open)), 0);
     modal.querySelector('.band-round-manager-summary strong').textContent = `${count}개`;
@@ -374,6 +470,28 @@ function openRoundManagerModal() {
   modal.querySelectorAll('[data-round-item]').forEach(card => {
     const item = rounds.find(value => value.id === Number(card.dataset.roundItem));
     if (!item) return;
+    const handle = card.querySelector('.band-round-drag-handle');
+    let dragging = false;
+    handle.addEventListener('pointerdown', event => { dragging = true; card.classList.add('is-sorting'); handle.setPointerCapture?.(event.pointerId); event.preventDefault(); });
+    handle.addEventListener('pointermove', event => {
+      if (!dragging) return;
+      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-round-item]');
+      if (!target || target === card || target.parentElement !== roundList) return;
+      const before = event.clientY < target.getBoundingClientRect().top + target.offsetHeight / 2;
+      roundList.insertBefore(card, before ? target : target.nextSibling);
+    });
+    const endDrag = async event => { if (!dragging) return; dragging = false; card.classList.remove('is-sorting'); try { handle.releasePointerCapture?.(event.pointerId); } catch {} await persistRoundOrder(); };
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
+    handle.addEventListener('keydown', async event => {
+      if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      const sibling = event.key === 'ArrowUp' ? card.previousElementSibling : card.nextElementSibling;
+      if (!sibling) return;
+      roundList.insertBefore(card, event.key === 'ArrowUp' ? sibling : sibling.nextSibling);
+      await persistRoundOrder();
+      handle.focus();
+    });
     const nameInput = card.querySelector('[name="name"]');
     nameInput.addEventListener('blur', async () => {
       const previousName = item.name;
@@ -575,7 +693,7 @@ async function fetchRoundData() {
 
 async function fetchAdminData() {
   const preferredRoundId = round?.id;
-  const { data, error } = await supabase.from('band_rounds').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('band_rounds').select('*').order('sort_order').order('created_at', { ascending: false });
   if (error) throw error;
   rounds = data || [];
   round = rounds.find(item => item.id === preferredRoundId) || rounds[0] || null;
@@ -670,11 +788,8 @@ function syncAdminShell(state) {
   if (select) select.innerHTML = rounds.map(item => `<option value="${item.id}" ${item.id === round?.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('');
   const controls = host.querySelector('[data-round-controls]');
   if (controls && round) {
-    controls.querySelector('[name="song_application_open"]').checked = Boolean(round.song_application_open);
-    controls.querySelector('[name="session_application_open"]').checked = Boolean(round.session_application_open);
-    const blindButton = controls.querySelector('[data-toggle-blind]');
-    blindButton.classList.toggle('is-active', Boolean(round.is_blinded));
-    blindButton.textContent = round.is_blinded ? '블라인드 해제' : '회차 블라인드';
+    controls.innerHTML = renderRoundControls(round);
+    bindRoundControls(controls);
   }
   const trigger = host.querySelector('[data-show-participants] span');
   if (trigger) trigger.textContent = `${participantRows().length}명`;

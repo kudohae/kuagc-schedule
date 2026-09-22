@@ -8,7 +8,7 @@ const VIEW_CSS = {
   band:       'css/band.css',
   'band-admin': 'css/band-admin.css',
 };
-const VIEW_VERSION = { band: '20260922-band-19', 'band-admin': '20260922-band-admin-18' };
+const VIEW_VERSION = { band: '20260922-band-20', 'band-admin': '20260922-band-admin-19' };
 
 let _currentView = null;
 let _currentDestroy = null;

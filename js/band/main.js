@@ -434,7 +434,7 @@ function renderError(error) {
 
 async function fetchBandData() {
   const preferredRoundId = round?.id;
-  const { data: roundRows, error: roundError } = await supabase.from('band_rounds').select('*').order('created_at', { ascending: false });
+  const { data: roundRows, error: roundError } = await supabase.from('band_rounds').select('*').order('sort_order').order('created_at', { ascending: false });
   if (roundError) throw roundError;
   rounds = roundRows || [];
   round = rounds.find(item => item.id === preferredRoundId) || rounds[0] || null;
