@@ -1,4 +1,4 @@
-import { initRouter } from '../router.js';
+import { initRouter } from '../router.js?v=20260922-band-19';
 import {
   getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,

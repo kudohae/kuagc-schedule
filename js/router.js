@@ -5,7 +5,10 @@ const VIEW_CSS = {
   school:     'css/school.css',
   'school-test': 'css/school.css',
   ensemble:   'css/ensemble.css',
+  band:       'css/band.css',
+  'band-admin': 'css/band-admin.css',
 };
+const VIEW_VERSION = { band: '20260922-band-16', 'band-admin': '20260922-band-admin-16' };
 
 let _currentView = null;
 let _currentDestroy = null;
@@ -35,13 +38,15 @@ function updateActiveStates(view) {
     school:     'tb-school',
     'school-test': 'tb-school',
     ensemble:   'tb-ensemble',
+    band:       'tb-ensemble',
+    'band-admin': 'tb-ensemble',
   };
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(tabMap[view])?.classList.add('active');
 
   document.querySelectorAll('.hdr-apply-btn,.hdr-school-btn,.hdr-ensemble-btn')
     .forEach(el => el.classList.remove('active'));
-  const hdrMap = { timeassign: '.hdr-apply-btn', school: '.hdr-school-btn', 'school-test': '.hdr-school-btn', ensemble: '.hdr-ensemble-btn' };
+  const hdrMap = { timeassign: '.hdr-apply-btn', school: '.hdr-school-btn', 'school-test': '.hdr-school-btn', ensemble: '.hdr-ensemble-btn', band: '.hdr-ensemble-btn', 'band-admin': '.hdr-ensemble-btn' };
   if (hdrMap[view]) document.querySelector(hdrMap[view])?.classList.add('active');
 
   document.getElementById('nb-schedule')?.classList.toggle('active', view === 'schedule' || view === 'teams');
@@ -90,13 +95,13 @@ export async function navigate(view) {
     if (VIEW_CSS[view]) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = VIEW_CSS[view];
+      link.href = `${VIEW_CSS[view]}${VIEW_VERSION[view] ? `?v=${VIEW_VERSION[view]}` : ''}`;
       document.head.appendChild(link);
       _currentCssLink = link;
     }
 
     try {
-      const mod = await import(`./${view}/main.js`);
+      const mod = await import(`./${view}/main.js${VIEW_VERSION[view] ? `?v=${VIEW_VERSION[view]}` : ''}`);
       if (token !== _navToken) return;
       const destroy = await mod.init(dynamicEl) || null;
       if (token !== _navToken) { try { destroy?.(); } catch(e) {} return; }
@@ -130,7 +135,7 @@ export async function navigate(view) {
 
 function getHashView() {
   const h = location.hash.slice(1);
-  return ['timeassign', 'school', 'school-test', 'ensemble', 'teams'].includes(h) ? h : 'schedule';
+  return ['timeassign', 'school', 'school-test', 'ensemble', 'band', 'band-admin', 'teams'].includes(h) ? h : 'schedule';
 }
 
 export function initRouter() {
