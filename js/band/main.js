@@ -9,6 +9,7 @@ let membersBySong = new Map();
 let selectedSongId = null;
 let searchQuery = '';
 let statusFilter = 'all';
+let hideFixedTeams = false;
 let destroyed = false;
 let realtimeChannel = null;
 let realtimeRefreshTimer = null;
@@ -124,6 +125,7 @@ function getSearchText(song) {
 function visibleSongs() {
   const query = searchQuery.toLocaleLowerCase('ko');
   return songs.filter(song => {
+    if (hideFixedTeams && isFixedSong(song)) return false;
     if (statusFilter === 'formed' && !song.is_formed) return false;
     if (statusFilter === 'unformed' && song.is_formed) return false;
     return !query || getSearchText(song).includes(query);
@@ -402,7 +404,7 @@ function renderShell() {
     return;
   }
   host.innerHTML = `<main class="band-app" data-realtime="${realtimeStatus}" data-realtime-events="${realtimeEventCount}"><div class="band-workspace"><section class="band-heading"><div><span>합주 신청 시스템</span><label class="band-round-picker"><span class="sr-only">회차 선택</span><select data-band-round-select>${rounds.map(item => `<option value="${item.id}" ${item.id === round?.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label></div><div class="band-heading-side"><div class="band-stats" data-band-stats></div><button class="band-primary" type="button" data-apply-song>+ 곡 신청</button></div></section>
-    <section class="band-toolbar"><label class="band-search"><span aria-hidden="true">⌕</span><input type="search" data-band-search placeholder="곡, 사람, 세션 검색" autocomplete="off"></label><div class="band-segments" role="group" aria-label="결성 상태 필터"><button class="is-active" type="button" data-filter="all">전체</button><button type="button" data-filter="formed">결성</button><button type="button" data-filter="unformed">미결성</button></div><span class="band-result-count" data-band-result-count></span></section><div class="band-layout"><section class="band-list" data-band-list aria-label="곡 목록"></section><aside class="band-detail" data-band-detail aria-live="polite"></aside></div></div><div class="band-notice" data-band-notice role="status"></div></main>`;
+    <section class="band-toolbar"><label class="band-search"><span aria-hidden="true">⌕</span><input type="search" data-band-search placeholder="곡, 사람, 세션 검색" autocomplete="off"></label><div class="band-filter-stack"><div class="band-segments" role="group" aria-label="결성 상태 필터"><button class="is-active" type="button" data-filter="all">전체</button><button type="button" data-filter="formed">결성</button><button type="button" data-filter="unformed">미결성</button></div><label class="band-hide-fixed"><input type="checkbox" data-hide-fixed ${hideFixedTeams ? 'checked' : ''}><span>고정 팀 숨기기</span></label></div><span class="band-result-count" data-band-result-count></span></section><div class="band-layout"><section class="band-list" data-band-list aria-label="곡 목록"></section><aside class="band-detail" data-band-detail aria-live="polite"></aside></div></div><div class="band-notice" data-band-notice role="status"></div></main>`;
   const songButton = host.querySelector('[data-apply-song]');
   songButton.disabled = !round?.song_application_open;
   songButton.textContent = round?.song_application_open ? '+ 곡 신청' : '곡 신청 닫힘';
@@ -410,6 +412,7 @@ function renderShell() {
   bindRoundPicker();
   host.querySelector('[data-band-search]').addEventListener('input', event => { searchQuery = event.target.value.trim(); renderList(); });
   host.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => { statusFilter = button.dataset.filter; host.querySelectorAll('[data-filter]').forEach(item => item.classList.toggle('is-active', item === button)); renderList(); }));
+  host.querySelector('[data-hide-fixed]').addEventListener('change', event => { hideFixedTeams = event.target.checked; selectedSongId = null; renderList(); });
 }
 
 function bindRoundPicker() {
