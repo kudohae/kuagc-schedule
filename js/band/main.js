@@ -6,6 +6,7 @@ import {
   includedRoles,
   isMemberRoleIncluded,
   normalizeBandRole,
+  shouldAutoFormSong,
 } from './allocation.js';
 
 let host = null;
@@ -25,6 +26,7 @@ let realtimeReplacing = false;
 let realtimeStatus = 'idle';
 let realtimeEventCount = 0;
 let pendingRealtimeSignals = [];
+let allocationCompletionBySong = new Map();
 
 const REALTIME_TOPIC = 'band-sync-v1';
 const REALTIME_EVENT = 'band_changed';
@@ -111,7 +113,21 @@ function getIncludedMembers(song) {
 }
 
 function isEffectivelyFormed(song) {
-  return isFixedSong(song) || song.is_formed === true || songAllocation(song).isComplete;
+  return isFixedSong(song) || song.is_formed === true;
+}
+
+async function persistAutomaticallyFormedSongs() {
+  const currentCompletion = new Map(songs.map(song => [song.id, songAllocation(song).isComplete]));
+  const completedIds = songs
+    .filter(song => allocationCompletionBySong.has(song.id)
+      && shouldAutoFormSong(allocationCompletionBySong.get(song.id), currentCompletion.get(song.id), song.is_formed, isFixedSong(song)))
+    .map(song => song.id);
+  if (completedIds.length) {
+    const { error } = await supabase.from('band_songs').update({ is_formed: true }).in('id', completedIds);
+    if (error) completedIds.forEach(id => currentCompletion.set(id, allocationCompletionBySong.get(id)));
+    else songs.filter(song => completedIds.includes(song.id)).forEach(song => { song.is_formed = true; });
+  }
+  allocationCompletionBySong = currentCompletion;
 }
 
 function includedPersonCount(song) {
@@ -495,6 +511,7 @@ async function fetchBandData() {
     if (!membersBySong.has(member.song_id)) membersBySong.set(member.song_id, []);
     membersBySong.get(member.song_id).push(member);
   }
+  await persistAutomaticallyFormedSongs();
 }
 
 function captureRealtimeState() {
@@ -661,6 +678,7 @@ export async function init(container) {
   round = null;
   songs = [];
   membersBySong = new Map();
+  allocationCompletionBySong = new Map();
   selectedSongId = null;
   searchQuery = '';
   statusFilter = 'all';
@@ -682,6 +700,7 @@ export async function init(container) {
     if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
     pendingRealtimeSignals = [];
+    allocationCompletionBySong = new Map();
     document.body.classList.remove('band-mode');
     if (host) host.innerHTML = '';
     host = null;

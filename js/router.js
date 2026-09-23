@@ -7,7 +7,7 @@ const VIEW_CSS = {
   ensemble:   'css/ensemble.css',
   band:       'css/band.css',
 };
-const VIEW_VERSION = { band: '20260923-band-allocation-21' };
+const VIEW_VERSION = { band: '20260924-formation-edge' };
 
 let _currentView = null;
 let _currentDestroy = null;
