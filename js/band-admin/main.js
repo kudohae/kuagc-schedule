@@ -78,6 +78,23 @@ function songMembers(song) {
   return rows.sort(byCreated);
 }
 
+function groupMembersByRole(rows) {
+  const grouped = new Map();
+  for (const member of rows) {
+    const roles = [...new Set((member.roles || []).map(normalizeRole).filter(Boolean))];
+    for (const role of (roles.length ? roles : ['그 외'])) {
+      if (!grouped.has(role)) grouped.set(role, []);
+      grouped.get(role).push(member);
+    }
+  }
+  const roleIndex = role => ['보컬', '기타', '베이스', '키보드', '드럼', '그 외'].indexOf(role);
+  return [...grouped].map(([role, members]) => ({ role, members: members.sort(byCreated) })).sort((a, b) => {
+    const ai = roleIndex(a.role);
+    const bi = roleIndex(b.role);
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi) || a.role.localeCompare(b.role, 'ko');
+  });
+}
+
 function formatMemberTimestamp(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '<time>--.--.-- --:--:--</time>';
@@ -310,15 +327,20 @@ function memberFields(member = {}) {
   return `<div class="band-admin-grid"><label><span>이름</span><input name="applicant_name" required value="${esc(member.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(member.student_id || '')}"></label><label class="is-wide"><span>신청 세션</span><input name="roles" value="${esc(rolesText(member.roles))}" placeholder="기타, 코러스"></label></div>`;
 }
 
+function renderMemberRow(member, role) {
+  return `<article class="${member.is_included === false ? 'is-excluded' : ''}${member.is_song_applicant ? ' is-song-applicant' : ''}">${member.is_song_applicant ? '<span class="band-admin-inclusion is-applicant">신청자</span>' : `<button class="band-admin-inclusion ${member.is_included === false ? 'is-off' : 'is-on'}" type="button" data-toggle-member="${member.id}" aria-label="${esc(member.applicant_name)} 팀 포함 상태 변경">${member.is_included === false ? 'OFF' : 'ON'}</button>`}<div class="band-admin-member-info"><b>${esc(member.applicant_name)}</b><small><span>${esc(member.student_id)}</span>${formatMemberTimestamp(member.created_at)}</small></div><p><span>${esc(role)}</span></p>${member.is_song_applicant ? '<div class="band-admin-member-actions"><span>곡 신청자</span></div>' : `<div class="band-admin-member-actions"><button type="button" data-edit-member="${member.id}">수정</button><button class="band-admin-move" type="button" data-move-member="${member.id}">이동</button><button class="is-danger" type="button" data-delete-member="${member.id}">삭제</button></div>`}</article>`;
+}
+
 function renderEditor(editor = host.querySelector('[data-editor]')) {
   if (!editor) return;
   const song = songs.find(item => item.id === selectedSongId);
   if (!song) { editor.innerHTML = '<div class="band-admin-empty is-large">편집할 곡을 선택하세요.</div>'; return; }
   const rows = songMembers(song);
   const includedCount = rows.filter(member => member.is_included !== false).length;
+  const memberGroups = groupMembersByRole(rows);
   editor.innerHTML = `<header><div><span>SONG #${song.id}</span><h2>${esc(song.title)}</h2></div><button class="is-danger" type="button" data-delete-song>곡 삭제</button></header>
     <form class="band-admin-card" data-song-form data-song-id="${song.id}">${songFields(song)}</form>
-    <section class="band-admin-members"><header><div><h3>세션 신청</h3><span>${includedCount}명 포함 · ${rows.length}건 · 신청 시각순</span></div><button type="button" data-add-member ${isFixedSong(song) ? 'disabled' : ''}>+ 세션 추가</button></header><div>${rows.length ? rows.map(member => `<article class="${member.is_included === false ? 'is-excluded' : ''}${member.is_song_applicant ? ' is-song-applicant' : ''}">${member.is_song_applicant ? '<span class="band-admin-inclusion is-applicant">신청자</span>' : `<button class="band-admin-inclusion ${member.is_included === false ? 'is-off' : 'is-on'}" type="button" data-toggle-member="${member.id}" aria-label="${esc(member.applicant_name)} 팀 포함 상태 변경">${member.is_included === false ? 'OFF' : 'ON'}</button>`}<div class="band-admin-member-info"><b>${esc(member.applicant_name)}</b><small><span>${esc(member.student_id)}</span>${formatMemberTimestamp(member.created_at)}</small></div><p>${(member.roles || []).map(role => `<span>${esc(role)}</span>`).join('') || '<span>자유 세션</span>'}</p>${member.is_song_applicant ? '<div class="band-admin-member-actions"><span>곡 신청자</span></div>' : `<div class="band-admin-member-actions"><button type="button" data-edit-member="${member.id}">수정</button><button class="band-admin-move" type="button" data-move-member="${member.id}">이동</button><button class="is-danger" type="button" data-delete-member="${member.id}">삭제</button></div>`}</article>`).join('') : '<div class="band-admin-empty">세션 신청이 없습니다.</div>'}</div></section>`;
+    <section class="band-admin-members"><header><div><h3>세션 신청</h3><span>${includedCount}명 포함 · ${rows.length}건 · 세션별 신청 시각순</span></div><button type="button" data-add-member ${isFixedSong(song) ? 'disabled' : ''}>+ 세션 추가</button></header><div>${rows.length ? memberGroups.map(group => `<section class="band-admin-member-group"><header><h4>${esc(group.role)}</h4><span>${group.members.length}명</span></header>${group.members.map(member => renderMemberRow(member, group.role)).join('')}</section>`).join('') : '<div class="band-admin-empty">세션 신청이 없습니다.</div>'}</div></section>`;
   const songForm = editor.querySelector('[data-song-form]');
   songForm.addEventListener('submit', event => event.preventDefault());
   songForm.addEventListener('input', () => { songForm.dataset.dirty = 'true'; });
@@ -416,7 +438,7 @@ function openRoundManagerModal() {
   host.insertAdjacentHTML('beforeend', `<div class="band-admin-modal" data-admin-modal><section class="band-round-manager" role="dialog" aria-modal="true"><header><h2>회차 관리</h2><button type="button" data-close aria-label="닫기">×</button></header><div class="band-admin-modal-body">
     <div class="band-round-manager-summary"><div><span>현재 열린 신청</span><strong>${openApplicationCount}개</strong></div><button type="button" data-show-round-add>+ 추가</button></div>
     <form class="band-round-add" data-round-add hidden><label><span>새 회차 이름</span><input name="name" required placeholder="2027-1 정기공연 합주"></label><button type="submit">추가</button></form>
-    <div class="band-round-list">${rounds.map(item => `<article data-round-item="${item.id}"><div class="band-round-item-head"><button class="band-round-drag-handle" type="button" aria-label="${esc(item.name)} 순서 변경" title="드래그하거나 방향키로 순서 변경">三</button><input name="name" value="${esc(item.name)}" aria-label="회차 이름"><button class="is-danger" type="button" data-delete-round="${item.id}">삭제</button></div><div class="band-round-options"><label><input name="song_application_open" type="checkbox" ${item.song_application_open ? 'checked' : ''}><span>곡 신청</span></label><label><input name="session_application_open" type="checkbox" ${item.session_application_open ? 'checked' : ''}><span>세션 신청</span></label></div></article>`).join('') || '<div class="band-admin-empty">등록된 회차가 없습니다.</div>'}</div>
+    <div class="band-round-list">${rounds.map((item, index) => `<article data-round-item="${item.id}"><div class="band-round-order-controls" aria-label="${esc(item.name)} 순서 변경"><button type="button" data-round-move="-1" aria-label="${esc(item.name)} 위로 이동" ${index === 0 ? 'disabled' : ''}>↑</button><button type="button" data-round-move="1" aria-label="${esc(item.name)} 아래로 이동" ${index === rounds.length - 1 ? 'disabled' : ''}>↓</button></div><div class="band-round-item-content"><div class="band-round-item-head"><input name="name" value="${esc(item.name)}" aria-label="회차 이름"><button class="is-danger" type="button" data-delete-round="${item.id}">삭제</button></div><div class="band-round-options"><label><input name="song_application_open" type="checkbox" ${item.song_application_open ? 'checked' : ''}><span>곡 신청</span></label><label><input name="session_application_open" type="checkbox" ${item.session_application_open ? 'checked' : ''}><span>세션 신청</span></label></div></div></article>`).join('') || '<div class="band-admin-empty">등록된 회차가 없습니다.</div>'}</div>
     <p class="band-round-manager-error" data-round-manager-error role="status"></p>
   </div></section></div>`);
   const modal = host.querySelector('[data-admin-modal]');
@@ -448,11 +470,13 @@ function openRoundManagerModal() {
   const persistRoundOrder = async () => {
     const ids = [...roundList.querySelectorAll('[data-round-item]')].map(card => Number(card.dataset.roundItem));
     const previous = [...rounds];
-    rounds = ids.map((id, index) => ({ ...rounds.find(item => item.id === id), sort_order: index + 1 }));
+    const previousOrders = new Map(rounds.map(item => [item.id, item.sort_order]));
+    rounds = ids.map(id => rounds.find(item => item.id === id));
+    rounds.forEach((item, index) => { item.sort_order = index + 1; });
     managerError.textContent = '';
     const results = await Promise.all(rounds.map(item => supabase.from('band_rounds').update({ sort_order: item.sort_order }).eq('id', item.id)));
     const failure = results.find(result => result.error)?.error;
-    if (failure) { rounds = previous; managerError.textContent = failure.message; openRoundManagerModal(); return; }
+    if (failure) { previous.forEach(item => { item.sort_order = previousOrders.get(item.id); }); rounds = previous; managerError.textContent = failure.message; openRoundManagerModal(); return; }
     await announceRealtimeChange('round_order', round?.id);
     const select = host.querySelector('[data-round-select]');
     if (select) select.innerHTML = rounds.map(item => `<option value="${item.id}" ${item.id === round?.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('');
@@ -467,31 +491,25 @@ function openRoundManagerModal() {
     const control = host.querySelector(`[data-round-controls] [name="${field}"]`);
     if (control) control.checked = value;
   };
+  const refreshRoundMoveButtons = () => {
+    const cards = [...roundList.querySelectorAll('[data-round-item]')];
+    cards.forEach((card, index) => {
+      card.querySelector('[data-round-move="-1"]').disabled = index === 0;
+      card.querySelector('[data-round-move="1"]').disabled = index === cards.length - 1;
+    });
+  };
   modal.querySelectorAll('[data-round-item]').forEach(card => {
     const item = rounds.find(value => value.id === Number(card.dataset.roundItem));
     if (!item) return;
-    const handle = card.querySelector('.band-round-drag-handle');
-    let dragging = false;
-    handle.addEventListener('pointerdown', event => { dragging = true; card.classList.add('is-sorting'); handle.setPointerCapture?.(event.pointerId); event.preventDefault(); });
-    handle.addEventListener('pointermove', event => {
-      if (!dragging) return;
-      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-round-item]');
-      if (!target || target === card || target.parentElement !== roundList) return;
-      const before = event.clientY < target.getBoundingClientRect().top + target.offsetHeight / 2;
-      roundList.insertBefore(card, before ? target : target.nextSibling);
-    });
-    const endDrag = async event => { if (!dragging) return; dragging = false; card.classList.remove('is-sorting'); try { handle.releasePointerCapture?.(event.pointerId); } catch {} await persistRoundOrder(); };
-    handle.addEventListener('pointerup', endDrag);
-    handle.addEventListener('pointercancel', endDrag);
-    handle.addEventListener('keydown', async event => {
-      if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
-      event.preventDefault();
-      const sibling = event.key === 'ArrowUp' ? card.previousElementSibling : card.nextElementSibling;
+    card.querySelectorAll('[data-round-move]').forEach(button => button.addEventListener('click', async () => {
+      const direction = Number(button.dataset.roundMove);
+      const sibling = direction < 0 ? card.previousElementSibling : card.nextElementSibling;
       if (!sibling) return;
-      roundList.insertBefore(card, event.key === 'ArrowUp' ? sibling : sibling.nextSibling);
+      roundList.insertBefore(card, direction < 0 ? sibling : sibling.nextElementSibling);
+      refreshRoundMoveButtons();
       await persistRoundOrder();
-      handle.focus();
-    });
+      card.querySelector(`[data-round-move="${direction}"]`)?.focus();
+    }));
     const nameInput = card.querySelector('[name="name"]');
     nameInput.addEventListener('blur', async () => {
       const previousName = item.name;
