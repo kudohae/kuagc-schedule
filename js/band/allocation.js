@@ -105,3 +105,7 @@ export function compareMembersForRole(a, b, role) {
   const bExtra = memberRoleDirective(b, role) === 'extra_on';
   return Number(aExtra) - Number(bExtra) || byCreated(a, b);
 }
+
+export function shouldAutoFormSong(wasComplete, isComplete, isFormed = false, isFixed = false) {
+  return wasComplete === false && isComplete === true && isFormed !== true && isFixed !== true;
+}

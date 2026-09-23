@@ -666,6 +666,7 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-admin-members > header > div {
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -675,6 +676,22 @@ body.band-admin-mode #view-dynamic {
 
 .band-admin-members > header > div > span {
   margin-left: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.band-admin-members > header,
+.band-admin-member-group > header {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.band-admin-members > header > button,
+.band-admin-member-group > header > span {
+  flex: none;
 }
 
 .band-admin-members h3 {
@@ -738,8 +755,10 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-admin-member-group h4 {
+  min-width: 0;
   margin: 0;
   font-size: 10px;
+  overflow-wrap: anywhere;
 }
 
 .band-admin-member-group > header span {
@@ -799,6 +818,12 @@ body.band-admin-mode #view-dynamic {
 
 .band-admin-member-info time span + span {
   margin-left: 5px;
+}
+
+.band-admin-member-info > time {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.25;
 }
 
 .band-admin-members article p {
@@ -1691,6 +1716,105 @@ body.band-admin-mode #view-dynamic {
 .band-admin-failure p {
   color: var(--muted);
   font-size: 10px;
+}
+
+@media (min-width: 821px) {
+  .band-admin-app {
+    font-size: 13px;
+  }
+
+  .band-admin-topbar a,
+  .band-admin-topbar button,
+  .band-admin-tools a,
+  .band-admin-tools button,
+  .band-admin-round button,
+  .band-admin-song-list header button,
+  .band-admin-editor button,
+  .band-admin-modal button {
+    font-size: 12px;
+  }
+
+  .band-admin-round label,
+  .band-admin-check,
+  .band-admin-round select {
+    font-size: 12px;
+  }
+
+  .band-admin-song-list h1 {
+    font-size: 18px;
+  }
+
+  .band-admin-song-list button b {
+    font-size: 13px;
+  }
+
+  .band-admin-song-list button small,
+  .band-admin-song-list button em,
+  .band-admin-song-meta strong {
+    font-size: 11px;
+  }
+
+  .band-admin-editor h2 {
+    font-size: 23px;
+  }
+
+  .band-admin-grid label > span {
+    font-size: 11px;
+  }
+
+  .band-admin-grid input:not([type="checkbox"]),
+  .band-admin-grid textarea,
+  .band-admin-grid select {
+    font-size: 13px;
+  }
+
+  .band-admin-grid small,
+  .band-admin-formed small {
+    font-size: 10px;
+  }
+
+  .band-admin-formed b {
+    font-size: 14px;
+  }
+
+  .band-admin-members h3 {
+    font-size: 15px;
+  }
+
+  .band-admin-members > header > div > span,
+  .band-admin-member-group > header span {
+    font-size: 11px;
+  }
+
+  .band-admin-member-group h4,
+  .band-admin-members article b {
+    font-size: 13px;
+  }
+
+  .band-admin-member-identity small,
+  .band-admin-member-identity em,
+  .band-admin-members article p span,
+  .band-admin-member-actions > span {
+    font-size: 10px;
+  }
+
+  .band-admin-member-info > time {
+    font-size: 9px;
+  }
+
+  .band-admin-participants h2,
+  .band-admin-modal h2 {
+    font-size: 18px;
+  }
+
+  .band-admin-participant-list article b {
+    font-size: 13px;
+  }
+
+  .band-admin-participant-list article small,
+  .band-admin-participant-list article p span {
+    font-size: 10px;
+  }
 }
 
 @media (max-width: 820px) {

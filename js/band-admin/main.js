@@ -7,6 +7,7 @@ import {
   isMemberRoleIncluded,
   memberNoteWithDirective,
   normalizeBandRole,
+  shouldAutoFormSong,
 } from '../band/allocation.js';
 
 let host = null;
@@ -25,6 +26,7 @@ let realtimeStatus = 'idle';
 let realtimeEventCount = 0;
 let pendingRealtimeSignals = [];
 let embedded = false;
+let allocationCompletionBySong = new Map();
 const ADMIN_EMAIL = 'kuagcku@gmail.com';
 const REALTIME_TOPIC = 'band-sync-v1';
 const REALTIME_EVENT = 'band_changed';
@@ -111,7 +113,7 @@ function effectiveRolesForMember(song, member) {
 }
 
 function isEffectivelyFormed(song) {
-  return isFixedSong(song) || song.is_formed === true || songAllocation(song).isComplete;
+  return isFixedSong(song) || song.is_formed === true;
 }
 
 function effectiveSongMembers(song) {
@@ -217,9 +219,7 @@ function formatScheduleDate(value) {
 }
 
 function renderRoundControls(item) {
-  const control = (kind, label) => scheduleMode(item, kind) === 'auto'
-    ? `<button class="band-round-scheduled" type="button" data-open-schedule aria-label="${label} 예약 설정 열기"><span aria-hidden="true">⏰</span><span>${label}</span></button>`
-    : `<label><input name="${kind}_application_open" type="checkbox" ${item[`${kind}_application_open`] ? 'checked' : ''}><span>${label}</span></label>`;
+  const control = (kind, label) => `<label><input name="${kind}_application_open" type="checkbox" ${item[`${kind}_application_open`] ? 'checked' : ''}><span>${label}</span></label>`;
   return `${control('song', '곡 신청')}${control('session', '세션 신청')}<button class="band-admin-schedule" type="button" data-manage-schedule>예약</button><button class="band-admin-blind${item.is_blinded ? ' is-active' : ''}" type="button" data-toggle-blind>${item.is_blinded ? '블라인드 해제' : '회차 블라인드'}</button>`;
 }
 
@@ -273,7 +273,7 @@ function bindShell() {
   host.querySelector('[data-add-song]').addEventListener('click', () => openSongModal());
   host.querySelectorAll('[data-round-controls] input').forEach(input => input.addEventListener('change', () => updateRoundSetting(input)));
   host.querySelector('[data-toggle-blind]')?.addEventListener('click', openBlindModal);
-  host.querySelectorAll('[data-manage-schedule], [data-open-schedule]').forEach(button => button.addEventListener('click', openScheduleModal));
+  host.querySelector('[data-manage-schedule]')?.addEventListener('click', () => showMessage('아직 사용할 수 없는 기능입니다.'));
   host.querySelector('[data-round-select]')?.addEventListener('change', async event => {
     round = rounds.find(item => item.id === Number(event.target.value)) || null;
     selectedSongId = null;
@@ -284,7 +284,7 @@ function bindShell() {
 function bindRoundControls(scope) {
   scope.querySelectorAll('input').forEach(input => input.addEventListener('change', () => updateRoundSetting(input)));
   scope.querySelector('[data-toggle-blind]')?.addEventListener('click', openBlindModal);
-  scope.querySelectorAll('[data-manage-schedule], [data-open-schedule]').forEach(button => button.addEventListener('click', openScheduleModal));
+  scope.querySelector('[data-manage-schedule]')?.addEventListener('click', () => showMessage('아직 사용할 수 없는 기능입니다.'));
 }
 
 function openScheduleModal() {
@@ -408,7 +408,7 @@ function setParticipantExpanded(article, expanded) {
 }
 
 function songFields(song = {}) {
-  return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${isEffectivelyFormed(song) ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>필요 세션이 모두 차면 자동으로 결성됩니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div></div>`;
+  return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${isEffectivelyFormed(song) ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>필요 세션이 모두 차는 순간 한 번 자동 결성되며, 이후에는 수동으로 조정합니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div></div>`;
 }
 
 function memberFields(member = {}) {
@@ -855,6 +855,7 @@ async function toggleMember(member, role) {
   const next = !isMemberRoleIncluded(songAllocation(song), member, role);
   try {
     await updateMemberRoleDirective(member, role, next ? 'force_on' : 'force_off');
+    await persistAutomaticallyFormedSongs();
   } catch (error) { showMessage(error.message, 'error'); return; }
   await announceRealtimeChange('member_toggled', member.id);
   renderSongList();
@@ -874,6 +875,12 @@ async function saveSongForm(form, song) {
   form.dataset.saving = 'false';
   if (error) { showMessage(error.message, 'error'); return; }
   Object.assign(song, payload);
+  try {
+    await persistAutomaticallyFormedSongs();
+  } catch (error) {
+    showMessage(error.message, 'error');
+    return;
+  }
   form.dataset.dirty = 'false';
   await announceRealtimeChange('song_updated', song.id);
   updateSongListItem(song);
@@ -909,13 +916,17 @@ async function deleteMember(member) {
 }
 
 async function persistAutomaticallyFormedSongs() {
+  const currentCompletion = new Map(songs.map(song => [song.id, songAllocation(song).isComplete]));
   const completedIds = songs
-    .filter(song => !isFixedSong(song) && song.is_formed !== true && songAllocation(song).isComplete)
+    .filter(song => allocationCompletionBySong.has(song.id)
+      && shouldAutoFormSong(allocationCompletionBySong.get(song.id), currentCompletion.get(song.id), song.is_formed, isFixedSong(song)))
     .map(song => song.id);
-  if (!completedIds.length) return;
-  const { error } = await supabase.from('band_songs').update({ is_formed: true }).in('id', completedIds);
-  if (error) throw error;
-  songs.filter(song => completedIds.includes(song.id)).forEach(song => { song.is_formed = true; });
+  if (completedIds.length) {
+    const { error } = await supabase.from('band_songs').update({ is_formed: true }).in('id', completedIds);
+    if (error) throw error;
+    songs.filter(song => completedIds.includes(song.id)).forEach(song => { song.is_formed = true; });
+  }
+  allocationCompletionBySong = currentCompletion;
 }
 
 async function fetchRoundData() {
@@ -1150,6 +1161,7 @@ export async function init(container, options = {}) {
   realtimeStatus = 'idle';
   realtimeEventCount = 0;
   pendingRealtimeSignals = [];
+  allocationCompletionBySong = new Map();
   if (!embedded) document.body.classList.add('band-admin-mode');
   host.classList.toggle('is-band-admin-embedded', embedded);
   const { data, error } = await supabase.auth.getUser();
@@ -1173,6 +1185,7 @@ export async function init(container, options = {}) {
     if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
     pendingRealtimeSignals = [];
+    allocationCompletionBySong = new Map();
     if (!embedded) document.body.classList.remove('band-admin-mode');
     host?.classList.remove('is-band-admin-embedded');
     if (host) host.innerHTML = '';

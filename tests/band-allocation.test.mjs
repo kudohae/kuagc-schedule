@@ -7,6 +7,7 @@ const {
   calculateSongAllocation,
   isMemberRoleIncluded,
   memberNoteWithDirective,
+  shouldAutoFormSong,
 } = await import(`data:text/javascript,${encodeURIComponent(source)}`);
 
 const song = {
@@ -57,4 +58,12 @@ test('extra assignment exceeds capacity without evicting the existing member', (
   assert.equal(isMemberRoleIncluded(allocation, first, '기타'), true);
   assert.equal(isMemberRoleIncluded(allocation, extra, '기타'), true);
   assert.equal(allocation.filledByRole.get('기타'), 2);
+});
+
+test('auto formation only fires on the incomplete to complete transition', () => {
+  assert.equal(shouldAutoFormSong(false, true, false, false), true);
+  assert.equal(shouldAutoFormSong(true, true, false, false), false);
+  assert.equal(shouldAutoFormSong(false, false, false, false), false);
+  assert.equal(shouldAutoFormSong(false, true, true, false), false);
+  assert.equal(shouldAutoFormSong(false, true, false, true), false);
 });

@@ -1,4 +1,4 @@
-import { initRouter } from '../router.js?v=20260923-band-allocation-2';
+import { initRouter } from '../router.js?v=20260924-formation-edge';
 import {
   getConfig, fetchTeams, fetchTeamCategories, fetchTeamKindDefaults, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,
