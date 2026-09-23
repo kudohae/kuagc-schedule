@@ -1,7 +1,7 @@
 import { supabase } from '../supabase.js';
 import {
   getConfig, setConfig,
-  fetchTeams, createTeam, updateTeam, deleteTeam,
+  fetchTeams, createTeam, createTeams, updateTeam, deleteTeam,
   fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
   fetchExceptions, createException, deleteException, mergeSchedule,
   fetchRequests, fetchAllPendingRequests, approveRequest, rejectRequest, approveTerminate,
@@ -11,6 +11,12 @@ import {
   fetchContacts, upsertContact, deleteContact,
   fetchVacancyReports, deleteVacancyReport
 } from '../schedule.js';
+
+import {
+  buildFormedTeamRows,
+  formedTeamImportConflict,
+  isFormedBandSong,
+} from './formedTeamImport.js';
 
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
@@ -1199,26 +1205,30 @@ window.doReject=async function(id){
 
 // ── TEAMS ─────────────────────────────────────────────────────────────
 function renderTeams(){
-  const groups=[{k:'합주',label:'합주'},{k:'스쿨',label:'스쿨'},{k:'이외',label:'이외'}];
+  const defaultTypes=['합주','스쿨','이외'];
+  const customTypes=[...new Set(teams.map(t=>String(t.type||'').trim()).filter(type=>type&&!defaultTypes.includes(type)))]
+    .sort((a,b)=>a.localeCompare(b,'ko-KR',{numeric:true}));
+  const groups=['합주',...customTypes,'스쿨','이외'].map(k=>({k,label:k}));
   document.getElementById('teamsContent').innerHTML=groups.map(g=>{
     const list=korSort(teams.filter(t=>t.type===g.k),'name');
     if(!list.length) return '';
+    const isEnsembleGroup=g.k!=='스쿨'&&g.k!=='이외';
     return `<div class="teams-section">
-      <div class="teams-section-title">${g.label} (${list.length}팀)</div>
+      <div class="teams-section-title">${esc(g.label)} (${list.length}팀)</div>
       <div class="teams-grid">
         ${list.map(t=>`<div class="tcard${selectedTeams.has(t.id)?' tcard-sel':''}">
           <div class="tcard-hdr">
             <input type="checkbox" class="team-chk" ${selectedTeams.has(t.id)?'checked':''} onchange="toggleTeamSelect(${t.id},this.checked)"/>
             <div class="tcard-dot" style="background:${teamClr(t)}"></div>
-            <div class="tcard-name-static">${t.name}</div>
-            <div class="tcard-type">${t.type}</div>
+            <div class="tcard-name-static">${esc(t.name)}</div>
+            <div class="tcard-type">${esc(t.type)}</div>
           </div>
-          ${g.k!=='합주'?`<div class="tcard-row">
-            <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.name}" id="tname-${t.id}" placeholder="팀명"/>
+          ${!isEnsembleGroup?`<div class="tcard-row">
+            <input class="fi" style="padding:4px 7px;font-size:12px" value="${esc(t.name)}" id="tname-${t.id}" placeholder="팀명"/>
           </div>`:''}
           <div class="tcard-row">
-            <input class="fi" style="padding:4px 7px;font-size:12px" value="${t.info||''}" id="tinfo-${t.id}"
-              placeholder="${g.k==='스쿨'?'선생님':g.k==='합주'?'합주곡':'추가정보'}"/>
+            <input class="fi" style="padding:4px 7px;font-size:12px" value="${esc(t.info||'')}" id="tinfo-${t.id}"
+              placeholder="${g.k==='스쿨'?'선생님':isEnsembleGroup?'합주곡':'추가정보'}"/>
           </div>
           ${t.members&&t.members.length?`<div style="display:flex;flex-direction:column;gap:4px;background:var(--surface2);border-radius:3px;padding:6px 8px">
             <div style="font-size:10px;font-weight:700;color:var(--text2)">참여자</div>
@@ -1395,72 +1405,99 @@ window.addTeam=async function(){
     toast(`${name} 팀이 추가되었습니다`,'ok'); closeModal(); renderTeams();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
+let formedTeamImport=null;
+
+function setFormedTeamImportError(message=''){
+  const el=document.getElementById('formedTeamImportError');
+  if(!el)return;
+  el.textContent=message;
+  el.style.display=message?'block':'none';
+}
+
 window.importFormedEnsembleTeams=async function(){
   const btn=document.querySelector('button[onclick="importFormedEnsembleTeams()"]');
   const oldText=btn?.textContent;
   if(btn){btn.disabled=true;btn.textContent='불러오는 중...';}
   try{
-    const {data:round,error:roundErr}=await supabase
-      .from('ensemble_rounds')
-      .select('*')
-      .eq('type','regular')
-      .order('created_at',{ascending:false})
-      .limit(1)
-      .maybeSingle();
-    if(roundErr) throw roundErr;
-    if(!round){toast('합주 신청 회차가 없습니다','err');return;}
-    if(round.phase!=='closed'){toast('합주 신청 회차가 먼저 종료되어야 합니다','err');return;}
+    const {data:rounds,error}=await supabase
+      .from('band_rounds')
+      .select('id,name,is_active,created_at,sort_order')
+      .order('sort_order')
+      .order('created_at',{ascending:false});
+    if(error)throw error;
+    if(!rounds?.length){toast('현재 개설된 합주 회차가 없습니다','err');return;}
+    formedTeamImport={rounds};
+    showModal('결성 팀 불러오기',
+      `<div><div class="fl">합주 회차 선택</div>
+       <select class="fs" id="formedTeamRoundSelect">
+         ${rounds.map(round=>`<option value="${round.id}">${esc(round.name)}</option>`).join('')}
+       </select></div>
+       <p id="formedTeamImportError" style="display:none;color:var(--danger);font-size:12px;margin:10px 0 0"></p>`,
+      `<button class="btn btn-s" onclick="closeModal()">취소</button>
+       <button class="btn btn-p" id="formedTeamRoundNext" onclick="selectFormedTeamRound()">확인</button>`
+    );
+  }catch(e){toast(errMsg(e),'err');}
+  finally{if(btn){btn.disabled=false;btn.textContent=oldText||'결성 팀 불러오기';}}
+};
 
-    const {data:songs,error:songErr}=await supabase
-      .from('song_applications')
-      .select('*')
-      .eq('round_id',round.id)
-      .eq('is_formed',true)
-      .neq('status','rejected')
-      .order('created_at');
-    if(songErr) throw songErr;
-    if(!songs?.length){toast('결성 팀이 없습니다','err');return;}
+window.selectFormedTeamRound=async function(){
+  const roundId=Number(document.getElementById('formedTeamRoundSelect')?.value);
+  const selectedRound=formedTeamImport?.rounds.find(item=>item.id===roundId);
+  if(!selectedRound){setFormedTeamImportError('합주 회차를 선택해주세요.');return;}
+  const btn=document.getElementById('formedTeamRoundNext');
+  if(btn){btn.disabled=true;btn.textContent='확인 중...';}
+  setFormedTeamImportError();
+  try{
+    const [{data:songs,error:songError},{data:members,error:memberError}]=await Promise.all([
+      supabase.from('band_songs').select('*').eq('round_id',roundId).order('created_at').order('id'),
+      supabase.from('band_members').select('*,band_songs!inner(round_id)').eq('band_songs.round_id',roundId).order('created_at').order('id'),
+    ]);
+    if(songError)throw songError;
+    if(memberError)throw memberError;
+    const formedSongs=(songs||[]).filter(song=>isFormedBandSong(song,members||[]));
+    if(!formedSongs.length){setFormedTeamImportError('선택한 회차에 결성된 팀이 없습니다.');return;}
+    formedTeamImport={...formedTeamImport,round:selectedRound,songs:formedSongs,members:members||[]};
+    showModal('팀 태그 설정',
+      `<div><div class="fl">팀 태그</div>
+       <input class="fi" id="formedTeamTag" placeholder="예: 정기공연" oninput="updateFormedTeamExample()" autocomplete="off"/>
+       <div style="font-size:12px;color:var(--text2);margin-top:7px">예시: <b id="formedTeamExample">[태그] 1팀</b></div>
+       <div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(selectedRound.name)}의 결성 팀 ${formedSongs.length}개를 불러옵니다.</div></div>
+       <p id="formedTeamImportError" style="display:none;color:var(--danger);font-size:12px;margin:10px 0 0"></p>`,
+      `<button class="btn btn-s" onclick="importFormedEnsembleTeams()">이전</button>
+       <button class="btn btn-p" id="formedTeamCreate" onclick="createFormedRoundTeams()">팀 개설</button>`
+    );
+    document.getElementById('formedTeamTag')?.focus();
+  }catch(e){setFormedTeamImportError(errMsg(e));}
+  finally{if(btn){btn.disabled=false;btn.textContent='확인';}}
+};
 
-    const existingInfos=new Set(teams.filter(t=>t.type==='합주').map(t=>(t.info||'').trim()).filter(Boolean));
-    const targetSongs=songs.filter(s=>!existingInfos.has((s.title||'').trim()));
-    if(!targetSongs.length){toast('이미 모든 결성 팀을 불러왔습니다','');return;}
+window.updateFormedTeamExample=function(){
+  const tag=document.getElementById('formedTeamTag')?.value.trim();
+  const example=document.getElementById('formedTeamExample');
+  if(example)example.textContent=`${tag||'[태그]'} 1팀`;
+  setFormedTeamImportError();
+};
 
-    const ids=targetSongs.map(s=>s.id);
-    const {data:apps,error:appsErr}=await supabase
-      .from('session_applications')
-      .select('*')
-      .in('song_id',ids)
-      .eq('status','confirmed')
-      .order('created_at');
-    if(appsErr) throw appsErr;
-    const appsBySong={};
-    (apps||[]).forEach(a=>{if(!appsBySong[a.song_id]) appsBySong[a.song_id]=[]; appsBySong[a.song_id].push(a);});
-
-    const usedNums=new Set(teams.filter(t=>t.type==='합주').map(t=>{const m=(t.name||'').match(/^(\d+)팀$/);return m?parseInt(m[1]):0;}).filter(Boolean));
-    const nextName=()=>{
-      let n=1;
-      while(usedNums.has(n)) n++;
-      usedNums.add(n);
-      return `${n}팀`;
-    };
-    const created=[];
-    for(const song of targetSongs){
-      const members=(appsBySong[song.id]||[]).map(a=>{
-        const sid=String(a.student_id||'');
-        return {name:a.applicant_name,student_id_last3:sid.slice(-3),sessions:a.sessions||[]};
-      });
-      const team=await createTeam({name:nextName(),type:'합주',color:GRAY,info:song.title||'',members});
-      created.push(team);
-    }
-    teams=korSort([...teams,...created],'name');
+window.createFormedRoundTeams=async function(){
+  const tag=document.getElementById('formedTeamTag')?.value.trim()||'';
+  if(!tag){setFormedTeamImportError('팀 태그를 입력해주세요.');return;}
+  if(!formedTeamImport?.round||!formedTeamImport?.songs?.length){setFormedTeamImportError('불러올 회차 정보가 없습니다. 처음부터 다시 시도해주세요.');return;}
+  const btn=document.getElementById('formedTeamCreate');
+  if(btn){btn.disabled=true;btn.textContent='개설 중...';}
+  setFormedTeamImportError();
+  try{
+    const currentTeams=await fetchTeams();
+    const categoryName=formedTeamImport.round.name.trim();
+    const rows=buildFormedTeamRows({songs:formedTeamImport.songs,members:formedTeamImport.members,categoryName,tag,color:GRAY});
+    const conflict=formedTeamImportConflict(currentTeams,categoryName,rows);
+    if(conflict)throw new Error(conflict);
+    const created=await createTeams(rows);
+    teams=korSort([...currentTeams,...created],'name');
     renderTeams();
     renderSchedule();
-    toast(`${created.length}개 결성 팀을 불러왔습니다`,'ok');
-  }catch(e){
-    toast(errMsg(e),'err');
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent=oldText||'결성 팀 불러오기';}
-  }
+    closeModal();
+    toast(`${categoryName} 분류에 ${created.length}개 팀을 개설했습니다`,'ok');
+  }catch(e){setFormedTeamImportError(errMsg(e));if(btn){btn.disabled=false;btn.textContent='팀 개설';}}
 };
 
 // ── APPLY ─────────────────────────────────────────────────────────────
