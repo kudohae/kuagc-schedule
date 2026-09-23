@@ -33,6 +33,7 @@ let _adminInited=false, _adminChannels=[];
 let _ensBroadcastCh=null, _taBcCh=null, _schoolBcCh=null;
 let _applySchedTimer=null;
 let _ensSchedTimers={regular:null,busking:null};
+let _bandAdminDestroy=null, _bandAdminMountPromise=null;
 let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let pendingAll=[];
@@ -49,7 +50,9 @@ function showAdminUI(){
   document.getElementById('mobTabBar').style.display='';
   if(_adminInited) return;
   _adminInited=true;
-  loadAll();
+  loadAll().then(()=>{
+    if(location.hash==='#ensemble') window.showPage?.('ensemble');
+  });
 }
 
 window.showForgotPwInfo=function(){
@@ -95,6 +98,9 @@ supabase.auth.onAuthStateChange((_event,session)=>{
     if(_schoolBcCh){ supabase.removeChannel(_schoolBcCh); _schoolBcCh=null; }
     _adminChannels.forEach(ch=>supabase.removeChannel(ch));
     _adminChannels=[];
+    _bandAdminDestroy?.();
+    _bandAdminDestroy=null;
+    _bandAdminMountPromise=null;
     document.getElementById('loginWrap').style.display='';
     document.getElementById('adminUI').style.display='none';
     document.getElementById('mobTabBar').style.display='none';
@@ -135,12 +141,7 @@ async function loadAll(){
   round=await fetchActiveRound(season);
   if(round) applications=await fetchApplications(round.id);
   pendingAll=await fetchAllPendingRequests();
-  await loadEnsemble();
   await loadSchoolData();
-  if(_ensBroadcastCh){ supabase.removeChannel(_ensBroadcastCh); _ensBroadcastCh=null; }
-  _ensBroadcastCh=supabase.channel('ens-pub')
-    .on('broadcast',{event:'songUpdate'},async()=>{ await loadEnsemble(); renderEnsemble(); })
-    .subscribe();
   if(_taBcCh){ supabase.removeChannel(_taBcCh); _taBcCh=null; }
   _taBcCh=supabase.channel('ta-pub').subscribe();
   if(_schoolBcCh){ supabase.removeChannel(_schoolBcCh); _schoolBcCh=null; }
@@ -167,20 +168,6 @@ async function loadAll(){
       .on('postgres_changes',{event:'*',schema:'public',table:'requests'},async()=>{
         pendingAll=await fetchAllPendingRequests();
         renderPending();
-      })
-      .subscribe(),
-    supabase.channel('admin-ens-rt')
-      .on('postgres_changes',{event:'*',schema:'public',table:'ensemble_rounds'},async()=>{
-        await ensUpdated();
-      })
-      .on('postgres_changes',{event:'*',schema:'public',table:'song_applications'},async()=>{
-        await ensUpdated();
-      })
-      .on('postgres_changes',{event:'*',schema:'public',table:'session_applications'},async()=>{
-        await ensUpdated();
-      })
-      .on('postgres_changes',{event:'*',schema:'public',table:'manual_entries'},async()=>{
-        await ensUpdated();
       })
       .subscribe(),
     supabase.channel('admin-schedule-rt')
@@ -830,10 +817,31 @@ function render(){
   document.getElementById('schTitle').innerHTML=`${wl} 시간표 `+(weekOff===0?`<span class="week-now-badge">이번주</span>`:`<span class="week-goto-badge" onclick="goToThisWeek()">이번주로 이동 →</span>`);
   document.getElementById('schSeason').textContent=season;
   document.getElementById('seasonBadge').textContent=season;
-  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts(); renderEnsemble(); renderSchool(); renderAcademicCard();
+  renderSchedule(); renderPending(); renderTeams(); renderApply(); renderNotices(); renderContacts(); renderSchool(); renderAcademicCard();
 }
 
 // ── PAGE SWITCH ───────────────────────────────────────────────────────
+async function mountBandAdmin(){
+  if(_bandAdminDestroy || _bandAdminMountPromise) return _bandAdminMountPromise;
+  const target=document.getElementById('bandAdminTabHost');
+  if(!target) return null;
+  target.innerHTML='<div class="band-admin-tab-loading">합주 신청 관리를 불러오는 중...</div>';
+  _bandAdminMountPromise=(async()=>{
+    try{
+      const module=await import('../band-admin/main.js?v=20260923-band-admin-embed-1');
+      _bandAdminDestroy=await module.init(target,{embedded:true})||null;
+      return _bandAdminDestroy;
+    }catch(error){
+      target.innerHTML=`<div class="band-admin-tab-error"><strong>합주 신청 관리를 불러오지 못했습니다.</strong><span>${esc(error?.message||'잠시 후 다시 시도해주세요.')}</span><button type="button" data-band-admin-retry>다시 시도</button></div>`;
+      target.querySelector('[data-band-admin-retry]')?.addEventListener('click',()=>{_bandAdminMountPromise=null;mountBandAdmin();});
+      return null;
+    }finally{
+      _bandAdminMountPromise=null;
+    }
+  })();
+  return _bandAdminMountPromise;
+}
+
 window.showPage=function(pg){
   ['sch','teams','apply','school','notices','contacts','ensemble','data'].forEach(p=>{
     document.getElementById('pg'+p.charAt(0).toUpperCase()+p.slice(1))?.classList.toggle('active',p===pg);
@@ -841,7 +849,12 @@ window.showPage=function(pg){
     document.getElementById('mt-'+p)?.classList.toggle('active',p===pg);
   });
   document.getElementById('weekNavEl').style.display=pg==='sch'?'':'none';
-  if(pg==='ensemble') renderEnsemble();
+  if(pg==='ensemble'){
+    history.replaceState(null,'',`${location.pathname}${location.search}#ensemble`);
+    mountBandAdmin();
+  }else if(location.hash==='#ensemble'){
+    history.replaceState(null,'',`${location.pathname}${location.search}`);
+  }
   if(pg==='school') renderSchool();
 };
 

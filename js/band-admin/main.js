@@ -16,6 +16,7 @@ let realtimeReplacing = false;
 let realtimeStatus = 'idle';
 let realtimeEventCount = 0;
 let pendingRealtimeSignals = [];
+let embedded = false;
 const ADMIN_EMAIL = 'kuagcku@gmail.com';
 const REALTIME_TOPIC = 'band-sync-v1';
 const REALTIME_EVENT = 'band_changed';
@@ -181,7 +182,7 @@ function renderLogin(errorMessage = '') {
 
 function renderShell() {
   host.innerHTML = `<main class="band-admin-app" data-realtime="${realtimeStatus}" data-realtime-events="${realtimeEventCount}">
-    <header class="band-admin-topbar"><a class="band-admin-brand" href="#band-admin"><img src="img/logo.png" alt=""><span>BAND ADMIN</span></a></header>
+    ${embedded ? '' : '<header class="band-admin-topbar"><a class="band-admin-brand" href="admin.html#ensemble"><img src="img/logo.png" alt=""><span>BAND ADMIN</span></a></header>'}
     <div class="band-admin-page">
       <section class="band-admin-round"><div class="band-admin-round-head"><label class="band-admin-round-picker"><span>회차:</span><select data-round-select aria-label="회차 선택">${rounds.map(item => `<option value="${item.id}" ${item.id === round?.id ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label><button type="button" data-manage-rounds>+ 회차 관리</button></div>${round ? `<div class="band-round-options band-admin-round-options" data-round-controls>${renderRoundControls(round)}</div>` : '<p>회차 관리에서 회차를 추가하세요.</p>'}</section>
       <button class="band-admin-participants-trigger" type="button" data-show-participants>신청자 확인 <span>${participantRows().length}명</span></button>
@@ -911,13 +912,15 @@ async function loadData() {
   }
 }
 
-export async function init(container) {
+export async function init(container, options = {}) {
   host = container;
+  embedded = Boolean(options.embedded);
   destroyed = false;
   realtimeStatus = 'idle';
   realtimeEventCount = 0;
   pendingRealtimeSignals = [];
-  document.body.classList.add('band-admin-mode');
+  if (!embedded) document.body.classList.add('band-admin-mode');
+  host.classList.toggle('is-band-admin-embedded', embedded);
   const { data, error } = await supabase.auth.getUser();
   if (!error && data.user?.email === ADMIN_EMAIL) {
     user = data.user;
@@ -939,8 +942,10 @@ export async function init(container) {
     if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
     pendingRealtimeSignals = [];
-    document.body.classList.remove('band-admin-mode');
+    if (!embedded) document.body.classList.remove('band-admin-mode');
+    host?.classList.remove('is-band-admin-embedded');
     if (host) host.innerHTML = '';
     host = null;
+    embedded = false;
   };
 }

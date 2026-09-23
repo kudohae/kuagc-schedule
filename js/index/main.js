@@ -1,4 +1,4 @@
-import { initRouter } from '../router.js?v=20260922-band-23';
+import { initRouter } from '../router.js?v=20260923-band-route-1';
 import {
   getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,
@@ -624,7 +624,7 @@ function showStatus(){
     else if(phase==='session')           ensLabel='합주 세션 신청 진행 중';
     else if(phase==='session_end'&&hasSess2) ensLabel='합주 세션 2차 신청 예정됨';
     else if(phase==='session2')          ensLabel='합주 세션 2차 신청 진행 중';
-    if(ensLabel) notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${ensLabel}</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;white-space:nowrap;min-width:fit-content" onclick="closeStatus();navigate('ensemble')">이동</button></div>`);
+    if(ensLabel) notifs.push(`<div class="notif-item"><span class="notif-txt">🎵 ${ensLabel}</span><button class="btn btn-s" style="font-size:11px;padding:4px 10px;white-space:nowrap;min-width:fit-content" onclick="closeStatus();navigate('band')">이동</button></div>`);
   }
   const notifBar=notifs.length?`<div class="notif-bar">${notifs.join('')}</div>`:'';
 
