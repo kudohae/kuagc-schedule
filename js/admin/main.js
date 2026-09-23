@@ -1,6 +1,6 @@
 import { supabase } from '../supabase.js';
 import {
-  getConfig, setConfig,
+  getConfig, setConfig, fetchTeamCategories, setTeamCategories,
   fetchTeams, createTeam, createTeams, updateTeam, deleteTeam,
   fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
   fetchExceptions, createException, deleteException, mergeSchedule,
@@ -10,17 +10,17 @@ import {
   fetchApplications, deleteApplication, runAssignment, approveDraft,
   fetchContacts, upsertContact, deleteContact,
   fetchVacancyReports, deleteVacancyReport
-} from '../schedule.js';
+} from '../schedule.js?v=20260923-team-categories';
 
 import {
   buildFormedTeamRows,
   formedTeamImportConflict,
   isFormedBandSong,
-} from './formedTeamImport.js';
+} from './formedTeamImport.js?v=20260923-team-categories';
 
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
-import { DAYS, HOURS, GRAY, korSort, teamClr, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js';
+import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260923-team-categories';
 initTheme();
 window.toggleTheme = toggleTheme;
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') window.closeModal?.(); });
@@ -42,6 +42,7 @@ let _ensSchedTimers={regular:null,busking:null};
 let _bandAdminDestroy=null, _bandAdminMountPromise=null;
 let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
+let teamCategories={};
 let pendingAll=[];
 let selectedTeams=new Set();
 let merged=[], round=null, applications=[];
@@ -139,9 +140,10 @@ async function loadAll(){
   await autoUpdateSeason();
   const _r=await Promise.allSettled([
     fetchTeams(),fetchBaseSlots(season),fetchExceptions(weekOff),
-    fetchRequests(weekOff),fetchNotices(),fetchContacts()
+    fetchRequests(weekOff),fetchNotices(),fetchContacts(),fetchTeamCategories()
   ]);
-  [teams,baseSlots,exceptions,requests,notices,contacts]=_r.map(r=>r.status==='fulfilled'?r.value:[]);
+  [teams,baseSlots,exceptions,requests,notices,contacts]=_r.slice(0,6).map(r=>r.status==='fulfilled'?r.value:[]);
+  teamCategories=_r[6].status==='fulfilled'?_r[6].value:{};
   teams=korSort(teams,'name');
   merged=mergeSchedule(baseSlots,exceptions);
   round=await fetchActiveRound(season);
@@ -1022,7 +1024,7 @@ function renderSchedule(){
           blk.style.background=c;
           if(isExtra) blk.style.borderLeft='4px solid var(--accent2)';
           const tagStyle=isExtra?'background:var(--accent2);color:#000':'color:#000';
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${esc(t.name)}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':esc(t.type)}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${esc(t.info||'')}</span></div>`;
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${esc(t.name)}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':esc(teamCategory(t,teamCategories))}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${esc(t.info||'')}</span></div>`;
         }
         blk.onclick=()=>openSlotModal(s); cell.appendChild(blk);
       } else if(pe){
@@ -1206,11 +1208,11 @@ window.doReject=async function(id){
 // ── TEAMS ─────────────────────────────────────────────────────────────
 function renderTeams(){
   const defaultTypes=['합주','스쿨','이외'];
-  const customTypes=[...new Set(teams.map(t=>String(t.type||'').trim()).filter(type=>type&&!defaultTypes.includes(type)))]
+  const customTypes=[...new Set(teams.map(t=>teamCategory(t,teamCategories)).filter(type=>type&&!defaultTypes.includes(type)))]
     .sort((a,b)=>a.localeCompare(b,'ko-KR',{numeric:true}));
   const groups=['합주',...customTypes,'스쿨','이외'].map(k=>({k,label:k}));
   document.getElementById('teamsContent').innerHTML=groups.map(g=>{
-    const list=korSort(teams.filter(t=>t.type===g.k),'name');
+    const list=korSort(teams.filter(t=>teamCategory(t,teamCategories)===g.k),'name');
     if(!list.length) return '';
     const isEnsembleGroup=g.k!=='스쿨'&&g.k!=='이외';
     return `<div class="teams-section">
@@ -1221,7 +1223,7 @@ function renderTeams(){
             <input type="checkbox" class="team-chk" ${selectedTeams.has(t.id)?'checked':''} onchange="toggleTeamSelect(${t.id},this.checked)"/>
             <div class="tcard-dot" style="background:${teamClr(t)}"></div>
             <div class="tcard-name-static">${esc(t.name)}</div>
-            <div class="tcard-type">${esc(t.type)}</div>
+            <div class="tcard-type">${esc(teamCategory(t,teamCategories))}</div>
           </div>
           ${!isEnsembleGroup?`<div class="tcard-row">
             <input class="fi" style="padding:4px 7px;font-size:12px" value="${esc(t.name)}" id="tname-${t.id}" placeholder="팀명"/>
@@ -1486,12 +1488,21 @@ window.createFormedRoundTeams=async function(){
   if(btn){btn.disabled=true;btn.textContent='개설 중...';}
   setFormedTeamImportError();
   try{
-    const currentTeams=await fetchTeams();
+    const [currentTeams,currentCategories]=await Promise.all([fetchTeams(),fetchTeamCategories()]);
     const categoryName=formedTeamImport.round.name.trim();
-    const rows=buildFormedTeamRows({songs:formedTeamImport.songs,members:formedTeamImport.members,categoryName,tag,color:GRAY});
-    const conflict=formedTeamImportConflict(currentTeams,categoryName,rows);
+    const rows=buildFormedTeamRows({songs:formedTeamImport.songs,members:formedTeamImport.members,tag,color:GRAY});
+    const conflict=formedTeamImportConflict(currentTeams,categoryName,rows,currentCategories);
     if(conflict)throw new Error(conflict);
-    const created=await createTeams(rows);
+    const nextCategories={...currentCategories,[categoryName]:rows.map(row=>row.name)};
+    await setTeamCategories(nextCategories);
+    let created;
+    try{
+      created=await createTeams(rows);
+    }catch(error){
+      await setTeamCategories(currentCategories).catch(()=>{});
+      throw error;
+    }
+    teamCategories=nextCategories;
     teams=korSort([...currentTeams,...created],'name');
     renderTeams();
     renderSchedule();
