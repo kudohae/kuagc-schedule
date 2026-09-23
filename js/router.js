@@ -6,9 +6,8 @@ const VIEW_CSS = {
   'school-test': 'css/school.css',
   ensemble:   'css/ensemble.css',
   band:       'css/band.css',
-  'band-admin': 'css/band-admin.css',
 };
-const VIEW_VERSION = { band: '20260922-band-20', 'band-admin': '20260922-band-admin-19' };
+const VIEW_VERSION = { band: '20260922-band-20' };
 
 let _currentView = null;
 let _currentDestroy = null;
@@ -39,14 +38,13 @@ function updateActiveStates(view) {
     'school-test': 'tb-school',
     ensemble:   'tb-ensemble',
     band:       'tb-ensemble',
-    'band-admin': 'tb-ensemble',
   };
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(tabMap[view])?.classList.add('active');
 
   document.querySelectorAll('.hdr-apply-btn,.hdr-school-btn,.hdr-ensemble-btn')
     .forEach(el => el.classList.remove('active'));
-  const hdrMap = { timeassign: '.hdr-apply-btn', school: '.hdr-school-btn', 'school-test': '.hdr-school-btn', ensemble: '.hdr-ensemble-btn', band: '.hdr-ensemble-btn', 'band-admin': '.hdr-ensemble-btn' };
+  const hdrMap = { timeassign: '.hdr-apply-btn', school: '.hdr-school-btn', 'school-test': '.hdr-school-btn', ensemble: '.hdr-ensemble-btn', band: '.hdr-ensemble-btn' };
   if (hdrMap[view]) document.querySelector(hdrMap[view])?.classList.add('active');
 
   document.getElementById('nb-schedule')?.classList.toggle('active', view === 'schedule' || view === 'teams');
@@ -65,6 +63,11 @@ async function initViewAddon(view, dynamicEl) {
 }
 
 export async function navigate(view) {
+  if (view === 'band-admin') {
+    location.href = 'admin.html#ensemble';
+    return;
+  }
+  if (view === 'ensemble') view = 'band';
   if (view === _currentView) return;
 
   const token = ++_navToken;
@@ -135,12 +138,21 @@ export async function navigate(view) {
 
 function getHashView() {
   const h = location.hash.slice(1);
-  return ['timeassign', 'school', 'school-test', 'ensemble', 'band', 'band-admin', 'teams'].includes(h) ? h : 'schedule';
+  if (h === 'band-admin') {
+    location.replace('admin.html#ensemble');
+    return null;
+  }
+  if (h === 'ensemble') return 'band';
+  return ['timeassign', 'school', 'school-test', 'band', 'teams'].includes(h) ? h : 'schedule';
 }
 
 export function initRouter() {
-  navigate(getHashView());
-  window.addEventListener('popstate', () => navigate(getHashView()));
+  const initialView = getHashView();
+  if (initialView) navigate(initialView);
+  window.addEventListener('popstate', () => {
+    const view = getHashView();
+    if (view) navigate(view);
+  });
 }
 
 window.navigate = navigate;

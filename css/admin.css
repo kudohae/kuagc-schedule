@@ -34,6 +34,14 @@
 .page{display:none;height:calc(100vh - var(--hh));height:calc(100svh - var(--hh));}
 .page.active{display:flex;overflow:hidden;}
 
+.band-admin-tab-page{flex-direction:column;background:var(--bg);}
+.band-admin-tab-host{width:100%;height:100%;min-height:0;overflow:hidden;}
+.band-admin-tab-loading,
+.band-admin-tab-error{height:100%;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;}
+.band-admin-tab-error{flex-direction:column;gap:9px;text-align:center;}
+.band-admin-tab-error span{color:var(--text3);}
+.band-admin-tab-error button{min-height:34px;padding:0 13px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);cursor:pointer;font:inherit;font-weight:700;}
+
 /* ── SCHEDULE PAGE (left: schedule, right: pending sidebar) ── */
 #pgSch{flex-direction:row;}
 .sch-main{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:10px 12px;gap:8px;min-width:0;}
@@ -345,7 +353,7 @@ body.dark .ens-sess-sel.conflict{border-color:rgba(255,170,71,.35);background:rg
   #pgContacts{padding:8px;overflow-y:auto;}
   #pgApply,#pgSchool{padding:8px;overflow-y:auto;}
   .focused-inner{width:100%;max-width:100%;}
-  #pgEnsemble{padding:8px 0;}
+  #pgEnsemble{padding:0;}
   #pgSch .sch-main{padding-bottom:8px;}
   .pend-sidebar{max-height:180px;}
   .toast{bottom:calc(var(--tab-h)+10px);}
