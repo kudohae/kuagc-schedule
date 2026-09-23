@@ -6,7 +6,7 @@ import {
   formedTeamImportConflict,
   isFormedBandSong,
 } from '../js/admin/formedTeamImport.js';
-import { teamCategory } from '../js/utils/common.js';
+import { renameTeamKind, setTeamKindForName, teamCategory } from '../js/utils/common.js';
 
 const song = {
   id: 10,
@@ -58,4 +58,28 @@ test('renders a mapped round category while preserving the stored ensemble type'
   const team = { name: '정기공연 1팀', type: '합주' };
   assert.equal(teamCategory(team, { 'A 회차': ['정기공연 1팀'] }), 'A 회차');
   assert.equal(team.type, '합주');
+});
+
+test('uses a renamed default kind without changing the fixed classification', () => {
+  const team = { name: '1팀', type: '합주' };
+  assert.equal(teamCategory(team, {}, { '합주': '정기공연' }), '정기공연');
+  assert.equal(team.type, '합주');
+});
+
+test('renames a team kind and keeps future teams on the renamed default', () => {
+  const teams = [{ name: '1팀', type: '합주' }, { name: '2팀', type: '합주' }];
+  const result = renameTeamKind({
+    teams,
+    categories: {},
+    defaults: { '합주': '합주', '스쿨': '스쿨', '이외': '이외' },
+    oldName: '합주',
+    newName: '2026-2 정기공연',
+  });
+  assert.deepEqual(result.categories, { '2026-2 정기공연': ['1팀', '2팀'] });
+  assert.equal(result.defaults['합주'], '2026-2 정기공연');
+  assert.equal(teamCategory({ name: '3팀', type: '합주' }, result.categories, result.defaults), '2026-2 정기공연');
+});
+
+test('assigns a manually added ensemble team to a custom kind', () => {
+  assert.deepEqual(setTeamKindForName({}, '3팀', '2026-2 버스킹', '합주'), { '2026-2 버스킹': ['3팀'] });
 });

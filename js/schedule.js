@@ -77,6 +77,21 @@ export async function fetchTeamCategories() {
 export async function setTeamCategories(categories) {
   await setConfig('team_categories', JSON.stringify(categories || {}));
 }
+export async function fetchTeamKindDefaults() {
+  const fallback = { '합주': '합주', '스쿨': '스쿨', '이외': '이외' };
+  const { data, error } = await supabase.from('app_config').select('value').eq('key', 'team_kind_defaults').maybeSingle();
+  if (error) throw error;
+  if (!data?.value) return fallback;
+  try {
+    const parsed = typeof data.value === 'object' ? data.value : JSON.parse(data.value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? { ...fallback, ...parsed } : fallback;
+  } catch {
+    return fallback;
+  }
+}
+export async function setTeamKindDefaults(defaults) {
+  await setConfig('team_kind_defaults', JSON.stringify(defaults || {}));
+}
 
 // ─── TEAMS ───────────────────────────────────────────────────────────
 export async function fetchTeams() {

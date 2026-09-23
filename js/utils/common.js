@@ -11,12 +11,44 @@ export const getWeekDates = off => {
 };
 
 export const teamClr = t => t.type==='합주'?GRAY:(t.color||GRAY);
-export const teamCategory = (team, categories = {}) => {
-  const name = String(team?.name || '').trim().toLocaleLowerCase('ko-KR');
+export const normalizeTeamKind = value => String(value || '').trim().toLocaleLowerCase('ko-KR');
+export const teamCategory = (team, categories = {}, defaults = {}) => {
+  const name = normalizeTeamKind(team?.name);
   const entry = Object.entries(categories).find(([, names]) => Array.isArray(names)
-    && names.some(item => String(item || '').trim().toLocaleLowerCase('ko-KR') === name));
-  return entry?.[0] || team?.type || '';
+    && names.some(item => normalizeTeamKind(item) === name));
+  return entry?.[0] || defaults?.[team?.type] || team?.type || '';
 };
+export function setTeamKindForName(categories, teamName, kindName, fallbackKind = '') {
+  const target = normalizeTeamKind(teamName);
+  const next = {};
+  for (const [kind, names] of Object.entries(categories || {})) {
+    const filtered = Array.isArray(names) ? names.filter(name => normalizeTeamKind(name) !== target) : [];
+    if (filtered.length) next[kind] = filtered;
+  }
+  if (normalizeTeamKind(kindName) !== normalizeTeamKind(fallbackKind)) {
+    const existingKey = Object.keys(next).find(kind => normalizeTeamKind(kind) === normalizeTeamKind(kindName));
+    const key = existingKey || kindName;
+    next[key] = [...new Set([...(next[key] || []), teamName])];
+  }
+  return next;
+}
+export function renameTeamKind({ teams, categories = {}, defaults = {}, oldName, newName }) {
+  const memberNames = teams
+    .filter(team => normalizeTeamKind(teamCategory(team, categories, defaults)) === normalizeTeamKind(oldName))
+    .map(team => team.name);
+  const targets = new Set(memberNames.map(normalizeTeamKind));
+  const nextCategories = {};
+  for (const [kind, names] of Object.entries(categories)) {
+    const filtered = Array.isArray(names) ? names.filter(name => !targets.has(normalizeTeamKind(name))) : [];
+    if (filtered.length && normalizeTeamKind(kind) !== normalizeTeamKind(oldName)) nextCategories[kind] = filtered;
+  }
+  if (memberNames.length) nextCategories[newName] = memberNames;
+  const nextDefaults = Object.fromEntries(Object.entries(defaults).map(([classification, kind]) => [
+    classification,
+    normalizeTeamKind(kind) === normalizeTeamKind(oldName) ? newName : kind,
+  ]));
+  return { categories: nextCategories, defaults: nextDefaults };
+}
 export const timeStr = h => h<24?h+':00':'0'+(h-24)+':00';
 
 export const errMsg = e => {
