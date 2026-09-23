@@ -26,6 +26,7 @@ const APPLICANT_ROLE_PREFIX = '__BAND_APPLICANT_ROLE__:';
 const parseRoles = value => String(value || '').split(/[,\n]/).map(item => item.trim()).filter(Boolean);
 const rolesText = roles => (roles || []).join(', ');
 const byCreated = (a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id));
+const personKey = person => String(person?.student_id || person?.studentId || '').trim() || `name:${person?.applicant_name || person?.name || ''}`;
 const fixedMarkerPattern = /^_+BAND_FIXED_+$/i;
 const applicantMarkerPattern = /^_+BAND_APPLICANT_ROLE_+:(.+)$/i;
 const isMetadataRole = value => fixedMarkerPattern.test(String(value || '').trim()) || applicantMarkerPattern.test(String(value || '').trim());
@@ -108,16 +109,58 @@ function formatMemberTimestamp(value) {
 function participantRows() {
   const grouped = new Map();
   for (const member of songs.flatMap(songMembers).filter(item => item.is_included !== false)) {
-    const key = String(member.student_id || '').trim() || `name:${member.applicant_name}`;
+    const key = personKey(member);
     if (!grouped.has(key)) grouped.set(key, { key, name: member.applicant_name, studentId: member.student_id, roles: new Set(), songs: new Map() });
     const item = grouped.get(key);
     item.name = member.applicant_name || item.name;
     const normalizedRoles = (member.roles || []).map(normalizeRole).filter(Boolean);
     normalizedRoles.forEach(role => item.roles.add(role));
-    if (!item.songs.has(member.song_id)) item.songs.set(member.song_id, new Set());
-    normalizedRoles.forEach(role => item.songs.get(member.song_id).add(role));
+    if (!item.songs.has(member.song_id)) item.songs.set(member.song_id, { roles: new Set(), members: [] });
+    const songEntry = item.songs.get(member.song_id);
+    normalizedRoles.forEach(role => songEntry.roles.add(role));
+    songEntry.members.push(member);
   }
   return [...grouped.values()].sort((a, b) => b.songs.size - a.songs.size || a.name.localeCompare(b.name, 'ko') || String(a.studentId).localeCompare(String(b.studentId)));
+}
+
+function applicantRows() {
+  const grouped = new Map();
+  for (const member of songs.flatMap(songMembers)) {
+    const key = personKey(member);
+    if (!grouped.has(key)) grouped.set(key, { key, name: member.applicant_name, studentId: member.student_id, roles: new Set(), applications: [], assignedSongIds: new Set(), earliestAt: member.created_at });
+    const item = grouped.get(key);
+    item.name = member.applicant_name || item.name;
+    item.earliestAt = byCreated(member, { created_at: item.earliestAt, id: '' }) < 0 ? member.created_at : item.earliestAt;
+    const normalizedRoles = [...new Set((member.roles || []).map(normalizeRole).filter(Boolean))];
+    normalizedRoles.forEach(role => item.roles.add(role));
+    item.applications.push({ member, song: songs.find(song => song.id === member.song_id), roles: normalizedRoles });
+    if (member.is_included !== false) item.assignedSongIds.add(member.song_id);
+  }
+  return [...grouped.values()];
+}
+
+function assignedSongCount(person) {
+  return applicantRows().find(item => item.key === personKey(person))?.assignedSongIds.size || 0;
+}
+
+function roleCapacity(song, role) {
+  return visibleWantedRoles(song).map(normalizeRole).filter(item => item === role).length;
+}
+
+function roleFilledCount(song, role) {
+  return songMembers(song).filter(member => member.is_included !== false && (member.roles || []).map(normalizeRole).includes(role)).length;
+}
+
+function filledSessionCount(song) {
+  const roles = [...new Set(visibleWantedRoles(song).map(normalizeRole).filter(Boolean))];
+  return roles.reduce((total, role) => total + Math.min(roleCapacity(song, role), roleFilledCount(song, role)), 0);
+}
+
+function formatPreciseTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--';
+  const part = (number, size = 2) => String(number).padStart(size, '0');
+  return `${part(date.getMonth() + 1)}.${part(date.getDate())} ${part(date.getHours())}:${part(date.getMinutes())}:${part(date.getSeconds())}.${part(date.getMilliseconds(), 3)}`;
 }
 
 function showMessage(message, type = '') {
@@ -305,12 +348,25 @@ function updateSongListItem(song) {
 function renderParticipants(target = host.querySelector('[data-participants]')) {
   if (!target) return;
   const rows = participantRows();
-  target.innerHTML = `<header><div><h2>참여자</h2><span>${rows.length}명</span></div></header><div class="band-admin-participant-list">${rows.length ? rows.map(item => {
-    const details = [...item.songs].map(([songId, roles]) => ({ song: songs.find(song => song.id === songId), roles: [...roles] })).filter(item => item.song);
-    return `<article data-participant-key="${esc(item.key)}"><div class="band-admin-participant-head"><span class="band-admin-participant-identity"><b>${esc(item.name)}</b><small>${esc(item.studentId || '')}</small></span><span class="band-admin-participant-actions"><strong>${item.songs.size}곡</strong><button type="button" data-participant-toggle aria-expanded="false">참여 현황</button></span></div><p>${[...item.roles].map(role => `<span>${esc(role)}</span>`).join('') || '<span>세션 미지정</span>'}</p><div class="band-admin-participant-drawer" aria-hidden="true"><div>${details.map(detail => `<p><b>${esc(detail.song.title)}</b><span>${detail.roles.map(role => esc(role)).join(', ') || '세션 미지정'}</span></p>`).join('')}</div><button type="button" data-participant-collapse>접기</button></div></article>`;
-  }).join('') : '<div class="band-admin-empty">포함된 참여자가 없습니다.</div>'}</div>`;
+  const unassigned = applicantRows().filter(item => item.assignedSongIds.size === 0 && item.applications.some(application => !application.member.is_song_applicant))
+    .sort((a, b) => String(a.earliestAt || '').localeCompare(String(b.earliestAt || '')) || a.name.localeCompare(b.name, 'ko'));
+  const view = target.dataset.participantView === 'unassigned' ? 'unassigned' : 'all';
+  const assignedMarkup = rows.length ? rows.map(item => {
+    const details = [...item.songs].map(([songId, entry]) => ({ song: songs.find(song => song.id === songId), roles: [...entry.roles], members: entry.members })).filter(detail => detail.song);
+    return `<article data-participant-key="${esc(item.key)}"><div class="band-admin-participant-head"><span class="band-admin-participant-identity"><b>${esc(item.name)}</b><small>${esc(item.studentId || '')}</small></span><span class="band-admin-participant-actions"><strong>${item.songs.size}곡</strong><button type="button" data-participant-toggle aria-expanded="false">참여 현황</button></span></div><p>${[...item.roles].map(role => `<span>${esc(role)}</span>`).join('') || '<span>세션 미지정</span>'}</p><div class="band-admin-participant-drawer" aria-hidden="true"><div>${details.map(detail => `<div class="band-admin-participant-song"><b>${esc(detail.song.title)}</b><span class="band-admin-participant-song-roles">${detail.roles.map(role => {
+      const replaceable = detail.members.some(member => !member.is_song_applicant && (member.roles || []).map(normalizeRole).includes(role));
+      return `<span class="band-admin-participant-role"><em>${esc(role)}</em>${replaceable ? `<button type="button" data-replace-participant data-song-id="${detail.song.id}" data-role="${esc(role)}">대체</button>` : ''}</span>`;
+    }).join('') || '<span class="band-admin-participant-role"><em>세션 미지정</em></span>'}</span></div>`).join('')}</div></div></article>`;
+  }).join('') : '<div class="band-admin-empty">포함된 참여자가 없습니다.</div>';
+  const unassignedMarkup = unassigned.length ? unassigned.map(item => `<article class="band-admin-unassigned-row" data-participant-key="${esc(item.key)}"><div class="band-admin-participant-head"><span class="band-admin-participant-identity"><b>${esc(item.name)}</b><small>${esc(item.studentId || '')}</small></span><span class="band-admin-participant-actions"><button type="button" data-assign-participant>배정</button></span></div><p>${[...item.roles].map(role => `<span>${esc(role)}</span>`).join('') || '<span>세션 미지정</span>'}</p></article>`).join('') : '<div class="band-admin-empty">미배정자가 없습니다.</div>';
+  target.innerHTML = `<header><div><h2>참여자</h2><span>${view === 'all' ? rows.length : unassigned.length}명</span></div><div class="band-admin-participant-tabs" role="group" aria-label="참여자 구분"><button type="button" data-participant-view="all" class="${view === 'all' ? 'is-active' : ''}">전체</button><button type="button" data-participant-view="unassigned" class="${view === 'unassigned' ? 'is-active' : ''}">미배정자</button></div></header><div class="band-admin-participant-list">${view === 'all' ? assignedMarkup : unassignedMarkup}</div>`;
+  target.querySelectorAll('[data-participant-view]').forEach(button => button.addEventListener('click', () => {
+    target.dataset.participantView = button.dataset.participantView;
+    renderParticipants(target);
+  }));
   target.querySelectorAll('[data-participant-toggle]').forEach(button => button.addEventListener('click', () => setParticipantExpanded(button.closest('article'), !button.closest('article').classList.contains('is-expanded'))));
-  target.querySelectorAll('[data-participant-collapse]').forEach(button => button.addEventListener('click', () => setParticipantExpanded(button.closest('article'), false)));
+  target.querySelectorAll('[data-assign-participant]').forEach(button => button.addEventListener('click', () => openAssignParticipantModal(unassigned.find(item => item.key === button.closest('article').dataset.participantKey))));
+  target.querySelectorAll('[data-replace-participant]').forEach(button => button.addEventListener('click', () => openReplaceParticipantModal({ participantKey: button.closest('article').dataset.participantKey, songId: Number(button.dataset.songId), role: button.dataset.role })));
 }
 
 function setParticipantExpanded(article, expanded) {
@@ -328,8 +384,9 @@ function memberFields(member = {}) {
   return `<div class="band-admin-grid"><label><span>이름</span><input name="applicant_name" required value="${esc(member.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(member.student_id || '')}"></label><label class="is-wide"><span>신청 세션</span><input name="roles" value="${esc(rolesText(member.roles))}" placeholder="기타, 코러스"></label></div>`;
 }
 
-function renderMemberRow(member, role) {
-  return `<article class="${member.is_included === false ? 'is-excluded' : ''}${member.is_song_applicant ? ' is-song-applicant' : ''}">${member.is_song_applicant ? '<span class="band-admin-inclusion is-applicant">신청자</span>' : `<button class="band-admin-inclusion ${member.is_included === false ? 'is-off' : 'is-on'}" type="button" data-toggle-member="${member.id}" aria-label="${esc(member.applicant_name)} 팀 포함 상태 변경">${member.is_included === false ? 'OFF' : 'ON'}</button>`}<div class="band-admin-member-info"><b>${esc(member.applicant_name)}</b><small><span>${esc(member.student_id)}</span>${formatMemberTimestamp(member.created_at)}</small></div><p><span>${esc(role)}</span></p>${member.is_song_applicant ? '<div class="band-admin-member-actions"><span>곡 신청자</span></div>' : `<div class="band-admin-member-actions"><button type="button" data-edit-member="${member.id}">수정</button><button class="band-admin-move" type="button" data-move-member="${member.id}">이동</button><button class="is-danger" type="button" data-delete-member="${member.id}">삭제</button></div>`}</article>`;
+function renderMemberRow(member) {
+  const roles = [...new Set((member.roles || []).map(normalizeRole).filter(Boolean))];
+  return `<article class="${member.is_included === false ? 'is-excluded' : ''}${member.is_song_applicant ? ' is-song-applicant' : ''}">${member.is_song_applicant ? '<span class="band-admin-inclusion is-applicant">신청자</span>' : `<button class="band-admin-inclusion ${member.is_included === false ? 'is-off' : 'is-on'}" type="button" data-toggle-member="${member.id}" aria-label="${esc(member.applicant_name)} 팀 포함 상태 변경">${member.is_included === false ? 'OFF' : 'ON'}</button>`}<div class="band-admin-member-info"><span class="band-admin-member-identity"><b>${esc(member.applicant_name)}</b><small>${esc(member.student_id)}</small><em>${assignedSongCount(member)}곡</em></span>${formatMemberTimestamp(member.created_at)}</div><p>${roles.map(role => `<span>${esc(role)}</span>`).join('') || '<span>세션 미지정</span>'}</p>${member.is_song_applicant ? '<div class="band-admin-member-actions"><span>곡 신청자</span></div>' : `<div class="band-admin-member-actions"><button type="button" data-edit-member="${member.id}">수정</button><button class="band-admin-move" type="button" data-move-member="${member.id}">이동</button><button class="is-danger" type="button" data-delete-member="${member.id}">삭제</button></div>`}</article>`;
 }
 
 function renderEditor(editor = host.querySelector('[data-editor]')) {
@@ -341,7 +398,7 @@ function renderEditor(editor = host.querySelector('[data-editor]')) {
   const memberGroups = groupMembersByRole(rows);
   editor.innerHTML = `<header><div><span>SONG #${song.id}</span><h2>${esc(song.title)}</h2></div><button class="is-danger" type="button" data-delete-song>곡 삭제</button></header>
     <form class="band-admin-card" data-song-form data-song-id="${song.id}">${songFields(song)}</form>
-    <section class="band-admin-members"><header><div><h3>세션 신청</h3><span>${includedCount}명 포함 · ${rows.length}건 · 세션별 신청 시각순</span></div><button type="button" data-add-member ${isFixedSong(song) ? 'disabled' : ''}>+ 세션 추가</button></header><div>${rows.length ? memberGroups.map(group => `<section class="band-admin-member-group"><header><h4>${esc(group.role)}</h4><span>${group.members.length}명</span></header>${group.members.map(member => renderMemberRow(member, group.role)).join('')}</section>`).join('') : '<div class="band-admin-empty">세션 신청이 없습니다.</div>'}</div></section>`;
+    <section class="band-admin-members"><header><div><h3>세션 신청</h3><span>${includedCount}명 포함 · ${rows.length}건 · 세션별 신청 시각순</span></div><button type="button" data-add-member ${isFixedSong(song) ? 'disabled' : ''}>+ 세션 추가</button></header><div>${rows.length ? memberGroups.map(group => `<section class="band-admin-member-group"><header><h4>${esc(group.role)}</h4><span>${group.members.length}명</span></header>${group.members.map(member => renderMemberRow(member)).join('')}</section>`).join('') : '<div class="band-admin-empty">세션 신청이 없습니다.</div>'}</div></section>`;
   const songForm = editor.querySelector('[data-song-form]');
   songForm.addEventListener('submit', event => event.preventDefault());
   songForm.addEventListener('input', () => { songForm.dataset.dirty = 'true'; });
@@ -598,19 +655,121 @@ function openMemberModal(song, member = null) {
   });
 }
 
+async function includeApplicantInSong(applicant, song, role) {
+  const existing = applicant.applications
+    .filter(application => application.song?.id === song.id && !application.member.is_song_applicant && application.roles.includes(role))
+    .sort((a, b) => byCreated(a.member, b.member))[0];
+  if (existing && existing.roles.length === 1) {
+    const { error } = await supabase.from('band_members').update({ is_included: true }).eq('id', existing.member.id);
+    if (error) throw error;
+    return { kind: 'updated', id: existing.member.id };
+  }
+  const source = existing?.member || applicant.applications.find(application => !application.member.is_song_applicant)?.member;
+  const { data: created, error } = await supabase.from('band_members').insert({
+    song_id: song.id,
+    applicant_name: applicant.name,
+    student_id: applicant.studentId,
+    roles: [role],
+    note: source?.note || '',
+    is_included: true,
+  }).select().single();
+  if (error) throw error;
+  return { kind: 'inserted', id: created.id };
+}
+
+async function rollbackIncludedApplicant(change) {
+  if (!change) return;
+  if (change.kind === 'inserted') await supabase.from('band_members').delete().eq('id', change.id);
+  else await supabase.from('band_members').update({ is_included: false }).eq('id', change.id);
+}
+
+function openAssignParticipantModal(applicant) {
+  if (!applicant) return;
+  const optionsByKey = new Map();
+  for (const application of applicant.applications.filter(item => item.song && !item.member.is_song_applicant)) {
+    for (const role of application.roles) {
+      const key = `${application.song.id}::${role}`;
+      if (optionsByKey.has(key)) continue;
+      const capacity = roleCapacity(application.song, role);
+      if (capacity < 1) continue;
+      const filled = roleFilledCount(application.song, role);
+      optionsByKey.set(key, { application, role, capacity, filled, hasVacancy: filled < capacity, filledSessions: filledSessionCount(application.song) });
+    }
+  }
+  const options = [...optionsByKey.values()].sort((a, b) => Number(b.hasVacancy) - Number(a.hasVacancy)
+    || b.filledSessions - a.filledSessions
+    || byCreated(a.application.song, b.application.song));
+  const fields = `<div class="band-assignment-summary"><b>${esc(applicant.name)}</b><span>${esc(applicant.studentId || '')}</span></div><fieldset class="band-assignment-options"><legend>배정할 곡과 세션</legend>${options.map((option, index) => `<label><input type="radio" name="assignment" value="${option.application.song.id}::${esc(option.role)}" ${index === 0 ? 'checked' : ''}><span><b>${esc(option.application.song.title)}</b><small>${esc(option.role)} · ${option.filled}/${option.capacity || 0}명</small></span><em class="${option.hasVacancy ? 'is-vacant' : ''}">${option.hasVacancy ? '빈자리' : '만석 · 마지막 순위'}</em></label>`).join('') || '<div class="band-admin-empty">배정할 수 있는 신청 내역이 없습니다.</div>'}</fieldset>`;
+  const modal = openModal('미배정자 배정', fields, '배정', async data => {
+    const [songIdText, role] = String(data.get('assignment') || '').split('::');
+    const song = songs.find(item => item.id === Number(songIdText));
+    if (!song || !role) throw new Error('배정할 곡과 세션을 선택해주세요.');
+    await includeApplicantInSong(applicant, song, role);
+    selectedSongId = song.id;
+    await announceRealtimeChange('member_assigned', applicant.key);
+    await loadRoundData();
+    showMessage(`${applicant.name}님을 ${song.title}에 배정했습니다.`, 'success');
+  });
+  if (!options.length) modal.querySelector('[type="submit"]').disabled = true;
+}
+
+function openReplaceParticipantModal({ participantKey, songId, role }) {
+  const target = participantRows().find(item => item.key === participantKey);
+  const song = songs.find(item => item.id === songId);
+  if (!target || !song || !role) return;
+  const targetMemberIds = members.filter(member => member.song_id === songId && member.is_included !== false && personKey(member) === participantKey).map(member => member.id);
+  if (!targetMemberIds.length) {
+    showMessage('곡 신청자 기본 배정은 대체할 수 없습니다.', 'error');
+    return;
+  }
+  const candidates = applicantRows().filter(item => item.key !== participantKey
+    && item.applications.some(application => application.roles.includes(role))
+    && !item.applications.some(application => application.song?.id === songId && application.member.is_included !== false))
+    .sort((a, b) => a.assignedSongIds.size - b.assignedSongIds.size
+      || String(a.earliestAt || '').localeCompare(String(b.earliestAt || ''))
+      || a.name.localeCompare(b.name, 'ko'));
+  const fields = `<div class="band-replacement-summary"><b>${esc(song.title)}</b><span>${esc(role)} · ${esc(target.name)}님을 대체</span></div><fieldset class="band-replacement-options"><legend>대체할 신청자</legend>${candidates.map((candidate, index) => `<label><input type="radio" name="candidate" value="${esc(candidate.key)}" ${index === 0 ? 'checked' : ''}><span><b>${esc(candidate.name)}</b><small>${esc(candidate.studentId || '')} · 최초 신청 ${formatPreciseTimestamp(candidate.earliestAt)}</small></span><em>${candidate.assignedSongIds.size}곡 배정</em></label>`).join('') || '<div class="band-admin-empty">같은 세션으로 신청한 대체 후보가 없습니다.</div>'}</fieldset>`;
+  const modal = openModal('세션 대체', fields, '대체', async data => {
+    const candidate = candidates.find(item => item.key === String(data.get('candidate') || ''));
+    if (!candidate) throw new Error('대체할 신청자를 선택해주세요.');
+    const added = await includeApplicantInSong(candidate, song, role);
+    const { error } = await supabase.from('band_members').update({ is_included: false }).in('id', targetMemberIds);
+    if (error) {
+      await rollbackIncludedApplicant(added);
+      throw error;
+    }
+    selectedSongId = song.id;
+    await announceRealtimeChange('member_replaced', `${participantKey}:${candidate.key}:${song.id}`);
+    await loadRoundData();
+    showMessage(`${target.name}님을 ${candidate.name}님으로 대체했습니다.`, 'success');
+  });
+  if (!candidates.length) modal.querySelector('[type="submit"]').disabled = true;
+}
+
 function openMoveMemberModal(member) {
   if (!member) return;
   const currentSong = songs.find(song => song.id === member.song_id);
   if (!currentSong) return;
   const currentRole = normalizeRole(member.roles?.[0] || '') || songRoleOptions(currentSong)[0] || '';
-  const fields = `<div class="band-move-summary"><b>${esc(member.applicant_name)}</b><span>기존 곡: ${esc(currentSong.title)}</span><span>기존 세션: ${esc(rolesText(member.roles) || '미지정')}</span></div><div class="band-admin-grid"><label class="is-wide"><span>어떤 곡으로 이동할까요?</span><select name="song_id" data-move-song>${songs.map(song => `<option value="${song.id}" ${song.id === currentSong.id ? 'selected' : ''}>${esc(song.title)} · ${esc(song.artist)}</option>`).join('')}</select></label><label class="is-wide"><span>무슨 세션으로 배치할까요?</span><select name="role" data-move-role></select></label></div>`;
+  const fields = `<div class="band-move-summary"><b>${esc(member.applicant_name)}</b><span>기존 곡: ${esc(currentSong.title)}</span><span>기존 세션: ${esc(rolesText(member.roles) || '미지정')}</span></div><div class="band-admin-grid"><label class="is-wide"><span>어떤 곡으로 이동할까요?</span><select name="song_id" data-move-song>${songs.map(song => `<option value="${song.id}" ${song.id === currentSong.id ? 'selected' : ''}>${esc(song.title)} · ${esc(song.artist)}</option>`).join('')}</select></label><label class="is-wide"><span>무슨 세션으로 배치할까요?</span><select name="role" data-move-role></select></label></div><p class="band-replacement-note">작업을 수행하면 해당 인원은 선택한 곡으로 이동되며, 이 자리에는 후순위 신청자가 배정됩니다. 후순위 신청자가 없다면 공석이 됩니다.</p>`;
   const modal = openModal('세션 이동', fields, '이동', async data => {
     const targetSongId = Number(data.get('song_id'));
     const role = String(data.get('role') || '').trim();
     if (!songs.some(song => song.id === targetSongId)) throw new Error('이동할 곡을 선택해주세요.');
     if (!role) throw new Error('배치할 세션을 선택해주세요.');
+    const nextApplicant = members.filter(item => item.id !== member.id
+      && item.song_id === currentSong.id
+      && item.is_included === false
+      && (item.roles || []).map(normalizeRole).includes(currentRole)).sort(byCreated)[0];
     const { error } = await supabase.from('band_members').update({ song_id: targetSongId, roles: [role] }).eq('id', member.id);
     if (error) throw error;
+    if (targetSongId !== currentSong.id && nextApplicant) {
+      const { error: includeError } = await supabase.from('band_members').update({ is_included: true }).eq('id', nextApplicant.id);
+      if (includeError) {
+        await supabase.from('band_members').update({ song_id: currentSong.id, roles: member.roles }).eq('id', member.id);
+        throw includeError;
+      }
+    }
     selectedSongId = targetSongId;
     await announceRealtimeChange('member_moved', member.id);
     await loadRoundData();
@@ -768,6 +927,7 @@ function captureRealtimeState() {
     dirtyForms: [...host.querySelectorAll('[data-song-form][data-dirty="true"]')].map(captureForm),
     managerOpen: Boolean(host.querySelector('.band-round-manager')),
     participantsOpen: Boolean(host.querySelector('[data-participants-modal]')),
+    participantView: host.querySelector('[data-participants-modal]')?.dataset.participantView || host.querySelector('[data-participants]')?.dataset.participantView || 'all',
     expandedParticipants: [...host.querySelectorAll('[data-participant-key].is-expanded')].map(article => article.dataset.participantKey),
     activeState,
     scrolls,
@@ -816,9 +976,15 @@ function syncAdminShell(state) {
   if (count) count.textContent = `${songs.length}곡`;
   renderSongList();
   renderEditor();
-  renderParticipants();
+  const participantPanel = host.querySelector('[data-participants]');
+  if (participantPanel) participantPanel.dataset.participantView = state.participantView;
+  renderParticipants(participantPanel);
   if (host.querySelector('[data-mobile-editor]')) renderEditor(host.querySelector('[data-mobile-editor]'));
-  if (state.participantsOpen) renderParticipants(host.querySelector('[data-participants-modal]'));
+  if (state.participantsOpen) {
+    const modalParticipants = host.querySelector('[data-participants-modal]');
+    if (modalParticipants) modalParticipants.dataset.participantView = state.participantView;
+    renderParticipants(modalParticipants);
+  }
   if (state.managerOpen) openRoundManagerModal();
 }
 

@@ -166,9 +166,10 @@ body.band-admin-mode #view-dynamic {
 }
 
 .is-band-admin-embedded .band-admin-page {
-  width: 100%;
+  width: min(1240px, calc(100% - 48px));
   height: 100%;
-  padding: 12px 14px 18px;
+  margin: 0 auto;
+  padding: 12px 0 18px;
 }
 
 .band-admin-round {
@@ -585,8 +586,8 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-admin-team-flags .band-admin-formed:last-child {
-  border-color: #9dcbe8;
-  background: #f4faff;
+  border-color: #c8d0d5;
+  background: #f5f7f8;
 }
 
 .band-admin-team-flags .band-admin-formed:last-child:has(input:checked) {
@@ -651,6 +652,18 @@ body.band-admin-mode #view-dynamic {
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
+}
+
+.band-admin-members > header > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.band-admin-members > header > div > span {
+  margin-left: 0;
 }
 
 .band-admin-members h3 {
@@ -732,6 +745,30 @@ body.band-admin-mode #view-dynamic {
   gap: 3px;
 }
 
+.band-admin-member-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.band-admin-member-identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.band-admin-member-identity em {
+  display: none;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: #eef7e3;
+  color: var(--green);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
 .band-admin-members article b {
   font-size: 10px;
 }
@@ -805,10 +842,38 @@ body.band-admin-mode #view-dynamic {
 
 .band-admin-participants > header {
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 18px 16px;
   border-bottom: 1px solid var(--line);
   background: #eef7e3;
   box-shadow: inset 3px 0 var(--green);
+}
+
+.band-admin-participant-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px;
+}
+
+.band-admin-participant-tabs button {
+  min-height: 27px;
+  padding: 0 9px;
+  border: 1px solid #bdc8c3;
+  border-radius: 4px;
+  background: #fff;
+  color: #59625f;
+  cursor: pointer;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.band-admin-participant-tabs button.is-active {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
 }
 
 .band-admin-participants h2 {
@@ -883,12 +948,19 @@ body.band-admin-mode #view-dynamic {
   cursor: pointer;
 }
 
-.band-admin-participant-list p {
+.band-admin-participant-actions button[aria-expanded="true"] {
+  border-color: var(--blue);
+  background: #eaf5fc;
+  color: #005f9f;
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+.band-admin-participant-list article > p {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
-  margin: 7px 0 0;
+  margin: 7px 0 11px;
 }
 
 .band-admin-participant-list p span,
@@ -912,7 +984,6 @@ body.band-admin-mode #view-dynamic {
 
 .band-admin-participant-list article.is-expanded .band-admin-participant-drawer {
   max-height: 560px;
-  margin-top: 10px;
   opacity: 1;
 }
 
@@ -920,38 +991,61 @@ body.band-admin-mode #view-dynamic {
   padding: 5px 12px 8px;
 }
 
-.band-admin-participant-drawer p {
+.band-admin-participant-song {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 8px;
-  margin: 0;
   padding: 8px 0;
   border-bottom: 1px solid #dfe5e2;
 }
 
-.band-admin-participant-drawer p b {
+.band-admin-participant-song:last-child {
+  border-bottom: 0;
+}
+
+.band-admin-participant-song > b {
   overflow: hidden;
+  font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.band-admin-participant-drawer p span {
-  padding: 0;
-  background: transparent;
-  color: #58615f;
-  white-space: nowrap;
+.band-admin-participant-song-roles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
 }
 
-.band-admin-participant-drawer > button {
-  width: 100%;
-  height: 25px;
-  border: 0;
-  border-top: 1px solid #d8dfdc;
-  background: #e9eeec;
-  color: #59625f;
-  cursor: pointer;
+.band-admin-participant-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.band-admin-participant-role em,
+.band-admin-participant-role button {
+  min-height: 23px;
+  padding: 0 6px;
+  border-radius: 3px;
   font-size: 8px;
   font-weight: 850;
+}
+
+.band-admin-participant-role em {
+  display: inline-flex;
+  align-items: center;
+  background: #edf0f2;
+  color: #58615f;
+  font-style: normal;
+}
+
+.band-admin-participant-role button {
+  border: 1px solid #9dcbe8;
+  background: #f4faff;
+  color: #005f9f;
+  cursor: pointer;
 }
 
 .band-admin-confirm-copy {
@@ -1101,6 +1195,102 @@ body.band-admin-mode #view-dynamic {
 .band-move-summary span {
   color: #59636c;
   font-size: 10px;
+}
+
+.band-assignment-summary,
+.band-replacement-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.band-assignment-summary b,
+.band-replacement-summary b {
+  font-size: 13px;
+}
+
+.band-assignment-summary span,
+.band-replacement-summary span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.band-assignment-options,
+.band-replacement-options {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.band-assignment-options legend,
+.band-replacement-options legend {
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.band-assignment-options label,
+.band-replacement-options label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid #d5dade;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.band-assignment-options label:has(input:checked),
+.band-replacement-options label:has(input:checked) {
+  border-color: var(--blue);
+  background: #f4faff;
+}
+
+.band-assignment-options label > span,
+.band-replacement-options label > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.band-assignment-options label b,
+.band-replacement-options label b {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.band-assignment-options label small,
+.band-replacement-options label small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.band-assignment-options label em,
+.band-replacement-options label em {
+  color: #7a5a17;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.band-assignment-options label em.is-vacant {
+  color: var(--green);
+}
+
+.band-replacement-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.55;
+  text-align: center;
 }
 
 .band-round-manager {
@@ -1523,8 +1713,10 @@ body.band-admin-mode #view-dynamic {
   }
 
   .is-band-admin-embedded .band-admin-page {
+    width: 100%;
     height: 100%;
     min-height: 0;
+    margin: 0;
     padding: 10px 10px 18px;
     overflow-y: auto;
   }
@@ -1683,14 +1875,23 @@ body.band-admin-mode #view-dynamic {
     font-size: 12px;
   }
 
-  .band-admin-members .band-admin-member-info small {
-    display: flex;
+  .band-admin-member-identity {
     flex-wrap: wrap;
-    gap: 3px 6px;
-    overflow: visible;
+    gap: 4px 6px;
+  }
+
+  .band-admin-member-identity small {
     font-size: 10px;
-    line-height: 1.4;
-    white-space: normal;
+  }
+
+  .band-admin-member-identity em {
+    display: inline-flex;
+    font-size: 9px;
+  }
+
+  .band-admin-member-info > time {
+    color: var(--muted);
+    font-size: 9px;
   }
 
   .band-admin-members article p {
@@ -1723,6 +1924,24 @@ body.band-admin-mode #view-dynamic {
 }
 
 @media (max-width: 480px) {
+  .band-admin-participants > header {
+    padding: 14px 12px;
+  }
+
+  .band-admin-participant-tabs button {
+    padding: 0 7px;
+  }
+
+  .band-assignment-options label,
+  .band-replacement-options label {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .band-assignment-options label > em,
+  .band-replacement-options label > em {
+    grid-column: 2;
+  }
+
   .band-admin-round form,
   .band-round-add:not([hidden]) {
     align-items: stretch;
