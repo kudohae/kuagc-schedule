@@ -1,5 +1,13 @@
 import { supabase } from '../supabase.js';
 import { escapeHtml as esc } from '../utils/html.js';
+import {
+  calculateSongAllocation,
+  compareMembersForRole,
+  includedRoles,
+  isMemberRoleIncluded,
+  memberNoteWithDirective,
+  normalizeBandRole,
+} from '../band/allocation.js';
 
 let host = null;
 let user = null;
@@ -37,16 +45,7 @@ const getApplicantRole = song => {
   return match?.[1] || '';
 };
 
-function normalizeRole(value) {
-  const raw = String(value || '').trim();
-  const compact = raw.replace(/\s+/g, '').toLowerCase();
-  if (/^(보컬|vocal)\d*$/.test(compact)) return '보컬';
-  if (/^(기타|guitar)\d*$/.test(compact)) return '기타';
-  if (/^(베이스|bass)\d*$/.test(compact)) return '베이스';
-  if (/^(키보드|건반|keyboard|key)\d*$/.test(compact)) return '키보드';
-  if (/^(드럼|drum|drums)\d*$/.test(compact)) return '드럼';
-  return raw;
-}
+const normalizeRole = normalizeBandRole;
 
 function parseWantedRoles(value) {
   return parseRoles(value).flatMap(item => {
@@ -90,11 +89,37 @@ function groupMembersByRole(rows) {
     }
   }
   const roleIndex = role => ['보컬', '기타', '베이스', '키보드', '드럼', '그 외'].indexOf(role);
-  return [...grouped].map(([role, members]) => ({ role, members: members.sort(byCreated) })).sort((a, b) => {
+  return [...grouped].map(([role, members]) => ({ role, members: members.sort((a, b) => compareMembersForRole(a, b, role)) })).sort((a, b) => {
     const ai = roleIndex(a.role);
     const bi = roleIndex(b.role);
     return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi) || a.role.localeCompare(b.role, 'ko');
   });
+}
+
+function songAllocation(song) {
+  return calculateSongAllocation(
+    song,
+    members.filter(member => member.song_id === song.id),
+    visibleWantedRoles,
+    getApplicantRole,
+  );
+}
+
+function effectiveRolesForMember(song, member) {
+  if (member.is_song_applicant) return (member.roles || []).map(normalizeRole).filter(Boolean);
+  return includedRoles(songAllocation(song), member);
+}
+
+function isEffectivelyFormed(song) {
+  return isFixedSong(song) || song.is_formed === true || songAllocation(song).isComplete;
+}
+
+function effectiveSongMembers(song) {
+  return songMembers(song).filter(member => effectiveRolesForMember(song, member).length > 0);
+}
+
+function effectiveSongMemberCount(song) {
+  return new Set(effectiveSongMembers(song).map(personKey)).size;
 }
 
 function formatMemberTimestamp(value) {
@@ -108,17 +133,20 @@ function formatMemberTimestamp(value) {
 
 function participantRows() {
   const grouped = new Map();
-  for (const member of songs.flatMap(songMembers).filter(item => item.is_included !== false)) {
-    const key = personKey(member);
-    if (!grouped.has(key)) grouped.set(key, { key, name: member.applicant_name, studentId: member.student_id, roles: new Set(), songs: new Map() });
-    const item = grouped.get(key);
-    item.name = member.applicant_name || item.name;
-    const normalizedRoles = (member.roles || []).map(normalizeRole).filter(Boolean);
-    normalizedRoles.forEach(role => item.roles.add(role));
-    if (!item.songs.has(member.song_id)) item.songs.set(member.song_id, { roles: new Set(), members: [] });
-    const songEntry = item.songs.get(member.song_id);
-    normalizedRoles.forEach(role => songEntry.roles.add(role));
-    songEntry.members.push(member);
+  for (const song of songs.filter(isEffectivelyFormed)) {
+    for (const member of songMembers(song)) {
+      const normalizedRoles = effectiveRolesForMember(song, member);
+      if (!normalizedRoles.length) continue;
+      const key = personKey(member);
+      if (!grouped.has(key)) grouped.set(key, { key, name: member.applicant_name, studentId: member.student_id, roles: new Set(), songs: new Map() });
+      const item = grouped.get(key);
+      item.name = member.applicant_name || item.name;
+      normalizedRoles.forEach(role => item.roles.add(role));
+      if (!item.songs.has(member.song_id)) item.songs.set(member.song_id, { roles: new Set(), members: [] });
+      const songEntry = item.songs.get(member.song_id);
+      normalizedRoles.forEach(role => songEntry.roles.add(role));
+      songEntry.members.push(member);
+    }
   }
   return [...grouped.values()].sort((a, b) => b.songs.size - a.songs.size || a.name.localeCompare(b.name, 'ko') || String(a.studentId).localeCompare(String(b.studentId)));
 }
@@ -134,7 +162,8 @@ function applicantRows() {
     const normalizedRoles = [...new Set((member.roles || []).map(normalizeRole).filter(Boolean))];
     normalizedRoles.forEach(role => item.roles.add(role));
     item.applications.push({ member, song: songs.find(song => song.id === member.song_id), roles: normalizedRoles });
-    if (member.is_included !== false) item.assignedSongIds.add(member.song_id);
+    const song = songs.find(song => song.id === member.song_id);
+    if (song && isEffectivelyFormed(song) && effectiveRolesForMember(song, member).length) item.assignedSongIds.add(member.song_id);
   }
   return [...grouped.values()];
 }
@@ -148,7 +177,7 @@ function roleCapacity(song, role) {
 }
 
 function roleFilledCount(song, role) {
-  return songMembers(song).filter(member => member.is_included !== false && (member.roles || []).map(normalizeRole).includes(role)).length;
+  return songAllocation(song).filledByRole.get(normalizeRole(role)) || 0;
 }
 
 function filledSessionCount(song) {
@@ -316,9 +345,10 @@ function renderSongList() {
   if (!songs.length) { list.innerHTML = '<div class="band-admin-empty">등록된 곡이 없습니다.</div>'; return; }
   list.innerHTML = songs.map(song => {
     const rows = songMembers(song);
-    const included = rows.filter(member => member.is_included !== false).length;
-    const status = isFixedSong(song) ? '고정' : song.is_formed ? '결성' : '미결성';
-    return `<button type="button" class="${song.id === selectedSongId ? 'is-selected' : ''}${isFixedSong(song) ? ' is-fixed' : ''}" data-song-id="${song.id}"><span><b>${esc(song.title)}</b><small>${esc(song.artist)}</small></span><span class="band-admin-song-meta"><strong class="is-${isFixedSong(song) ? 'fixed' : song.is_formed ? 'formed' : 'open'}"><i></i>${status}</strong><em>${included}/${rows.length}명</em></span></button>`;
+    const included = effectiveSongMemberCount(song);
+    const formed = isEffectivelyFormed(song);
+    const status = isFixedSong(song) ? '고정' : formed ? '결성' : '미결성';
+    return `<button type="button" class="${song.id === selectedSongId ? 'is-selected' : ''}${isFixedSong(song) ? ' is-fixed' : ''}" data-song-id="${song.id}"><span><b>${esc(song.title)}</b><small>${esc(song.artist)}</small></span><span class="band-admin-song-meta"><strong class="is-${isFixedSong(song) ? 'fixed' : formed ? 'formed' : 'open'}"><i></i>${status}</strong><em>${included}/${rows.length}명</em></span></button>`;
   }).join('');
   list.querySelectorAll('[data-song-id]').forEach(button => button.addEventListener('click', () => {
     selectedSongId = Number(button.dataset.songId);
@@ -332,7 +362,8 @@ function updateSongListItem(song) {
   const button = host.querySelector(`[data-song-id="${song.id}"]`);
   if (!button) return;
   const fixed = isFixedSong(song);
-  const status = fixed ? '고정' : song.is_formed ? '결성' : '미결성';
+  const formed = isEffectivelyFormed(song);
+  const status = fixed ? '고정' : formed ? '결성' : '미결성';
   button.classList.toggle('is-fixed', fixed);
   const title = button.querySelector('b');
   const artist = button.querySelector('small');
@@ -340,7 +371,7 @@ function updateSongListItem(song) {
   if (title) title.textContent = song.title;
   if (artist) artist.textContent = song.artist;
   if (badge) {
-    badge.className = `is-${fixed ? 'fixed' : song.is_formed ? 'formed' : 'open'}`;
+    badge.className = `is-${fixed ? 'fixed' : formed ? 'formed' : 'open'}`;
     badge.innerHTML = `<i></i>${status}`;
   }
 }
@@ -377,16 +408,17 @@ function setParticipantExpanded(article, expanded) {
 }
 
 function songFields(song = {}) {
-  return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${song.is_formed ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>공개 페이지에서 결성 팀으로 분류됩니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div></div>`;
+  return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${isEffectivelyFormed(song) ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>필요 세션이 모두 차면 자동으로 결성됩니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div></div>`;
 }
 
 function memberFields(member = {}) {
   return `<div class="band-admin-grid"><label><span>이름</span><input name="applicant_name" required value="${esc(member.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(member.student_id || '')}"></label><label class="is-wide"><span>신청 세션</span><input name="roles" value="${esc(rolesText(member.roles))}" placeholder="기타, 코러스"></label></div>`;
 }
 
-function renderMemberRow(member) {
+function renderMemberRow(song, member, role) {
   const roles = [...new Set((member.roles || []).map(normalizeRole).filter(Boolean))];
-  return `<article class="${member.is_included === false ? 'is-excluded' : ''}${member.is_song_applicant ? ' is-song-applicant' : ''}">${member.is_song_applicant ? '<span class="band-admin-inclusion is-applicant">신청자</span>' : `<button class="band-admin-inclusion ${member.is_included === false ? 'is-off' : 'is-on'}" type="button" data-toggle-member="${member.id}" aria-label="${esc(member.applicant_name)} 팀 포함 상태 변경">${member.is_included === false ? 'OFF' : 'ON'}</button>`}<div class="band-admin-member-info"><span class="band-admin-member-identity"><b>${esc(member.applicant_name)}</b><small>${esc(member.student_id)}</small><em>${assignedSongCount(member)}곡</em></span>${formatMemberTimestamp(member.created_at)}</div><p>${roles.map(role => `<span>${esc(role)}</span>`).join('') || '<span>세션 미지정</span>'}</p>${member.is_song_applicant ? '<div class="band-admin-member-actions"><span>곡 신청자</span></div>' : `<div class="band-admin-member-actions"><button type="button" data-edit-member="${member.id}">수정</button><button class="band-admin-move" type="button" data-move-member="${member.id}">이동</button><button class="is-danger" type="button" data-delete-member="${member.id}">삭제</button></div>`}</article>`;
+  const included = member.is_song_applicant || isMemberRoleIncluded(songAllocation(song), member, role);
+  return `<article class="${included ? '' : 'is-excluded'}${member.is_song_applicant ? ' is-song-applicant' : ''}">${member.is_song_applicant ? '<span class="band-admin-inclusion is-applicant">신청자</span>' : `<button class="band-admin-inclusion ${included ? 'is-on' : 'is-off'}" type="button" data-toggle-member="${member.id}" data-role="${esc(role)}" aria-label="${esc(member.applicant_name)} ${esc(role)} 포함 상태 변경">${included ? 'ON' : 'OFF'}</button>`}<div class="band-admin-member-info"><span class="band-admin-member-identity"><b>${esc(member.applicant_name)}</b><small>${esc(member.student_id)}</small><em>${assignedSongCount(member)}곡</em></span>${formatMemberTimestamp(member.created_at)}</div><p>${roles.map(item => `<span>${esc(item)}</span>`).join('') || '<span>세션 미지정</span>'}</p>${member.is_song_applicant ? '<div class="band-admin-member-actions"><span>곡 신청자</span></div>' : `<div class="band-admin-member-actions"><button type="button" data-edit-member="${member.id}">수정</button><button class="band-admin-move" type="button" data-move-member="${member.id}">이동</button>${included ? `<button class="band-admin-replace" type="button" data-replace-member="${member.id}" data-role="${esc(role)}">대체</button>` : ''}<button class="is-danger" type="button" data-delete-member="${member.id}">삭제</button></div>`}</article>`;
 }
 
 function renderEditor(editor = host.querySelector('[data-editor]')) {
@@ -394,11 +426,11 @@ function renderEditor(editor = host.querySelector('[data-editor]')) {
   const song = songs.find(item => item.id === selectedSongId);
   if (!song) { editor.innerHTML = '<div class="band-admin-empty is-large">편집할 곡을 선택하세요.</div>'; return; }
   const rows = songMembers(song);
-  const includedCount = rows.filter(member => member.is_included !== false).length;
+  const includedCount = effectiveSongMemberCount(song);
   const memberGroups = groupMembersByRole(rows);
   editor.innerHTML = `<header><div><span>SONG #${song.id}</span><h2>${esc(song.title)}</h2></div><button class="is-danger" type="button" data-delete-song>곡 삭제</button></header>
     <form class="band-admin-card" data-song-form data-song-id="${song.id}">${songFields(song)}</form>
-    <section class="band-admin-members"><header><div><h3>세션 신청</h3><span>${includedCount}명 포함 · ${rows.length}건 · 세션별 신청 시각순</span></div><button type="button" data-add-member ${isFixedSong(song) ? 'disabled' : ''}>+ 세션 추가</button></header><div>${rows.length ? memberGroups.map(group => `<section class="band-admin-member-group"><header><h4>${esc(group.role)}</h4><span>${group.members.length}명</span></header>${group.members.map(member => renderMemberRow(member)).join('')}</section>`).join('') : '<div class="band-admin-empty">세션 신청이 없습니다.</div>'}</div></section>`;
+    <section class="band-admin-members"><header><div><h3>세션 신청</h3><span>${includedCount}명 포함 · ${rows.length}건 · 세션별 신청 시각순</span></div><button type="button" data-add-member ${isFixedSong(song) ? 'disabled' : ''}>+ 세션 추가</button></header><div>${rows.length ? memberGroups.map(group => `<section class="band-admin-member-group"><header><h4>${esc(group.role)}</h4><span>${group.members.length}명</span></header>${group.members.map(member => renderMemberRow(song, member, group.role)).join('')}</section>`).join('') : '<div class="band-admin-empty">세션 신청이 없습니다.</div>'}</div></section>`;
   const songForm = editor.querySelector('[data-song-form]');
   songForm.addEventListener('submit', event => event.preventDefault());
   songForm.addEventListener('input', () => { songForm.dataset.dirty = 'true'; });
@@ -409,9 +441,13 @@ function renderEditor(editor = host.querySelector('[data-editor]')) {
   }));
   editor.querySelector('[data-delete-song]').addEventListener('click', () => deleteSong(song));
   editor.querySelector('[data-add-member]').addEventListener('click', () => openMemberModal(song));
-  editor.querySelectorAll('[data-toggle-member]').forEach(button => button.addEventListener('click', () => toggleMember(members.find(item => item.id === Number(button.dataset.toggleMember)))));
+  editor.querySelectorAll('[data-toggle-member]').forEach(button => button.addEventListener('click', () => toggleMember(members.find(item => item.id === Number(button.dataset.toggleMember)), button.dataset.role)));
   editor.querySelectorAll('[data-edit-member]').forEach(button => button.addEventListener('click', () => openMemberModal(song, members.find(item => item.id === Number(button.dataset.editMember)))));
   editor.querySelectorAll('[data-move-member]').forEach(button => button.addEventListener('click', () => openMoveMemberModal(members.find(item => item.id === Number(button.dataset.moveMember)))));
+  editor.querySelectorAll('[data-replace-member]').forEach(button => button.addEventListener('click', () => {
+    const member = members.find(item => item.id === Number(button.dataset.replaceMember));
+    openReplaceParticipantModal({ participantKey: personKey(member), songId: song.id, role: button.dataset.role });
+  }));
   editor.querySelectorAll('[data-delete-member]').forEach(button => button.addEventListener('click', () => deleteMember(members.find(item => item.id === Number(button.dataset.deleteMember)))));
 }
 
@@ -655,22 +691,35 @@ function openMemberModal(song, member = null) {
   });
 }
 
-async function includeApplicantInSong(applicant, song, role) {
+async function updateMemberRoleDirective(member, role, state) {
+  const previousNote = member.note || '';
+  const previousIncluded = member.is_included !== false;
+  const draft = { ...member };
+  if (!previousIncluded) {
+    for (const otherRole of (member.roles || []).map(normalizeRole).filter(item => item && item !== normalizeRole(role))) {
+      draft.note = memberNoteWithDirective(draft, otherRole, 'force_off');
+    }
+  }
+  const nextNote = memberNoteWithDirective(draft, role, state);
+  const { error } = await supabase.from('band_members').update({ note: nextNote, is_included: true }).eq('id', member.id);
+  if (error) throw error;
+  member.note = nextNote;
+  member.is_included = true;
+  return { kind: 'updated', id: member.id, previousNote, previousIncluded, member };
+}
+
+async function includeApplicantInSong(applicant, song, role, state = 'extra_on') {
   const existing = applicant.applications
     .filter(application => application.song?.id === song.id && !application.member.is_song_applicant && application.roles.includes(role))
     .sort((a, b) => byCreated(a.member, b.member))[0];
-  if (existing && existing.roles.length === 1) {
-    const { error } = await supabase.from('band_members').update({ is_included: true }).eq('id', existing.member.id);
-    if (error) throw error;
-    return { kind: 'updated', id: existing.member.id };
-  }
-  const source = existing?.member || applicant.applications.find(application => !application.member.is_song_applicant)?.member;
+  if (existing) return updateMemberRoleDirective(existing.member, role, state);
+  const draft = { note: '' };
   const { data: created, error } = await supabase.from('band_members').insert({
     song_id: song.id,
     applicant_name: applicant.name,
     student_id: applicant.studentId,
     roles: [role],
-    note: source?.note || '',
+    note: memberNoteWithDirective(draft, role, state),
     is_included: true,
   }).select().single();
   if (error) throw error;
@@ -680,7 +729,13 @@ async function includeApplicantInSong(applicant, song, role) {
 async function rollbackIncludedApplicant(change) {
   if (!change) return;
   if (change.kind === 'inserted') await supabase.from('band_members').delete().eq('id', change.id);
-  else await supabase.from('band_members').update({ is_included: false }).eq('id', change.id);
+  else {
+    await supabase.from('band_members').update({ note: change.previousNote, is_included: change.previousIncluded }).eq('id', change.id);
+    if (change.member) {
+      change.member.note = change.previousNote;
+      change.member.is_included = change.previousIncluded;
+    }
+  }
 }
 
 function openAssignParticipantModal(applicant) {
@@ -704,7 +759,7 @@ function openAssignParticipantModal(applicant) {
     const [songIdText, role] = String(data.get('assignment') || '').split('::');
     const song = songs.find(item => item.id === Number(songIdText));
     if (!song || !role) throw new Error('배정할 곡과 세션을 선택해주세요.');
-    await includeApplicantInSong(applicant, song, role);
+    await includeApplicantInSong(applicant, song, role, 'extra_on');
     selectedSongId = song.id;
     await announceRealtimeChange('member_assigned', applicant.key);
     await loadRoundData();
@@ -714,17 +769,22 @@ function openAssignParticipantModal(applicant) {
 }
 
 function openReplaceParticipantModal({ participantKey, songId, role }) {
-  const target = participantRows().find(item => item.key === participantKey);
+  const target = participantRows().find(item => item.key === participantKey)
+    || applicantRows().find(item => item.key === participantKey);
   const song = songs.find(item => item.id === songId);
   if (!target || !song || !role) return;
-  const targetMemberIds = members.filter(member => member.song_id === songId && member.is_included !== false && personKey(member) === participantKey).map(member => member.id);
-  if (!targetMemberIds.length) {
+  const allocation = songAllocation(song);
+  const targetMembers = members.filter(member => member.song_id === songId
+    && personKey(member) === participantKey
+    && (member.roles || []).map(normalizeRole).includes(role)
+    && isMemberRoleIncluded(allocation, member, role));
+  if (!targetMembers.length) {
     showMessage('곡 신청자 기본 배정은 대체할 수 없습니다.', 'error');
     return;
   }
   const candidates = applicantRows().filter(item => item.key !== participantKey
     && item.applications.some(application => application.roles.includes(role))
-    && !item.applications.some(application => application.song?.id === songId && application.member.is_included !== false))
+    && !item.applications.some(application => application.song?.id === songId && effectiveRolesForMember(song, application.member).includes(role)))
     .sort((a, b) => a.assignedSongIds.size - b.assignedSongIds.size
       || String(a.earliestAt || '').localeCompare(String(b.earliestAt || ''))
       || a.name.localeCompare(b.name, 'ko'));
@@ -732,9 +792,12 @@ function openReplaceParticipantModal({ participantKey, songId, role }) {
   const modal = openModal('세션 대체', fields, '대체', async data => {
     const candidate = candidates.find(item => item.key === String(data.get('candidate') || ''));
     if (!candidate) throw new Error('대체할 신청자를 선택해주세요.');
-    const added = await includeApplicantInSong(candidate, song, role);
-    const { error } = await supabase.from('band_members').update({ is_included: false }).in('id', targetMemberIds);
-    if (error) {
+    const added = await includeApplicantInSong(candidate, song, role, 'force_on');
+    const removed = [];
+    try {
+      for (const targetMember of targetMembers) removed.push(await updateMemberRoleDirective(targetMember, role, 'force_off'));
+    } catch (error) {
+      for (const change of removed.reverse()) await rollbackIncludedApplicant(change);
       await rollbackIncludedApplicant(added);
       throw error;
     }
@@ -757,19 +820,8 @@ function openMoveMemberModal(member) {
     const role = String(data.get('role') || '').trim();
     if (!songs.some(song => song.id === targetSongId)) throw new Error('이동할 곡을 선택해주세요.');
     if (!role) throw new Error('배치할 세션을 선택해주세요.');
-    const nextApplicant = members.filter(item => item.id !== member.id
-      && item.song_id === currentSong.id
-      && item.is_included === false
-      && (item.roles || []).map(normalizeRole).includes(currentRole)).sort(byCreated)[0];
     const { error } = await supabase.from('band_members').update({ song_id: targetSongId, roles: [role] }).eq('id', member.id);
     if (error) throw error;
-    if (targetSongId !== currentSong.id && nextApplicant) {
-      const { error: includeError } = await supabase.from('band_members').update({ is_included: true }).eq('id', nextApplicant.id);
-      if (includeError) {
-        await supabase.from('band_members').update({ song_id: currentSong.id, roles: member.roles }).eq('id', member.id);
-        throw includeError;
-      }
-    }
     selectedSongId = targetSongId;
     await announceRealtimeChange('member_moved', member.id);
     await loadRoundData();
@@ -796,12 +848,14 @@ function songPayload(data, roundId) {
   return { round_id: roundId, title: String(data.get('title')).trim(), artist: String(data.get('artist')).trim(), applicant_name: String(data.get('applicant_name')).trim(), student_id: String(data.get('student_id')).trim(), wanted_roles: wantedRoles, note: String(data.get('note')).trim(), is_formed: data.get('is_formed') === 'on' };
 }
 
-async function toggleMember(member) {
+async function toggleMember(member, role) {
   if (!member) return;
-  const next = member.is_included === false;
-  const { error } = await supabase.from('band_members').update({ is_included: next }).eq('id', member.id);
-  if (error) { showMessage(error.message, 'error'); return; }
-  member.is_included = next;
+  const song = songs.find(item => item.id === member.song_id);
+  if (!song || !role) return;
+  const next = !isMemberRoleIncluded(songAllocation(song), member, role);
+  try {
+    await updateMemberRoleDirective(member, role, next ? 'force_on' : 'force_off');
+  } catch (error) { showMessage(error.message, 'error'); return; }
   await announceRealtimeChange('member_toggled', member.id);
   renderSongList();
   renderEditor();
@@ -854,6 +908,16 @@ async function deleteMember(member) {
   showMessage('세션 신청을 삭제했습니다.', 'success');
 }
 
+async function persistAutomaticallyFormedSongs() {
+  const completedIds = songs
+    .filter(song => !isFixedSong(song) && song.is_formed !== true && songAllocation(song).isComplete)
+    .map(song => song.id);
+  if (!completedIds.length) return;
+  const { error } = await supabase.from('band_songs').update({ is_formed: true }).in('id', completedIds);
+  if (error) throw error;
+  songs.filter(song => completedIds.includes(song.id)).forEach(song => { song.is_formed = true; });
+}
+
 async function fetchRoundData() {
   if (!round) { songs = []; members = []; return; }
   const { data: songRows, error: songError } = await supabase.from('band_songs').select('*').eq('round_id', round.id).order('created_at').order('id');
@@ -866,6 +930,7 @@ async function fetchRoundData() {
     if (error) throw error;
     members = data || [];
   }
+  await persistAutomaticallyFormedSongs();
   if (!songs.some(song => song.id === selectedSongId)) selectedSongId = songs[0]?.id || null;
 }
 

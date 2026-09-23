@@ -483,6 +483,7 @@ body.band-admin-mode #view-dynamic {
   border: 1px solid var(--line);
   border-left: 0;
   background: #fff;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -647,8 +648,18 @@ body.band-admin-mode #view-dynamic {
   color: var(--blue);
 }
 
+.band-admin-member-actions .band-admin-replace {
+  border-color: #9dcbe8;
+  background: #f4faff;
+  color: #005f9f;
+}
+
 .band-admin-members {
+  width: calc(100% - 36px);
+  max-width: calc(100% - 36px);
+  min-width: 0;
   margin: 18px;
+  box-sizing: border-box;
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
@@ -758,7 +769,7 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-admin-member-identity em {
-  display: none;
+  display: inline-flex;
   padding: 2px 5px;
   border-radius: 999px;
   background: #eef7e3;
@@ -2000,6 +2011,11 @@ body.band-admin-mode #view-dynamic {
   .band-admin-card,
   .band-admin-members {
     margin: 12px;
+  }
+
+  .band-admin-members {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
   }
 }
 

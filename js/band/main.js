@@ -1,5 +1,12 @@
 import { supabase } from '../supabase.js';
 import { escapeHtml as esc } from '../utils/html.js';
+import {
+  calculateSongAllocation,
+  compareMembersForRole,
+  includedRoles,
+  isMemberRoleIncluded,
+  normalizeBandRole,
+} from './allocation.js';
 
 let host = null;
 let rounds = [];
@@ -36,16 +43,7 @@ const getApplicantRole = song => {
   return match?.[1] || '';
 };
 
-function normalizeRole(value) {
-  const raw = String(value || '').trim();
-  const compact = raw.replace(/\s+/g, '').toLowerCase();
-  if (/^(보컬|vocal)\d*$/.test(compact)) return '보컬';
-  if (/^(기타|guitar)\d*$/.test(compact)) return '기타';
-  if (/^(베이스|bass)\d*$/.test(compact)) return '베이스';
-  if (/^(키보드|건반|keyboard|key)\d*$/.test(compact)) return '키보드';
-  if (/^(드럼|drum|drums)\d*$/.test(compact)) return '드럼';
-  return raw || '그 외';
-}
+const normalizeRole = value => normalizeBandRole(value) || '그 외';
 
 function parseRoles(value) {
   return String(value || '').split(/[,\n]/).map(item => item.trim()).filter(Boolean);
@@ -96,11 +94,28 @@ function groupMembersByRole(members) {
       groups.get(role).push(member);
     }
   }
-  return sortRoles([...groups].map(([role, groupedMembers]) => ({ role, members: groupedMembers })));
+  return sortRoles([...groups].map(([role, groupedMembers]) => ({ role, members: groupedMembers.sort((a, b) => compareMembersForRole(a, b, role)) })));
+}
+
+function songAllocation(song) {
+  return calculateSongAllocation(song, membersBySong.get(song.id) || [], visibleWantedRoles, getApplicantRole);
+}
+
+function effectiveRolesForMember(song, member) {
+  if (member.is_song_applicant) return (member.roles || []).map(normalizeRole).filter(Boolean);
+  return includedRoles(songAllocation(song), member);
 }
 
 function getIncludedMembers(song) {
-  return getMembers(song).filter(member => member.is_included !== false);
+  return getMembers(song).filter(member => effectiveRolesForMember(song, member).length > 0);
+}
+
+function isEffectivelyFormed(song) {
+  return isFixedSong(song) || song.is_formed === true || songAllocation(song).isComplete;
+}
+
+function includedPersonCount(song) {
+  return new Set(getIncludedMembers(song).map(member => String(member.student_id || '').trim() || `name:${member.applicant_name}`)).size;
 }
 
 function formatAppliedAt(value) {
@@ -111,14 +126,7 @@ function formatAppliedAt(value) {
 }
 
 function getRoleCounts(song) {
-  const counts = new Map();
-  for (const member of getIncludedMembers(song)) {
-    for (const raw of member.roles || []) {
-      const role = normalizeRole(raw);
-      counts.set(role, (counts.get(role) || 0) + 1);
-    }
-  }
-  return counts;
+  return songAllocation(song).filledByRole;
 }
 
 function getMissingRoles(song) {
@@ -138,15 +146,15 @@ function visibleSongs() {
   const query = searchQuery.toLocaleLowerCase('ko');
   return songs.filter(song => {
     if (hideFixedTeams && isFixedSong(song)) return false;
-    if (statusFilter === 'formed' && !song.is_formed) return false;
-    if (statusFilter === 'unformed' && song.is_formed) return false;
+    if (statusFilter === 'formed' && !isEffectivelyFormed(song)) return false;
+    if (statusFilter === 'unformed' && isEffectivelyFormed(song)) return false;
     return !query || getSearchText(song).includes(query);
   });
 }
 
 function renderStatus(song) {
   if (isFixedSong(song)) return '<span class="band-status band-status-fixed"><i></i>고정</span>';
-  return song.is_formed
+  return isEffectivelyFormed(song)
     ? '<span class="band-status band-status-formed"><i></i>결성</span>'
     : '<span class="band-status band-status-open"><i></i>미결성</span>';
 }
@@ -174,7 +182,7 @@ function renderList() {
   list.innerHTML = filtered.map((song, index) => `<button class="band-song${song.id === selectedSongId ? ' is-selected' : ''}${isFixedSong(song) ? ' is-fixed' : ''}" type="button" data-song-id="${song.id}">
     <span class="band-song-index">${String(index + 1).padStart(2, '0')}</span>
     <span class="band-song-main"><span class="band-song-title">${esc(song.title)}</span><span class="band-song-artist">${esc(song.artist)}</span><span class="band-song-sessions">${renderRoleSummary(song)}</span></span>
-    <span class="band-song-meta">${renderStatus(song)}<span>${getIncludedMembers(song).length}명</span></span>
+    <span class="band-song-meta">${renderStatus(song)}<span>${includedPersonCount(song)}명</span></span>
   </button>`).join('');
   list.querySelectorAll('[data-song-id]').forEach(button => button.addEventListener('click', () => {
     selectedSongId = Number(button.dataset.songId);
@@ -184,9 +192,9 @@ function renderList() {
   if (!isMobileView()) renderDetail(songs.find(song => song.id === selectedSongId) || null);
 }
 
-function renderMember(member, role) {
+function renderMember(song, member, role) {
   const suffix = String(member.student_id || '').slice(-3);
-  const excluded = member.is_included === false;
+  const excluded = !member.is_song_applicant && !isMemberRoleIncluded(songAllocation(song), member, role);
   return `<li class="band-member${excluded ? ' is-excluded' : ''}">
     <span class="band-avatar" aria-hidden="true">${esc(String(member.applicant_name || '?').slice(0, 1))}</span>
     <span class="band-member-name"><b>${esc(member.applicant_name)}</b>${suffix ? `<small>${esc(suffix)}</small>` : ''}${member.is_song_applicant ? '<em>곡 신청자</em>' : ''}${excluded ? '<em>비포함</em>' : ''}</span>
@@ -202,7 +210,6 @@ function renderDetail(song, detail = host.querySelector('[data-band-detail]')) {
     return;
   }
   const members = getMembers(song);
-  const includedMembers = getIncludedMembers(song);
   const requirements = getRequirements(song);
   const counts = getRoleCounts(song);
   const missing = getMissingRoles(song);
@@ -228,8 +235,8 @@ function renderDetail(song, detail = host.querySelector('[data-band-detail]')) {
     </section>
     <button class="band-primary band-apply-session${fixed ? ' is-fixed' : ''}" type="button" data-apply-session ${canApply ? '' : 'disabled'}>${fixed ? '사전구성하여 고정된 팀입니다.' : canApply ? '이 곡에 세션 신청' : '세션 신청 닫힘'}</button>
     <section class="band-detail-section">
-      <div class="band-section-title"><h3>세션 신청 현황</h3><span>${includedMembers.length}명 포함 · ${members.length}건</span></div>
-      ${members.length ? `<div class="band-member-groups">${memberGroups.map(group => `<section class="band-member-group"><header><h4>${esc(group.role)}</h4><span>${group.members.length}명</span></header><ul class="band-member-list">${group.members.map(member => renderMember(member, group.role)).join('')}</ul></section>`).join('')}</div>` : '<div class="band-no-members">아직 세션 신청이 없습니다.</div>'}
+      <div class="band-section-title"><h3>세션 신청 현황</h3><span>${includedPersonCount(song)}명 포함 · ${members.length}건</span></div>
+      ${members.length ? `<div class="band-member-groups">${memberGroups.map(group => `<section class="band-member-group"><header><h4>${esc(group.role)}</h4><span>${group.members.length}명</span></header><ul class="band-member-list">${group.members.map(member => renderMember(song, member, group.role)).join('')}</ul></section>`).join('')}</div>` : '<div class="band-no-members">아직 세션 신청이 없습니다.</div>'}
     </section>`;
   detail.querySelector('[data-apply-session]')?.addEventListener('click', () => openMemberForm(song));
   detail.querySelectorAll('[data-apply-role]').forEach(button => button.addEventListener('click', () => openMemberForm(song, button.dataset.applyRole)));
@@ -274,7 +281,7 @@ function openSongDetail(song) {
 }
 
 function renderStats() {
-  const formed = songs.filter(song => song.is_formed);
+  const formed = songs.filter(isEffectivelyFormed);
   const uniqueMembers = new Set(formed.flatMap(song => getIncludedMembers(song).map(member => String(member.student_id || '').trim() || `name:${member.applicant_name}`)));
   host.querySelector('[data-band-stats]').innerHTML = `<span><b>${songs.length}</b> 전체 곡</span><span><b>${formed.length}</b> 결성 팀</span><span><b>${uniqueMembers.size}</b> 참여자</span>`;
 }
@@ -400,7 +407,15 @@ function openMemberForm(song, preselectedRole = '') {
     onSubmit: async data => {
       const selectedRoles = data.getAll('roles').map(value => String(value));
       if (!selectedRoles.length) throw new Error('신청할 세션을 하나 이상 선택해주세요.');
-      const { error } = await supabase.from('band_members').insert({ song_id: song.id, applicant_name: String(data.get('applicant_name')).trim(), student_id: String(data.get('student_id')).trim(), roles: selectedRoles, note: '' });
+      const applicantName = String(data.get('applicant_name')).trim();
+      const studentId = String(data.get('student_id')).trim();
+      const { error } = await supabase.from('band_members').insert(selectedRoles.map(role => ({
+        song_id: song.id,
+        applicant_name: applicantName,
+        student_id: studentId,
+        roles: [role],
+        note: '',
+      })));
       if (error) throw error;
       selectedSongId = song.id;
       await announceRealtimeChange('member_created', song.id);

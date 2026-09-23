@@ -1,4 +1,4 @@
-import { initRouter } from '../router.js?v=20260923-band-route-1';
+import { initRouter } from '../router.js?v=20260923-band-allocation-2';
 import {
   getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,
