@@ -19,7 +19,8 @@ body.band-admin-mode #view-dynamic {
   --ink: #181b1e;
   --muted: #6f777e;
   --line: #d9dee2;
-  --green: #087f5b;
+  --green: #5c9e00;
+  --blue: #0077cc;
   --red: #b4232d;
   min-height: 100dvh;
   background: var(--bg);
@@ -210,8 +211,8 @@ body.band-admin-mode #view-dynamic {
   padding: 0 14px;
   border: 2px solid var(--green);
   border-radius: 5px;
-  background: #edf7f2;
-  color: #075f46;
+  background: #eef7e3;
+  color: #4b8200;
   font-size: 12px;
   font-weight: 900;
 }
@@ -260,10 +261,10 @@ body.band-admin-mode #view-dynamic {
 .band-admin-round-options .band-round-scheduled {
   min-height: 38px;
   padding: 0 13px;
-  border: 1px solid #2563eb;
+  border: 1px solid var(--blue);
   border-radius: 5px;
-  background: #eef4ff;
-  color: #174ea6;
+  background: #edf7fd;
+  color: #0064ad;
   cursor: pointer;
   font-size: 11px;
   font-weight: 850;
@@ -395,17 +396,17 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-admin-song-list > div > button.is-selected {
-  background: #edf6f2;
+  background: #eef7e3;
   box-shadow: inset 3px 0 var(--green);
 }
 
 .band-admin-song-list > div > button.is-fixed:hover {
-  background: #f2f6ff;
+  background: #edf7fd;
 }
 
 .band-admin-song-list > div > button.is-fixed.is-selected {
-  background: #edf3ff;
-  box-shadow: inset 3px 0 #2563eb;
+  background: #eaf5fc;
+  box-shadow: inset 3px 0 var(--blue);
 }
 
 .band-admin-song-list button span {
@@ -454,8 +455,8 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-admin-song-meta .is-formed { color: var(--green); }
-.band-admin-song-meta .is-fixed { color: #2563eb; }
-.band-admin-song-meta .is-open { color: #d95f21; }
+.band-admin-song-meta .is-fixed { color: var(--blue); }
+.band-admin-song-meta .is-open { color: #c8760a; }
 
 .band-admin-editor {
   min-width: 0;
@@ -563,22 +564,22 @@ body.band-admin-mode #view-dynamic {
 
 .band-admin-formed:has(input:checked) {
   border-color: var(--green);
-  background: #edf7f2;
+  background: #eef7e3;
 }
 
 .band-admin-team-flags .band-admin-formed:last-child {
-  border-color: #9cb9f3;
-  background: #f4f7ff;
+  border-color: #9dcbe8;
+  background: #f4faff;
 }
 
 .band-admin-team-flags .band-admin-formed:last-child:has(input:checked) {
-  border-color: #2563eb;
-  background: #eaf1ff;
-  color: #173f99;
+  border-color: var(--blue);
+  background: #eaf5fc;
+  color: #005f9f;
 }
 
 .band-admin-team-flags .band-admin-formed:last-child input {
-  accent-color: #2563eb;
+  accent-color: var(--blue);
 }
 
 .band-admin-formed input {
@@ -623,9 +624,9 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-admin-member-actions .band-admin-move {
-  border-color: #2563eb;
+  border-color: var(--blue);
   background: #fff;
-  color: #2563eb;
+  color: var(--blue);
 }
 
 .band-admin-members {
@@ -670,7 +671,7 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-admin-inclusion.is-on {
-  background: #2563eb !important;
+  background: var(--blue) !important;
 }
 
 .band-admin-inclusion.is-off {
@@ -679,6 +680,32 @@ body.band-admin-mode #view-dynamic {
 
 .band-admin-members article:last-child {
   border-bottom: 0;
+}
+
+.band-admin-member-group + .band-admin-member-group {
+  border-top: 8px solid #f0f3f5;
+}
+
+.band-admin-member-group > header {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: #f7f8f9;
+}
+
+.band-admin-member-group h4 {
+  margin: 0;
+  font-size: 10px;
+}
+
+.band-admin-member-group > header span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
 }
 
 .band-admin-member-info {
@@ -733,7 +760,7 @@ body.band-admin-mode #view-dynamic {
 .band-admin-member-actions > span {
   padding: 5px 7px;
   border-radius: 4px;
-  background: #e7f3ee;
+  background: #eef7e3;
   color: var(--green);
   font-size: 8px;
   font-weight: 850;
@@ -763,7 +790,7 @@ body.band-admin-mode #view-dynamic {
   flex: none;
   padding: 18px 16px;
   border-bottom: 1px solid var(--line);
-  background: #edf5f1;
+  background: #eef7e3;
   box-shadow: inset 3px 0 var(--green);
 }
 
@@ -828,7 +855,7 @@ body.band-admin-mode #view-dynamic {
 .band-admin-participant-actions strong {
   display: inline-flex;
   align-items: center;
-  background: #e7f3ee;
+  background: #eef7e3;
   color: var(--green);
 }
 
@@ -934,7 +961,8 @@ body.band-admin-mode #view-dynamic {
   --ink: #181b1e;
   --muted: #6f777e;
   --line: #d9dee2;
-  --green: #087f5b;
+  --green: #5c9e00;
+  --blue: #0077cc;
   --red: #b4232d;
   position: fixed;
   inset: 0;
@@ -1045,8 +1073,8 @@ body.band-admin-mode #view-dynamic {
   gap: 5px;
   margin-bottom: 16px;
   padding: 14px;
-  border-left: 3px solid #2563eb;
-  background: #f3f7ff;
+  border-left: 3px solid var(--blue);
+  background: #edf7fd;
 }
 
 .band-move-summary b {
@@ -1132,41 +1160,59 @@ body.band-admin-mode #view-dynamic {
 }
 
 .band-round-list > article {
-  padding: 11px 12px;
+  min-height: 86px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #fafbfb;
+  overflow: hidden;
 }
 
-.band-round-list > article.is-sorting {
-  border-color: #2563eb;
-  background: #eef4ff;
-  box-shadow: 0 8px 20px rgb(37 99 235 / 16%);
+.band-round-item-content {
+  min-width: 0;
+  padding: 11px 12px;
 }
 
 .band-round-item-head {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
 }
 
-.band-round-drag-handle {
+.band-round-order-controls {
   width: 38px;
-  height: 38px;
-  padding: 0;
-  border: 1px solid #cbd1d6;
-  border-radius: 5px;
-  background: #fff;
-  color: #50585f;
-  cursor: grab;
-  touch-action: none;
-  font-size: 18px;
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  border-right: 1px solid var(--line);
+  background: #f1f6fa;
+}
+
+.band-round-order-controls button {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--blue) !important;
+  cursor: pointer;
+  font-size: 16px !important;
   line-height: 1;
 }
 
-.band-round-drag-handle:active {
-  cursor: grabbing;
+.band-round-order-controls button + button {
+  border-top: 1px solid var(--line) !important;
+}
+
+.band-round-order-controls button:hover:not(:disabled) {
+  background: #e2f1fa !important;
+}
+
+.band-round-order-controls button:disabled {
+  color: #b7c4cc !important;
+  cursor: default;
 }
 
 .band-schedule-manager {
@@ -1217,7 +1263,7 @@ body.band-admin-mode #view-dynamic {
   width: 34px;
   height: 18px;
   margin: 0;
-  accent-color: #2563eb;
+  accent-color: var(--blue);
 }
 
 .band-schedule-fields {
@@ -1285,8 +1331,8 @@ body.band-admin-mode #view-dynamic {
 
 .band-round-options label:has(input:checked) {
   border-color: var(--green);
-  background: #edf7f2;
-  color: #075f46;
+  background: #eef7e3;
+  color: #4b8200;
   box-shadow: inset 0 0 0 1px var(--green);
 }
 
@@ -1680,11 +1726,11 @@ body.band-admin-mode #view-dynamic {
   }
 
   .band-round-list > article {
-    padding: 10px;
+    padding: 0;
   }
 
   .band-round-item-head {
-    grid-template-columns: 38px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .band-round-options {
