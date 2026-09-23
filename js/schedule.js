@@ -74,6 +74,11 @@ export async function createTeam({ name, type, color, info = '', members = [] })
   if (error) throw error;
   return data;
 }
+export async function createTeams(rows) {
+  const { data, error } = await supabase.from('teams').insert(rows).select();
+  if (error) throw error;
+  return data || [];
+}
 export async function updateTeam(id, fields) {
   const { data, error } = await supabase.from('teams').update(fields).eq('id', id).select().single();
   if (error) throw error;

@@ -116,14 +116,18 @@ function render(){
 }
 
 function teamListHTML(){
-  const groups=[{k:'합주'},{k:'스쿨'},{k:'이외'}];
+  const defaultTypes=['합주','스쿨','이외'];
+  const customTypes=[...new Set(teams.map(t=>String(t.type||'').trim()).filter(type=>type&&!defaultTypes.includes(type)))]
+    .sort((a,b)=>a.localeCompare(b,'ko-KR',{numeric:true}));
+  const groups=['합주',...customTypes,'스쿨','이외'].map(k=>({k}));
   return groups.map(g=>{
     let list=korSort(teams.filter(t=>t.type===g.k),'name');
     if(!list.length) return '';
     const open=!collapsed.has(g.k);
+    const encodedKey=encodeURIComponent(g.k).replace(/'/g,'%27');
     return `<div>
-      <div class="tg-label" onclick="toggleGroup('${g.k}')">
-        <span>${g.k} <span style="color:var(--text3);font-weight:400">(${list.length})</span></span>
+      <div class="tg-label" onclick="toggleGroup(decodeURIComponent('${encodedKey}'))">
+        <span>${esc(g.k)} <span style="color:var(--text3);font-weight:400">(${list.length})</span></span>
         <span class="tg-arrow ${open?'open':''}">›</span>
       </div>
       <div style="display:${open?'flex':'none'};flex-direction:column;gap:0">
