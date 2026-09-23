@@ -1,6 +1,6 @@
 import { supabase } from '../supabase.js';
 import {
-  getConfig, setConfig, fetchTeamCategories, setTeamCategories,
+  getConfig, setConfig, fetchTeamCategories, setTeamCategories, fetchTeamKindDefaults, setTeamKindDefaults,
   fetchTeams, createTeam, createTeams, updateTeam, deleteTeam,
   fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
   fetchExceptions, createException, deleteException, mergeSchedule,
@@ -10,7 +10,7 @@ import {
   fetchApplications, deleteApplication, runAssignment, approveDraft,
   fetchContacts, upsertContact, deleteContact,
   fetchVacancyReports, deleteVacancyReport
-} from '../schedule.js?v=20260923-team-categories';
+} from '../schedule.js?v=20260923-team-kinds';
 
 import {
   buildFormedTeamRows,
@@ -20,7 +20,7 @@ import {
 
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
-import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260923-team-categories';
+import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, normalizeTeamKind, renameTeamKind, setTeamKindForName, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260923-team-kinds';
 initTheme();
 window.toggleTheme = toggleTheme;
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') window.closeModal?.(); });
@@ -43,6 +43,7 @@ let _bandAdminDestroy=null, _bandAdminMountPromise=null;
 let mobileDayIdx=(new Date().getDay()+6)%7;
 let teams=[], baseSlots=[], exceptions=[], requests=[], notices=[], contacts=[];
 let teamCategories={};
+let teamKindDefaults={'합주':'합주','스쿨':'스쿨','이외':'이외'};
 let pendingAll=[];
 let selectedTeams=new Set();
 let merged=[], round=null, applications=[];
@@ -140,10 +141,11 @@ async function loadAll(){
   await autoUpdateSeason();
   const _r=await Promise.allSettled([
     fetchTeams(),fetchBaseSlots(season),fetchExceptions(weekOff),
-    fetchRequests(weekOff),fetchNotices(),fetchContacts(),fetchTeamCategories()
+    fetchRequests(weekOff),fetchNotices(),fetchContacts(),fetchTeamCategories(),fetchTeamKindDefaults()
   ]);
   [teams,baseSlots,exceptions,requests,notices,contacts]=_r.slice(0,6).map(r=>r.status==='fulfilled'?r.value:[]);
   teamCategories=_r[6].status==='fulfilled'?_r[6].value:{};
+  teamKindDefaults=_r[7].status==='fulfilled'?_r[7].value:teamKindDefaults;
   teams=korSort(teams,'name');
   merged=mergeSchedule(baseSlots,exceptions);
   round=await fetchActiveRound(season);
@@ -1024,7 +1026,7 @@ function renderSchedule(){
           blk.style.background=c;
           if(isExtra) blk.style.borderLeft='4px solid var(--accent2)';
           const tagStyle=isExtra?'background:var(--accent2);color:#000':'color:#000';
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${esc(t.name)}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':esc(teamCategory(t,teamCategories))}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${esc(t.info||'')}</span></div>`;
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${esc(t.name)}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':esc(t.type)}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${esc(t.info||'')}</span></div>`;
         }
         blk.onclick=()=>openSlotModal(s); cell.appendChild(blk);
       } else if(pe){
@@ -1206,31 +1208,40 @@ window.doReject=async function(id){
 };
 
 // ── TEAMS ─────────────────────────────────────────────────────────────
-function renderTeams(){
-  const defaultTypes=['합주','스쿨','이외'];
-  const customTypes=[...new Set(teams.map(t=>teamCategory(t,teamCategories)).filter(type=>type&&!defaultTypes.includes(type)))]
+function currentTeamKinds(){
+  const kinds=[...new Set(teams.map(t=>teamCategory(t,teamCategories,teamKindDefaults)).filter(Boolean))];
+  const preferred=[teamKindDefaults['합주'],teamKindDefaults['스쿨'],teamKindDefaults['이외']].filter(Boolean);
+  const custom=kinds.filter(kind=>!preferred.some(item=>normalizeTeamKind(item)===normalizeTeamKind(kind)))
     .sort((a,b)=>a.localeCompare(b,'ko-KR',{numeric:true}));
-  const groups=['합주',...customTypes,'스쿨','이외'].map(k=>({k,label:k}));
+  return [...new Set([preferred[0],...custom,preferred[1],preferred[2]].filter(Boolean))]
+    .filter(kind=>kinds.some(item=>normalizeTeamKind(item)===normalizeTeamKind(kind)));
+}
+
+function renderTeams(){
+  const groups=currentTeamKinds().map(k=>({k,label:k}));
   document.getElementById('teamsContent').innerHTML=groups.map(g=>{
-    const list=korSort(teams.filter(t=>teamCategory(t,teamCategories)===g.k),'name');
+    const list=korSort(teams.filter(t=>normalizeTeamKind(teamCategory(t,teamCategories,teamKindDefaults))===normalizeTeamKind(g.k)),'name');
     if(!list.length) return '';
-    const isEnsembleGroup=g.k!=='스쿨'&&g.k!=='이외';
+    const encodedKind=encodeURIComponent(g.k).replace(/'/g,'%27');
     return `<div class="teams-section">
-      <div class="teams-section-title">${esc(g.label)} (${list.length}팀)</div>
+      <div class="teams-section-title">
+        <input class="teams-kind-name" value="${esc(g.label)}" aria-label="팀 종류" onkeydown="if(event.key==='Enter')this.blur()" onblur="saveTeamKindName(decodeURIComponent('${encodedKind}'),this.value,this)"/>
+        <span>(${list.length}팀)</span>
+      </div>
       <div class="teams-grid">
-        ${list.map(t=>`<div class="tcard${selectedTeams.has(t.id)?' tcard-sel':''}">
+        ${list.map(t=>{const isEns=t.type==='합주';return `<div class="tcard${selectedTeams.has(t.id)?' tcard-sel':''}">
           <div class="tcard-hdr">
             <input type="checkbox" class="team-chk" ${selectedTeams.has(t.id)?'checked':''} onchange="toggleTeamSelect(${t.id},this.checked)"/>
             <div class="tcard-dot" style="background:${teamClr(t)}"></div>
             <div class="tcard-name-static">${esc(t.name)}</div>
-            <div class="tcard-type">${esc(teamCategory(t,teamCategories))}</div>
+            <div class="tcard-type">${esc(t.type)}</div>
           </div>
-          ${!isEnsembleGroup?`<div class="tcard-row">
+          ${!isEns?`<div class="tcard-row">
             <input class="fi" style="padding:4px 7px;font-size:12px" value="${esc(t.name)}" id="tname-${t.id}" placeholder="팀명"/>
           </div>`:''}
           <div class="tcard-row">
             <input class="fi" style="padding:4px 7px;font-size:12px" value="${esc(t.info||'')}" id="tinfo-${t.id}"
-              placeholder="${g.k==='스쿨'?'선생님':isEnsembleGroup?'합주곡':'추가정보'}"/>
+              placeholder="${t.type==='스쿨'?'선생님':isEns?'합주곡':'추가정보'}"/>
           </div>
           ${t.members&&t.members.length?`<div style="display:flex;flex-direction:column;gap:4px;background:var(--surface2);border-radius:3px;padding:6px 8px">
             <div style="font-size:10px;font-weight:700;color:var(--text2)">참여자</div>
@@ -1245,11 +1256,36 @@ function renderTeams(){
             <button class="btn btn-d btn-xs" onclick="doDeleteTeam(${t.id})">삭제</button>
             <button class="btn btn-p btn-xs" onclick="saveTeamAll(${t.id})">저장</button>
           </div>
-        </div>`).join('')}
+        </div>`}).join('')}
       </div>
     </div>`;
   }).join('');
 }
+
+window.saveTeamKindName=async function(oldName,rawValue,input){
+  const newName=String(rawValue||'').trim();
+  if(!newName){input.value=oldName;toast('팀 종류 이름을 입력해주세요','err');return;}
+  if(normalizeTeamKind(newName)===normalizeTeamKind(oldName)){input.value=oldName;return;}
+  const duplicate=currentTeamKinds().find(kind=>normalizeTeamKind(kind)===normalizeTeamKind(newName));
+  if(duplicate){input.value=oldName;toast(`'${duplicate}' 팀 종류가 이미 존재합니다`,'err');return;}
+  input.disabled=true;
+  const previousCategories=teamCategories;
+  const previousDefaults=teamKindDefaults;
+  const renamed=renameTeamKind({teams,categories:teamCategories,defaults:teamKindDefaults,oldName,newName});
+  try{
+    await setTeamCategories(renamed.categories);
+    try{
+      await setTeamKindDefaults(renamed.defaults);
+    }catch(error){
+      await setTeamCategories(previousCategories).catch(()=>{});
+      throw error;
+    }
+    teamCategories=renamed.categories;
+    teamKindDefaults=renamed.defaults;
+    toast(`팀 종류를 '${newName}'(으)로 변경했습니다`,'ok');
+    renderTeams();renderSchedule();
+  }catch(e){input.disabled=false;input.value=oldName;toast(errMsg(e),'err');}
+};
 window.saveTeamAll=async function(id){
   const t0=teams.find(t=>t.id===id);
   const nameEl=document.getElementById('tname-'+id);
@@ -1321,10 +1357,17 @@ window.openAddTeamModal=function(){
   _nMIdx=0;
   const swatches=COLORS.map(c=>`<div class="swatch" id="sw-${c.replace('#','')}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
   showModal('팀 추가',
-    `<div><div class="fl">분류</div>
+    `<div><div class="fl">팀 분류</div>
        <select class="fs" id="nType" onchange="onTypeChange()">
          <option>합주</option><option>스쿨</option><option>이외</option>
        </select></div>
+     <div id="teamKindArea"><div class="fl">팀 종류</div>
+       <select class="fs" id="nTeamKind" onchange="onTeamKindChange()"></select>
+     </div>
+     <div id="directTeamKindArea" style="display:none">
+       <div class="fl">새 팀 종류 이름</div>
+       <input class="fi" id="nTeamKindDirect" placeholder="팀 종류 이름"/>
+     </div>
      <div id="ensNameArea">
        <div class="fl">팀 이름</div>
        <div style="font-size:13px;font-weight:700;padding:5px 0;color:var(--text)" id="ensAutoName">—</div>
@@ -1379,7 +1422,28 @@ window.onTypeChange=function(){
   document.getElementById('ensInfoArea').style.display=isEns?'block':'none';
   document.getElementById('colorArea').style.display=isEns?'none':'block';
   document.getElementById('grayNote').style.display=isEns?'block':'none';
+  const kindArea=document.getElementById('teamKindArea');
+  const kindSelect=document.getElementById('nTeamKind');
+  if(isEns){
+    const excluded=[teamKindDefaults['스쿨'],teamKindDefaults['이외']].map(normalizeTeamKind);
+    const kinds=[...new Set([teamKindDefaults['합주'],...currentTeamKinds()])]
+      .filter(kind=>kind&&!excluded.includes(normalizeTeamKind(kind)));
+    kindSelect.innerHTML=kinds.map(kind=>`<option value="${esc(kind)}">${esc(kind)}</option>`).join('')+'<option value="__direct__">직접 입력</option>';
+    kindSelect.disabled=false;
+    kindArea.classList.remove('is-disabled');
+  }else{
+    const kind=teamKindDefaults[t]||t;
+    kindSelect.innerHTML=`<option value="${esc(kind)}">${esc(kind)}</option>`;
+    kindSelect.disabled=true;
+    kindArea.classList.add('is-disabled');
+  }
+  onTeamKindChange();
   if(isEns) document.getElementById('ensAutoName').textContent=`${nextEnsTeamNum()}팀`;
+};
+window.onTeamKindChange=function(){
+  const direct=document.getElementById('nTeamKind')?.value==='__direct__';
+  const area=document.getElementById('directTeamKindArea');
+  if(area)area.style.display=direct?'block':'none';
 };
 window.pickColor=function(c){
   const inp=document.getElementById('nColor'); if(inp) inp.value=c;
@@ -1392,6 +1456,16 @@ window.addTeam=async function(){
   const info=isEns?(document.getElementById('nInfo')?.value.trim()||''):'';
   const color=isEns?GRAY:(document.getElementById('nColor')?.value||COLORS[0]);
   if(!name){toast('팀 이름을 입력해주세요','err');return;}
+  let kind=teamKindDefaults[type]||type;
+  if(isEns){
+    const selected=document.getElementById('nTeamKind')?.value||'';
+    kind=selected==='__direct__'?(document.getElementById('nTeamKindDirect')?.value.trim()||''):selected;
+    if(!kind){toast('팀 종류 이름을 입력해주세요','err');return;}
+    const reserved=[teamKindDefaults['스쿨'],teamKindDefaults['이외']].find(item=>normalizeTeamKind(item)===normalizeTeamKind(kind));
+    if(reserved){toast(`합주 팀 종류에는 '${reserved}'을(를) 사용할 수 없습니다`,'err');return;}
+    const existing=currentTeamKinds().find(item=>normalizeTeamKind(item)===normalizeTeamKind(kind));
+    if(existing)kind=existing;
+  }
   const members=[];
   document.querySelectorAll('#nMemberRows [id^="nm-"]').forEach(el=>{
     const i=el.id.replace('nm-','');
@@ -1403,7 +1477,18 @@ window.addTeam=async function(){
   });
   const btn=document.getElementById('nBtn'); btn.disabled=true;
   try{
-    const t=await createTeam({name,type,color,info,members}); teams.push(t); teams=korSort(teams,'name');
+    const previousCategories=teamCategories;
+    const nextCategories=setTeamKindForName(teamCategories,name,kind,teamKindDefaults[type]||type);
+    await setTeamCategories(nextCategories);
+    let t;
+    try{
+      t=await createTeam({name,type,color,info,members});
+    }catch(error){
+      await setTeamCategories(previousCategories).catch(()=>{});
+      throw error;
+    }
+    teamCategories=nextCategories;
+    teams.push(t);teams=korSort(teams,'name');
     toast(`${name} 팀이 추가되었습니다`,'ok'); closeModal(); renderTeams();
   }catch(e){toast(errMsg(e),'err');btn.disabled=false;}
 };
