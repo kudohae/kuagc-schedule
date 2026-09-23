@@ -6,6 +6,7 @@ import {
   formedTeamImportConflict,
   isFormedBandSong,
 } from '../js/admin/formedTeamImport.js';
+import { teamCategory } from '../js/utils/common.js';
 
 const song = {
   id: 10,
@@ -29,15 +30,17 @@ test('imports only allocated members and includes the song applicant', () => {
   ]);
 });
 
-test('builds tagged team names under the selected round category', () => {
-  const rows = buildFormedTeamRows({ songs: [song], members, categoryName: 'A 회차', tag: '정기공연', color: '#888888' });
+test('builds tagged team names with the compatible ensemble storage type', () => {
+  const rows = buildFormedTeamRows({ songs: [song], members, tag: '정기공연', color: '#888888' });
   assert.equal(rows[0].name, '정기공연 1팀');
-  assert.equal(rows[0].type, 'A 회차');
+  assert.equal(rows[0].type, '합주');
   assert.equal(rows[0].info, '테스트 곡');
 });
 
-test('blocks an existing category before any insert', () => {
-  const message = formedTeamImportConflict([{ name: '기존 팀', type: 'A 회차' }], 'A 회차', []);
+test('blocks an existing mapped category before any insert', () => {
+  const current = [{ name: '정기공연 1팀', type: '합주' }];
+  const categories = { 'A 회차': ['정기공연 1팀'] };
+  const message = formedTeamImportConflict(current, 'A 회차', [], categories);
   assert.match(message, /팀 분류가 이미 존재/);
 });
 
@@ -49,4 +52,10 @@ test('blocks a generated team name that already exists', () => {
   );
   assert.match(message, /팀이 이미 존재/);
   assert.match(message, /팀 태그를 바꿔/);
+});
+
+test('renders a mapped round category while preserving the stored ensemble type', () => {
+  const team = { name: '정기공연 1팀', type: '합주' };
+  assert.equal(teamCategory(team, { 'A 회차': ['정기공연 1팀'] }), 'A 회차');
+  assert.equal(team.type, '합주');
 });

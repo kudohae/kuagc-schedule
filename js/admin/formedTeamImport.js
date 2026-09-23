@@ -61,21 +61,24 @@ export function bandTeamMembers(song, allMembers) {
   return [...people.values()];
 }
 
-export function buildFormedTeamRows({ songs, members, categoryName, tag, color }) {
+export function buildFormedTeamRows({ songs, members, tag, color, storageType = '합주' }) {
   return songs.map((song, index) => ({
     name: `${tag} ${index + 1}팀`,
-    type: categoryName,
+    type: storageType,
     color,
     info: String(song.title || '').trim(),
     members: bandTeamMembers(song, members),
   }));
 }
 
-export function formedTeamImportConflict(currentTeams, categoryName, rows) {
-  if (currentTeams.some(team => normalizeTeamName(team.type) === normalizeTeamName(categoryName))) {
+export function formedTeamImportConflict(currentTeams, categoryName, rows, categories = {}) {
+  const currentNames = new Set(currentTeams.map(team => normalizeTeamName(team.name)));
+  const mappedNames = Object.entries(categories)
+    .find(([name]) => normalizeTeamName(name) === normalizeTeamName(categoryName))?.[1] || [];
+  const categoryHasTeams = Array.isArray(mappedNames) && mappedNames.some(name => currentNames.has(normalizeTeamName(name)));
+  if (categoryHasTeams || currentTeams.some(team => normalizeTeamName(team.type) === normalizeTeamName(categoryName))) {
     return `'${categoryName}' 팀 분류가 이미 존재합니다. 회차 이름을 바꾼 뒤 다시 시도해주세요.`;
   }
-  const existingNames = new Set(currentTeams.map(team => normalizeTeamName(team.name)));
-  const duplicate = rows.find(row => existingNames.has(normalizeTeamName(row.name)));
+  const duplicate = rows.find(row => currentNames.has(normalizeTeamName(row.name)));
   return duplicate ? `'${duplicate.name}' 팀이 이미 존재합니다. 팀 태그를 바꿔주세요.` : '';
 }

@@ -11,6 +11,12 @@ export const getWeekDates = off => {
 };
 
 export const teamClr = t => t.type==='합주'?GRAY:(t.color||GRAY);
+export const teamCategory = (team, categories = {}) => {
+  const name = String(team?.name || '').trim().toLocaleLowerCase('ko-KR');
+  const entry = Object.entries(categories).find(([, names]) => Array.isArray(names)
+    && names.some(item => String(item || '').trim().toLocaleLowerCase('ko-KR') === name));
+  return entry?.[0] || team?.type || '';
+};
 export const timeStr = h => h<24?h+':00':'0'+(h-24)+':00';
 
 export const errMsg = e => {

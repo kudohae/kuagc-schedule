@@ -62,6 +62,21 @@ export async function setConfig(key, value) {
   const { error } = await supabase.from('app_config').upsert({ key, value });
   if (error) throw error;
 }
+export async function fetchTeamCategories() {
+  const { data, error } = await supabase.from('app_config').select('value').eq('key', 'team_categories').maybeSingle();
+  if (error) throw error;
+  if (!data?.value) return {};
+  if (typeof data.value === 'object') return data.value;
+  try {
+    const parsed = JSON.parse(data.value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+export async function setTeamCategories(categories) {
+  await setConfig('team_categories', JSON.stringify(categories || {}));
+}
 
 // ─── TEAMS ───────────────────────────────────────────────────────────
 export async function fetchTeams() {
