@@ -1,4 +1,4 @@
-import { initRouter } from '../router.js?v=20260924-db-formation';
+import { initRouter } from '../router.js?v=20260924-applicant-member';
 import {
   getConfig, fetchTeams, fetchTeamCategories, fetchTeamKindDefaults, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,
