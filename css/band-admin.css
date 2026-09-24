@@ -2161,27 +2161,6 @@ body.band-admin-mode #view-dynamic {
   color: #425363;
 }
 
-.band-admin-formation-mode {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #66717b;
-  font-size: 10px;
-}
-
-.band-admin-formation-mode button {
-  min-height: 30px;
-  padding: 0 10px;
-  border: 1px solid #b8c7d4;
-  border-radius: 4px;
-  background: #fff;
-  color: #425363;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 800;
-}
-
 @media (max-width: 380px) {
   .band-admin-round .band-admin-round-head {
     grid-template-columns: minmax(0, 1fr);

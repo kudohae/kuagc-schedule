@@ -417,10 +417,7 @@ function refreshParticipantViews() {
 }
 
 function songFields(song = {}) {
-  const manualControl = song.id && song.formation_override && song.formation_override !== 'auto'
-    ? `<div class="band-admin-formation-mode is-wide"><span>현재 수동 ${song.formation_override === 'formed' ? '결성' : '미결성'} 상태입니다.</span><button type="button" data-resume-auto-formation>자동 판정으로 전환</button></div>`
-    : '';
-  return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${song.is_formed === true ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>필요 세션이 모두 차면 DB가 한 번 자동 결성합니다. 이 체크를 직접 바꾸면 이후에는 수동 상태를 유지합니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div>${manualControl}</div>`;
+  return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${song.is_formed === true ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>필요 세션이 모두 차면 DB가 한 번 자동 결성합니다. 이 체크를 직접 바꾸면 이후에는 수동 상태를 유지합니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div></div>`;
 }
 
 function formationWarning(song) {
@@ -460,7 +457,6 @@ function renderEditor(editor = host.querySelector('[data-editor]')) {
     if (input.name === 'is_formed') songForm.dataset.formationChanged = 'true';
     saveSongForm(songForm, song);
   }));
-  songForm.querySelector('[data-resume-auto-formation]')?.addEventListener('click', () => resumeAutomaticFormation(song));
   editor.querySelector('[data-delete-song]').addEventListener('click', () => deleteSong(song));
   editor.querySelector('[data-add-member]').addEventListener('click', () => openMemberModal(song));
   editor.querySelectorAll('[data-toggle-member]').forEach(button => button.addEventListener('click', () => toggleMember(members.find(item => item.id === Number(button.dataset.toggleMember)), button.dataset.role)));
@@ -917,14 +913,6 @@ async function saveSongForm(form, song) {
     form.dataset.dirty = 'true';
     await saveSongForm(form, song);
   }
-}
-
-async function resumeAutomaticFormation(song) {
-  const { error } = await supabase.from('band_songs').update({ formation_override: 'auto', is_formed: false, auto_formed_at: null }).eq('id', song.id);
-  if (error) { showMessage(error.message, 'error'); return; }
-  await announceRealtimeChange('song_formation_auto', song.id);
-  await loadRoundData();
-  showMessage('자동 결성 판정으로 전환했습니다.', 'success');
 }
 
 async function deleteSong(song) {
