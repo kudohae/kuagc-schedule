@@ -11,13 +11,6 @@ const isMetadataRole = value => FIXED_PATTERN.test(String(value || '').trim())
   || APPLICANT_PATTERN.test(String(value || '').trim());
 const visibleWantedRoles = song => (song?.wanted_roles || []).filter(role => !isMetadataRole(role));
 const isFixedSong = song => (song?.wanted_roles || []).some(role => FIXED_PATTERN.test(String(role || '').trim()));
-const applicantRole = song => {
-  const match = (song?.wanted_roles || [])
-    .map(role => String(role || '').trim().match(APPLICANT_PATTERN))
-    .find(Boolean);
-  return normalizeBandRole(match?.[1] || '');
-};
-
 export const normalizeTeamName = value => String(value || '').trim().toLocaleLowerCase('ko-KR');
 
 function allocationFor(song, allMembers) {
@@ -25,7 +18,6 @@ function allocationFor(song, allMembers) {
     song,
     allMembers.filter(member => member.song_id === song.id),
     visibleWantedRoles,
-    applicantRole,
   );
 }
 
@@ -50,8 +42,6 @@ export function bandTeamMembers(song, allMembers) {
     people.set(key, person);
   };
 
-  const ownerRole = applicantRole(song);
-  addPerson(song.applicant_name, song.student_id, ownerRole ? [ownerRole] : []);
   rows.forEach(member => {
     const roles = isFixedSong(song)
       ? (member.roles || []).map(normalizeBandRole).filter(Boolean)

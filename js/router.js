@@ -7,7 +7,7 @@ const VIEW_CSS = {
   ensemble:   'css/ensemble.css',
   band:       'css/band.css',
 };
-const VIEW_VERSION = { band: '20260924-db-formation' };
+const VIEW_VERSION = { band: '20260924-applicant-member' };
 
 let _currentView = null;
 let _currentDestroy = null;

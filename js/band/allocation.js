@@ -51,7 +51,7 @@ function byCreated(a, b) {
     || String(a?.id || '').localeCompare(String(b?.id || ''));
 }
 
-export function calculateSongAllocation(song, rows, visibleWantedRoles, getApplicantRole) {
+export function calculateSongAllocation(song, rows, visibleWantedRoles) {
   const requirements = new Map();
   for (const rawRole of visibleWantedRoles(song)) {
     const role = normalizeBandRole(rawRole);
@@ -60,7 +60,6 @@ export function calculateSongAllocation(song, rows, visibleWantedRoles, getAppli
 
   const statuses = new Map();
   const filledByRole = new Map();
-  const applicantRole = normalizeBandRole(getApplicantRole(song));
   for (const [role, capacity] of requirements) {
     const candidates = rows
       .filter(member => (member.roles || []).map(normalizeBandRole).includes(role))
@@ -78,13 +77,12 @@ export function calculateSongAllocation(song, rows, visibleWantedRoles, getAppli
       else automatic.push(member);
     }
 
-    const applicantUsesSlot = applicantRole === role ? 1 : 0;
-    const remaining = Math.max(0, capacity - applicantUsesSlot - forced.length);
+    const remaining = Math.max(0, capacity - forced.length);
     const selectedAutomatic = new Set(automatic.slice(0, remaining).map(member => String(member.id)));
     forced.forEach(member => statuses.set(allocationKey(member, role), true));
     automatic.forEach(member => statuses.set(allocationKey(member, role), selectedAutomatic.has(String(member.id))));
     extras.forEach(member => statuses.set(allocationKey(member, role), true));
-    filledByRole.set(role, applicantUsesSlot + forced.length + selectedAutomatic.size + extras.length);
+    filledByRole.set(role, forced.length + selectedAutomatic.size + extras.length);
   }
 
   const isComplete = requirements.size > 0

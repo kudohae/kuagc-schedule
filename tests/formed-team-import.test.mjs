@@ -18,6 +18,7 @@ const song = {
   created_at: '2026-09-20T01:00:00.000Z',
 };
 const members = [
+  { id: 0, song_id: 10, applicant_name: '신청자', student_id: '202600001', roles: ['보컬'], is_included: true, is_song_applicant: true, created_at: '2026-09-20T01:00:00.000Z' },
   { id: 1, song_id: 10, applicant_name: '선착순', student_id: '202600002', roles: ['기타'], is_included: true, created_at: '2026-09-20T01:01:00.000Z' },
   { id: 2, song_id: 10, applicant_name: '후순위', student_id: '202600003', roles: ['기타'], is_included: true, created_at: '2026-09-20T01:02:00.000Z' },
 ];

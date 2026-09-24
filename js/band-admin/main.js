@@ -70,13 +70,7 @@ function songRoleOptions(song) {
 }
 
 function songMembers(song) {
-  const rows = members.filter(member => member.song_id === song.id);
-  const applicantRole = getApplicantRole(song);
-  const studentId = String(song.student_id || '').trim();
-  if (applicantRole && !rows.some(member => String(member.student_id || '').trim() === studentId)) {
-    rows.push({ id: `applicant-${song.id}`, song_id: song.id, applicant_name: song.applicant_name, student_id: song.student_id, roles: [applicantRole], created_at: song.created_at, is_included: true, is_song_applicant: true });
-  }
-  return rows.sort(byCreated);
+  return members.filter(member => member.song_id === song.id).sort(byCreated);
 }
 
 function groupMembersByRole(rows) {
@@ -101,12 +95,10 @@ function songAllocation(song) {
     song,
     members.filter(member => member.song_id === song.id),
     visibleWantedRoles,
-    getApplicantRole,
   );
 }
 
 function effectiveRolesForMember(song, member) {
-  if (member.is_song_applicant) return (member.roles || []).map(normalizeRole).filter(Boolean);
   return includedRoles(songAllocation(song), member);
 }
 
@@ -445,7 +437,7 @@ function memberFields(member = {}) {
 
 function renderMemberRow(song, member, role) {
   const roles = [...new Set((member.roles || []).map(normalizeRole).filter(Boolean))];
-  const included = member.is_song_applicant || isMemberRoleIncluded(songAllocation(song), member, role);
+  const included = isMemberRoleIncluded(songAllocation(song), member, role);
   return `<article class="${included ? '' : 'is-excluded'}${member.is_song_applicant ? ' is-song-applicant' : ''}">${member.is_song_applicant ? '<span class="band-admin-inclusion is-applicant">신청자</span>' : `<button class="band-admin-inclusion ${included ? 'is-on' : 'is-off'}" type="button" data-toggle-member="${member.id}" data-role="${esc(role)}" aria-label="${esc(member.applicant_name)} ${esc(role)} 포함 상태 변경">${included ? 'ON' : 'OFF'}</button>`}<div class="band-admin-member-info"><span class="band-admin-member-identity"><b>${esc(member.applicant_name)}</b><small>${esc(member.student_id)}</small><em>${assignedSongCount(member)}곡</em></span>${formatMemberTimestamp(member.created_at)}</div><p>${roles.map(item => `<span>${esc(item)}</span>`).join('') || '<span>세션 미지정</span>'}</p>${member.is_song_applicant ? '<div class="band-admin-member-actions"><span>곡 신청자</span></div>' : `<div class="band-admin-member-actions"><button type="button" data-edit-member="${member.id}">수정</button><button class="band-admin-move" type="button" data-move-member="${member.id}">이동</button>${included ? `<button class="band-admin-replace" type="button" data-replace-member="${member.id}" data-role="${esc(role)}">대체</button>` : ''}<button class="is-danger" type="button" data-delete-member="${member.id}">삭제</button></div>`}</article>`;
 }
 
