@@ -407,6 +407,25 @@ function setParticipantExpanded(article, expanded) {
   article.querySelector('.band-admin-participant-drawer')?.setAttribute('aria-hidden', String(!expanded));
 }
 
+function refreshParticipantViews() {
+  const trigger = host.querySelector('[data-show-participants] span');
+  if (trigger) trigger.textContent = `${participantRows().length}명`;
+  const targets = [host.querySelector('[data-participants]'), host.querySelector('[data-participants-modal]')].filter(Boolean);
+  for (const target of targets) {
+    const expandedKeys = [...target.querySelectorAll('[data-participant-key].is-expanded')].map(article => article.dataset.participantKey);
+    const targetScrollTop = target.scrollTop;
+    const listScrollTop = target.querySelector('.band-admin-participant-list')?.scrollTop || 0;
+    renderParticipants(target);
+    for (const key of expandedKeys) {
+      const article = [...target.querySelectorAll('[data-participant-key]')].find(item => item.dataset.participantKey === key);
+      setParticipantExpanded(article, true);
+    }
+    target.scrollTop = targetScrollTop;
+    const list = target.querySelector('.band-admin-participant-list');
+    if (list) list.scrollTop = listScrollTop;
+  }
+}
+
 function songFields(song = {}) {
   return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${isEffectivelyFormed(song) ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>필요 세션이 모두 차는 순간 한 번 자동 결성되며, 이후에는 수동으로 조정합니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div></div>`;
 }
@@ -870,6 +889,7 @@ async function saveSongForm(form, song) {
   if (!form || !song || form.dataset.dirty !== 'true') return;
   if (form.dataset.saving === 'true') { form.dataset.pendingSave = 'true'; return; }
   form.dataset.saving = 'true';
+  const wasFormed = isEffectivelyFormed(song);
   const payload = songPayload(new FormData(form), round.id);
   const { error } = await supabase.from('band_songs').update(payload).eq('id', song.id);
   form.dataset.saving = 'false';
@@ -882,8 +902,9 @@ async function saveSongForm(form, song) {
     return;
   }
   form.dataset.dirty = 'false';
-  await announceRealtimeChange('song_updated', song.id);
   updateSongListItem(song);
+  if (wasFormed !== isEffectivelyFormed(song)) refreshParticipantViews();
+  await announceRealtimeChange('song_updated', song.id);
   const header = form.closest('[data-editor], [data-mobile-editor]')?.querySelector(':scope > header h2');
   if (header) header.textContent = song.title;
   const addMember = form.closest('[data-editor], [data-mobile-editor]')?.querySelector('[data-add-member]');
