@@ -2132,8 +2132,8 @@ body.band-admin-mode #view-dynamic {
     min-height: 30px;
   }
 
-  .band-admin-card,
-  .band-admin-members {
+.band-admin-card,
+.band-admin-members {
     margin: 12px;
   }
 
@@ -2141,6 +2141,45 @@ body.band-admin-mode #view-dynamic {
     width: calc(100% - 24px);
     max-width: calc(100% - 24px);
   }
+}
+
+.band-admin-formation-warning {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #e2b665;
+  border-radius: 5px;
+  background: #fff7e8;
+  color: #7a4b00;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.band-admin-formation-warning.is-manual {
+  border-color: #b8c7d4;
+  background: #f2f6f9;
+  color: #425363;
+}
+
+.band-admin-formation-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #66717b;
+  font-size: 10px;
+}
+
+.band-admin-formation-mode button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #b8c7d4;
+  border-radius: 4px;
+  background: #fff;
+  color: #425363;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
 }
 
 @media (max-width: 380px) {

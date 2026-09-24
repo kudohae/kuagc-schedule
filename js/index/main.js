@@ -1,4 +1,4 @@
-import { initRouter } from '../router.js?v=20260924-formation-edge';
+import { initRouter } from '../router.js?v=20260924-db-formation';
 import {
   getConfig, fetchTeams, fetchTeamCategories, fetchTeamKindDefaults, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,

@@ -7,7 +7,6 @@ import {
   isMemberRoleIncluded,
   memberNoteWithDirective,
   normalizeBandRole,
-  shouldAutoFormSong,
 } from '../band/allocation.js';
 
 let host = null;
@@ -26,7 +25,6 @@ let realtimeStatus = 'idle';
 let realtimeEventCount = 0;
 let pendingRealtimeSignals = [];
 let embedded = false;
-let allocationCompletionBySong = new Map();
 const ADMIN_EMAIL = 'kuagcku@gmail.com';
 const REALTIME_TOPIC = 'band-sync-v1';
 const REALTIME_EVENT = 'band_changed';
@@ -427,7 +425,18 @@ function refreshParticipantViews() {
 }
 
 function songFields(song = {}) {
-  return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${isEffectivelyFormed(song) ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>필요 세션이 모두 차는 순간 한 번 자동 결성되며, 이후에는 수동으로 조정합니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div></div>`;
+  const manualControl = song.id && song.formation_override && song.formation_override !== 'auto'
+    ? `<div class="band-admin-formation-mode is-wide"><span>현재 수동 ${song.formation_override === 'formed' ? '결성' : '미결성'} 상태입니다.</span><button type="button" data-resume-auto-formation>자동 판정으로 전환</button></div>`
+    : '';
+  return `<div class="band-admin-grid"><label><span>곡 제목</span><input name="title" required value="${esc(song.title || '')}"></label><label><span>가수</span><input name="artist" required value="${esc(song.artist || '')}"></label><label><span>곡 신청자</span><input name="applicant_name" required value="${esc(song.applicant_name || '')}"></label><label><span>학번</span><input name="student_id" required value="${esc(song.student_id || '')}"></label><label class="is-wide"><span>필요 세션</span><input name="wanted_roles" value="${esc(wantedRolesText(song.wanted_roles))}" placeholder="보컬, 기타2, 베이스, 드럼"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><input type="hidden" name="applicant_role" value="${esc(getApplicantRole(song))}"><label class="is-wide"><span>메모</span><textarea name="note" rows="3">${esc(song.note || '')}</textarea></label><div class="band-admin-team-flags is-wide"><label class="band-admin-formed"><input name="is_formed" type="checkbox" ${song.is_formed === true ? 'checked' : ''}><span><b>결성 팀으로 표시</b><small>필요 세션이 모두 차면 DB가 한 번 자동 결성합니다. 이 체크를 직접 바꾸면 이후에는 수동 상태를 유지합니다.</small></span></label><label class="band-admin-formed"><input name="is_fixed" type="checkbox" ${isFixedSong(song) ? 'checked' : ''}><span><b>고정 팀</b><small>이 팀을 고정하고 세션 신청을 받지 않습니다.</small></span></label></div>${manualControl}</div>`;
+}
+
+function formationWarning(song) {
+  const complete = songAllocation(song).isComplete;
+  if (song.is_formed && !complete && !isFixedSong(song)) return '<div class="band-admin-formation-warning">결성 상태지만 현재 필요한 세션에 빈자리가 있습니다. 구성을 확인한 뒤 필요하면 수동으로 미결성 처리하세요.</div>';
+  if (!song.is_formed && complete && song.formation_override === 'unformed') return '<div class="band-admin-formation-warning is-manual">필요 세션은 모두 찼지만 관리자가 수동 미결성 상태로 유지하고 있습니다.</div>';
+  if (!song.is_formed && complete && song.formation_override !== 'unformed') return '<div class="band-admin-formation-warning">필요 세션은 모두 찼지만 자동 결성이 반영되지 않았습니다. DB 결성 트리거를 확인하세요.</div>';
+  return '';
 }
 
 function memberFields(member = {}) {
@@ -448,7 +457,7 @@ function renderEditor(editor = host.querySelector('[data-editor]')) {
   const includedCount = effectiveSongMemberCount(song);
   const memberGroups = groupMembersByRole(rows);
   editor.innerHTML = `<header><div><span>SONG #${song.id}</span><h2>${esc(song.title)}</h2></div><button class="is-danger" type="button" data-delete-song>곡 삭제</button></header>
-    <form class="band-admin-card" data-song-form data-song-id="${song.id}">${songFields(song)}</form>
+    <form class="band-admin-card" data-song-form data-song-id="${song.id}">${formationWarning(song)}${songFields(song)}</form>
     <section class="band-admin-members"><header><div><h3>세션 신청</h3><span>${includedCount}명 포함 · ${rows.length}건 · 세션별 신청 시각순</span></div><button type="button" data-add-member ${isFixedSong(song) ? 'disabled' : ''}>+ 세션 추가</button></header><div>${rows.length ? memberGroups.map(group => `<section class="band-admin-member-group"><header><h4>${esc(group.role)}</h4><span>${group.members.length}명</span></header>${group.members.map(member => renderMemberRow(song, member, group.role)).join('')}</section>`).join('') : '<div class="band-admin-empty">세션 신청이 없습니다.</div>'}</div></section>`;
   const songForm = editor.querySelector('[data-song-form]');
   songForm.addEventListener('submit', event => event.preventDefault());
@@ -456,8 +465,10 @@ function renderEditor(editor = host.querySelector('[data-editor]')) {
   songForm.querySelectorAll('input:not([type="checkbox"]), textarea').forEach(input => input.addEventListener('blur', () => saveSongForm(songForm, song)));
   songForm.querySelectorAll('input[type="checkbox"]').forEach(input => input.addEventListener('change', () => {
     songForm.dataset.dirty = 'true';
+    if (input.name === 'is_formed') songForm.dataset.formationChanged = 'true';
     saveSongForm(songForm, song);
   }));
+  songForm.querySelector('[data-resume-auto-formation]')?.addEventListener('click', () => resumeAutomaticFormation(song));
   editor.querySelector('[data-delete-song]').addEventListener('click', () => deleteSong(song));
   editor.querySelector('[data-add-member]').addEventListener('click', () => openMemberModal(song));
   editor.querySelectorAll('[data-toggle-member]').forEach(button => button.addEventListener('click', () => toggleMember(members.find(item => item.id === Number(button.dataset.toggleMember)), button.dataset.role)));
@@ -859,12 +870,17 @@ function openMoveMemberModal(member) {
   renderRoles();
 }
 
-function songPayload(data, roundId) {
+function songPayload(data, roundId, formationMode = 'create') {
   const wantedRoles = parseWantedRoles(data.get('wanted_roles'));
   const applicantRole = String(data.get('applicant_role') || '').trim();
   if (data.get('is_fixed') === 'on') wantedRoles.push(FIXED_ROLE_MARKER);
   if (applicantRole) wantedRoles.push(`${APPLICANT_ROLE_PREFIX}${applicantRole}`);
-  return { round_id: roundId, title: String(data.get('title')).trim(), artist: String(data.get('artist')).trim(), applicant_name: String(data.get('applicant_name')).trim(), student_id: String(data.get('student_id')).trim(), wanted_roles: wantedRoles, note: String(data.get('note')).trim(), is_formed: data.get('is_formed') === 'on' };
+  const payload = { round_id: roundId, title: String(data.get('title')).trim(), artist: String(data.get('artist')).trim(), applicant_name: String(data.get('applicant_name')).trim(), student_id: String(data.get('student_id')).trim(), wanted_roles: wantedRoles, note: String(data.get('note')).trim() };
+  if (formationMode !== 'preserve') {
+    payload.is_formed = data.get('is_formed') === 'on';
+    payload.formation_override = formationMode === 'manual' ? (payload.is_formed ? 'formed' : 'unformed') : (payload.is_formed ? 'formed' : 'auto');
+  }
+  return payload;
 }
 
 async function toggleMember(member, role) {
@@ -874,7 +890,6 @@ async function toggleMember(member, role) {
   const next = !isMemberRoleIncluded(songAllocation(song), member, role);
   try {
     await updateMemberRoleDirective(member, role, next ? 'force_on' : 'force_off');
-    await persistAutomaticallyFormedSongs();
   } catch (error) { showMessage(error.message, 'error'); return; }
   await announceRealtimeChange('member_toggled', member.id);
   renderSongList();
@@ -890,18 +905,13 @@ async function saveSongForm(form, song) {
   if (form.dataset.saving === 'true') { form.dataset.pendingSave = 'true'; return; }
   form.dataset.saving = 'true';
   const wasFormed = isEffectivelyFormed(song);
-  const payload = songPayload(new FormData(form), round.id);
+  const payload = songPayload(new FormData(form), round.id, form.dataset.formationChanged === 'true' ? 'manual' : 'preserve');
   const { error } = await supabase.from('band_songs').update(payload).eq('id', song.id);
   form.dataset.saving = 'false';
   if (error) { showMessage(error.message, 'error'); return; }
   Object.assign(song, payload);
-  try {
-    await persistAutomaticallyFormedSongs();
-  } catch (error) {
-    showMessage(error.message, 'error');
-    return;
-  }
   form.dataset.dirty = 'false';
+  form.dataset.formationChanged = 'false';
   updateSongListItem(song);
   if (wasFormed !== isEffectivelyFormed(song)) refreshParticipantViews();
   await announceRealtimeChange('song_updated', song.id);
@@ -915,6 +925,14 @@ async function saveSongForm(form, song) {
     form.dataset.dirty = 'true';
     await saveSongForm(form, song);
   }
+}
+
+async function resumeAutomaticFormation(song) {
+  const { error } = await supabase.from('band_songs').update({ formation_override: 'auto', is_formed: false, auto_formed_at: null }).eq('id', song.id);
+  if (error) { showMessage(error.message, 'error'); return; }
+  await announceRealtimeChange('song_formation_auto', song.id);
+  await loadRoundData();
+  showMessage('자동 결성 판정으로 전환했습니다.', 'success');
 }
 
 async function deleteSong(song) {
@@ -936,20 +954,6 @@ async function deleteMember(member) {
   showMessage('세션 신청을 삭제했습니다.', 'success');
 }
 
-async function persistAutomaticallyFormedSongs() {
-  const currentCompletion = new Map(songs.map(song => [song.id, songAllocation(song).isComplete]));
-  const completedIds = songs
-    .filter(song => allocationCompletionBySong.has(song.id)
-      && shouldAutoFormSong(allocationCompletionBySong.get(song.id), currentCompletion.get(song.id), song.is_formed, isFixedSong(song)))
-    .map(song => song.id);
-  if (completedIds.length) {
-    const { error } = await supabase.from('band_songs').update({ is_formed: true }).in('id', completedIds);
-    if (error) throw error;
-    songs.filter(song => completedIds.includes(song.id)).forEach(song => { song.is_formed = true; });
-  }
-  allocationCompletionBySong = currentCompletion;
-}
-
 async function fetchRoundData() {
   if (!round) { songs = []; members = []; return; }
   const { data: songRows, error: songError } = await supabase.from('band_songs').select('*').eq('round_id', round.id).order('created_at').order('id');
@@ -962,7 +966,6 @@ async function fetchRoundData() {
     if (error) throw error;
     members = data || [];
   }
-  await persistAutomaticallyFormedSongs();
   if (!songs.some(song => song.id === selectedSongId)) selectedSongId = songs[0]?.id || null;
 }
 
@@ -1182,7 +1185,6 @@ export async function init(container, options = {}) {
   realtimeStatus = 'idle';
   realtimeEventCount = 0;
   pendingRealtimeSignals = [];
-  allocationCompletionBySong = new Map();
   if (!embedded) document.body.classList.add('band-admin-mode');
   host.classList.toggle('is-band-admin-embedded', embedded);
   const { data, error } = await supabase.auth.getUser();
@@ -1206,7 +1208,6 @@ export async function init(container, options = {}) {
     if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
     pendingRealtimeSignals = [];
-    allocationCompletionBySong = new Map();
     if (!embedded) document.body.classList.remove('band-admin-mode');
     host?.classList.remove('is-band-admin-embedded');
     if (host) host.innerHTML = '';
