@@ -374,7 +374,7 @@ function openSongForm() {
   openForm({
     title: '곡 신청',
     submitLabel: '곡 등록',
-    fields: `${commonApplicantFields()}<label><span>곡 제목</span><input name="title" required maxlength="200"></label><label><span>가수</span><input name="artist" required maxlength="200"></label><label class="band-field-wide"><span>필요 세션</span><input name="roles" placeholder="보컬, 기타2, 베이스, 드럼" autocomplete="off"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><fieldset class="band-applicant-role band-field-wide"><legend>신청자가 맡을 세션</legend><input type="hidden" name="applicant_role"><div data-applicant-role-options><span>필요 세션을 먼저 입력하세요.</span></div><small>곡 신청자 본인이 맡을 세션을 선택하세요.</small></fieldset><label class="band-field-wide"><span>메모</span><textarea name="note" rows="3" maxlength="1000"></textarea></label>`,
+    fields: `${commonApplicantFields()}<label><span>곡 제목</span><input name="title" required maxlength="200"></label><label><span>가수</span><input name="artist" required maxlength="200"></label><label class="band-field-wide"><span>필요 세션</span><input name="roles" placeholder="보컬, 기타2, 베이스, 드럼" autocomplete="off"><small>1명이면 세션 이름만, 여러 명이면 이름 뒤에 필요한 인원수를 적으세요. 예: 기타2</small></label><fieldset class="band-applicant-role band-field-wide"><legend>신청자가 맡을 세션</legend><input type="hidden" name="applicant_role"><div data-applicant-role-options><span>필요 세션을 먼저 입력하세요.</span></div><small>곡 신청자 본인이 맡을 세션을 선택하세요.</small></fieldset><label class="band-field-wide"><span>메모(선택)</span><textarea name="note" rows="3" maxlength="1000"></textarea></label>`,
     onReady: form => {
       const rolesInput = form.elements.roles;
       const roleInput = form.elements.applicant_role;
