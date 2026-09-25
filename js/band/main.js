@@ -6,7 +6,6 @@ import {
   includedRoles,
   isMemberRoleIncluded,
   normalizeBandRole,
-  shouldAutoFormSong,
 } from './allocation.js';
 
 let host = null;
@@ -26,7 +25,6 @@ let realtimeReplacing = false;
 let realtimeStatus = 'idle';
 let realtimeEventCount = 0;
 let pendingRealtimeSignals = [];
-let allocationCompletionBySong = new Map();
 
 const REALTIME_TOPIC = 'band-sync-v1';
 const REALTIME_EVENT = 'band_changed';
@@ -78,13 +76,8 @@ function getRequirements(song) {
 }
 
 function getMembers(song) {
-  const members = [...(membersBySong.get(song.id) || [])];
-  const applicantRole = getApplicantRole(song);
-  const studentId = String(song.student_id || '').trim();
-  if (applicantRole && !members.some(member => String(member.student_id || '').trim() === studentId)) {
-    members.push({ id: `applicant-${song.id}`, song_id: song.id, applicant_name: song.applicant_name, student_id: song.student_id, roles: [applicantRole], created_at: song.created_at, is_included: true, is_song_applicant: true });
-  }
-  return members.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id)));
+  return [...(membersBySong.get(song.id) || [])]
+    .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id)));
 }
 
 function groupMembersByRole(members) {
@@ -100,11 +93,10 @@ function groupMembersByRole(members) {
 }
 
 function songAllocation(song) {
-  return calculateSongAllocation(song, membersBySong.get(song.id) || [], visibleWantedRoles, getApplicantRole);
+  return calculateSongAllocation(song, membersBySong.get(song.id) || [], visibleWantedRoles);
 }
 
 function effectiveRolesForMember(song, member) {
-  if (member.is_song_applicant) return (member.roles || []).map(normalizeRole).filter(Boolean);
   return includedRoles(songAllocation(song), member);
 }
 
@@ -114,20 +106,6 @@ function getIncludedMembers(song) {
 
 function isEffectivelyFormed(song) {
   return isFixedSong(song) || song.is_formed === true;
-}
-
-async function persistAutomaticallyFormedSongs() {
-  const currentCompletion = new Map(songs.map(song => [song.id, songAllocation(song).isComplete]));
-  const completedIds = songs
-    .filter(song => allocationCompletionBySong.has(song.id)
-      && shouldAutoFormSong(allocationCompletionBySong.get(song.id), currentCompletion.get(song.id), song.is_formed, isFixedSong(song)))
-    .map(song => song.id);
-  if (completedIds.length) {
-    const { error } = await supabase.from('band_songs').update({ is_formed: true }).in('id', completedIds);
-    if (error) completedIds.forEach(id => currentCompletion.set(id, allocationCompletionBySong.get(id)));
-    else songs.filter(song => completedIds.includes(song.id)).forEach(song => { song.is_formed = true; });
-  }
-  allocationCompletionBySong = currentCompletion;
 }
 
 function includedPersonCount(song) {
@@ -210,7 +188,7 @@ function renderList() {
 
 function renderMember(song, member, role) {
   const suffix = String(member.student_id || '').slice(-3);
-  const excluded = !member.is_song_applicant && !isMemberRoleIncluded(songAllocation(song), member, role);
+  const excluded = !isMemberRoleIncluded(songAllocation(song), member, role);
   return `<li class="band-member${excluded ? ' is-excluded' : ''}">
     <span class="band-avatar" aria-hidden="true">${esc(String(member.applicant_name || '?').slice(0, 1))}</span>
     <span class="band-member-name"><b>${esc(member.applicant_name)}</b>${suffix ? `<small>${esc(suffix)}</small>` : ''}${member.is_song_applicant ? '<em>곡 신청자</em>' : ''}${excluded ? '<em>비포함</em>' : ''}</span>
@@ -511,7 +489,6 @@ async function fetchBandData() {
     if (!membersBySong.has(member.song_id)) membersBySong.set(member.song_id, []);
     membersBySong.get(member.song_id).push(member);
   }
-  await persistAutomaticallyFormedSongs();
 }
 
 function captureRealtimeState() {
@@ -678,7 +655,6 @@ export async function init(container) {
   round = null;
   songs = [];
   membersBySong = new Map();
-  allocationCompletionBySong = new Map();
   selectedSongId = null;
   searchQuery = '';
   statusFilter = 'all';
@@ -700,7 +676,6 @@ export async function init(container) {
     if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
     pendingRealtimeSignals = [];
-    allocationCompletionBySong = new Map();
     document.body.classList.remove('band-mode');
     if (host) host.innerHTML = '';
     host = null;

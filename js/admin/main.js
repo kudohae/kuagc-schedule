@@ -837,7 +837,7 @@ async function mountBandAdmin(){
   target.innerHTML='<div class="band-admin-tab-loading">합주 신청 관리를 불러오는 중...</div>';
   _bandAdminMountPromise=(async()=>{
     try{
-      const module=await import('../band-admin/main.js?v=20260924-participant-refresh');
+      const module=await import('../band-admin/main.js?v=20260924-manual-lock');
       _bandAdminDestroy=await module.init(target,{embedded:true})||null;
       return _bandAdminDestroy;
     }catch(error){
