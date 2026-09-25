@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { availableTeamCategories, teamsInCategory } from '../js/timeassign/teamSelection.js';
+import { availableTeamCategories, teamByNumberInCategory, teamsInCategory } from '../js/timeassign/teamSelection.js';
 
 const defaults = { 합주: '합주', 스쿨: '스쿨', 이외: '이외' };
 const teams = [
@@ -25,4 +25,11 @@ test('filters identical team numbers by selected category and keeps team ids dis
 
 test('returns no team options before a category is selected', () => {
   assert.deepEqual(teamsInCategory(teams, categories, defaults, ''), []);
+});
+
+test('finds a numbered team only inside the selected category', () => {
+  assert.equal(teamByNumberInCategory(teams, categories, defaults, '정기공연', '1')?.id, 1);
+  assert.equal(teamByNumberInCategory(teams, categories, defaults, '버스킹', '1')?.id, 2);
+  assert.equal(teamByNumberInCategory(teams, categories, defaults, '정기공연', '7'), null);
+  assert.equal(teamByNumberInCategory(teams, categories, defaults, '', '1'), null);
 });
