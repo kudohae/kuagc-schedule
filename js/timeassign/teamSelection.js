@@ -16,3 +16,11 @@ export function teamsInCategory(teams, categories, defaults, category) {
     .filter(team => normalizeTeamKind(teamCategory(team, categories, defaults)) === normalizeTeamKind(category))
     .sort((a, b) => a.name.localeCompare(b.name, 'ko-KR', { numeric: true }));
 }
+
+export function teamByNumberInCategory(teams, categories, defaults, category, number) {
+  const normalizedNumber = String(number || '').trim();
+  if (!normalizedNumber) return null;
+  const expectedName = `${normalizedNumber}팀`.replace(/\s/g, '');
+  return teamsInCategory(teams, categories, defaults, category)
+    .find(team => String(team.name || '').replace(/\s/g, '') === expectedName) || null;
+}
