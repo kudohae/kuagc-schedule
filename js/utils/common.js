@@ -12,12 +12,65 @@ export const getWeekDates = off => {
 
 export const teamClr = t => t.type==='합주'?GRAY:(t.color||GRAY);
 export const normalizeTeamKind = value => String(value || '').trim().toLocaleLowerCase('ko-KR');
+export const teamCategoryToken = teamId => `id:${teamId}`;
+const isTeamIdToken = value => /^id:\d+$/.test(String(value || '').trim());
+const categoryHasTeamId = (members, team) => team?.id != null
+  && members.some(item => String(item || '').trim() === teamCategoryToken(team.id));
+const categoryHasLegacyName = (members, team) => members.some(item => !isTeamIdToken(item)
+  && normalizeTeamKind(item) === normalizeTeamKind(team?.name));
 export const teamCategory = (team, categories = {}, defaults = {}) => {
-  const name = normalizeTeamKind(team?.name);
-  const entry = Object.entries(categories).find(([, names]) => Array.isArray(names)
-    && names.some(item => normalizeTeamKind(item) === name));
+  const entries = Object.entries(categories).filter(([, members]) => Array.isArray(members));
+  const entry = entries.find(([, members]) => categoryHasTeamId(members, team))
+    || entries.find(([, members]) => categoryHasLegacyName(members, team));
   return entry?.[0] || defaults?.[team?.type] || team?.type || '';
 };
+
+export function setTeamCategoryForTeam(categories, team, categoryName, fallbackCategory = '') {
+  const token = teamCategoryToken(team.id);
+  const next = {};
+  for (const [category, members] of Object.entries(categories || {})) {
+    const filtered = Array.isArray(members)
+      ? members.filter(item => String(item || '').trim() !== token)
+      : [];
+    if (filtered.length) next[category] = filtered;
+  }
+  if (normalizeTeamKind(categoryName) !== normalizeTeamKind(fallbackCategory) || team?.type === '합주') {
+    const existingKey = Object.keys(next).find(category => normalizeTeamKind(category) === normalizeTeamKind(categoryName));
+    const key = existingKey || categoryName;
+    next[key] = [...new Set([...(next[key] || []), token])];
+  }
+  return next;
+}
+
+export function removeTeamsFromCategories(categories, teamsOrIds) {
+  const teams = (teamsOrIds || []).map(item => typeof item === 'object' ? item : { id: item });
+  const tokens = new Set(teams.filter(team => team.id != null).map(team => teamCategoryToken(team.id)));
+  const allMembers = Object.values(categories || {}).flatMap(members => Array.isArray(members) ? members : []);
+  const legacyNames = new Set(teams
+    .filter(team => team.name && !allMembers.includes(teamCategoryToken(team.id)))
+    .map(team => normalizeTeamKind(team.name)));
+  const next = {};
+  for (const [category, members] of Object.entries(categories || {})) {
+    const filtered = Array.isArray(members)
+      ? members.filter(item => {
+        const value = String(item || '').trim();
+        return !tokens.has(value) && (isTeamIdToken(value) || !legacyNames.has(normalizeTeamKind(value)));
+      })
+      : [];
+    if (filtered.length) next[category] = filtered;
+  }
+  return next;
+}
+
+export function nextTeamNumberInCategory(teams, categories, defaults, categoryName) {
+  const numbers = (teams || [])
+    .filter(team => team?.type === '합주'
+      && normalizeTeamKind(teamCategory(team, categories, defaults)) === normalizeTeamKind(categoryName))
+    .map(team => String(team.name || '').match(/(\d+)팀$/)?.[1])
+    .filter(Boolean)
+    .map(Number);
+  return numbers.length ? Math.max(...numbers) + 1 : 1;
+}
 export function setTeamKindForName(categories, teamName, kindName, fallbackKind = '') {
   const target = normalizeTeamKind(teamName);
   const next = {};
@@ -33,16 +86,19 @@ export function setTeamKindForName(categories, teamName, kindName, fallbackKind 
   return next;
 }
 export function renameTeamKind({ teams, categories = {}, defaults = {}, oldName, newName }) {
-  const memberNames = teams
-    .filter(team => normalizeTeamKind(teamCategory(team, categories, defaults)) === normalizeTeamKind(oldName))
-    .map(team => team.name);
-  const targets = new Set(memberNames.map(normalizeTeamKind));
+  const memberTeams = teams
+    .filter(team => normalizeTeamKind(teamCategory(team, categories, defaults)) === normalizeTeamKind(oldName));
+  const memberTokens = memberTeams.map(team => team?.id != null ? teamCategoryToken(team.id) : team.name);
+  const targets = new Set(memberTeams.map(team => normalizeTeamKind(team.name)));
   const nextCategories = {};
   for (const [kind, names] of Object.entries(categories)) {
-    const filtered = Array.isArray(names) ? names.filter(name => !targets.has(normalizeTeamKind(name))) : [];
+    const filtered = Array.isArray(names) ? names.filter(name => {
+      if (memberTokens.includes(String(name || '').trim())) return false;
+      return isTeamIdToken(name) || !targets.has(normalizeTeamKind(name));
+    }) : [];
     if (filtered.length && normalizeTeamKind(kind) !== normalizeTeamKind(oldName)) nextCategories[kind] = filtered;
   }
-  if (memberNames.length) nextCategories[newName] = memberNames;
+  if (memberTokens.length) nextCategories[newName] = memberTokens;
   const nextDefaults = Object.fromEntries(Object.entries(defaults).map(([classification, kind]) => [
     classification,
     normalizeTeamKind(kind) === normalizeTeamKind(oldName) ? newName : kind,

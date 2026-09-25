@@ -3,10 +3,16 @@ import assert from 'node:assert/strict';
 import {
   bandTeamMembers,
   buildFormedTeamRows,
-  formedTeamImportConflict,
   isFormedBandSong,
 } from '../js/admin/formedTeamImport.js';
-import { renameTeamKind, setTeamKindForName, teamCategory } from '../js/utils/common.js';
+import {
+  nextTeamNumberInCategory,
+  removeTeamsFromCategories,
+  renameTeamKind,
+  setTeamCategoryForTeam,
+  setTeamKindForName,
+  teamCategory,
+} from '../js/utils/common.js';
 
 const song = {
   id: 10,
@@ -38,21 +44,10 @@ test('builds tagged team names with the compatible ensemble storage type', () =>
   assert.equal(rows[0].info, '테스트 곡');
 });
 
-test('blocks an existing mapped category before any insert', () => {
-  const current = [{ name: '정기공연 1팀', type: '합주' }];
-  const categories = { 'A 회차': ['정기공연 1팀'] };
-  const message = formedTeamImportConflict(current, 'A 회차', [], categories);
-  assert.match(message, /팀 분류가 이미 존재/);
-});
-
-test('blocks a generated team name that already exists', () => {
-  const message = formedTeamImportConflict(
-    [{ name: '정기공연 1팀', type: '스쿨' }],
-    '새 회차',
-    [{ name: '정기공연 1팀' }],
-  );
-  assert.match(message, /팀이 이미 존재/);
-  assert.match(message, /팀 태그를 바꿔/);
+test('builds category-local team numbers without a name prefix', () => {
+  const rows = buildFormedTeamRows({ songs: [song], members, startNumber: 4, color: '#888888' });
+  assert.equal(rows[0].name, '4팀');
+  assert.equal(rows[0].type, '합주');
 });
 
 test('renders a mapped round category while preserving the stored ensemble type', () => {
@@ -83,4 +78,38 @@ test('renames a team kind and keeps future teams on the renamed default', () => 
 
 test('assigns a manually added ensemble team to a custom kind', () => {
   assert.deepEqual(setTeamKindForName({}, '3팀', '2026-2 버스킹', '합주'), { '2026-2 버스킹': ['3팀'] });
+});
+
+test('distinguishes identical team names by stable team id', () => {
+  const regular = { id: 10, name: '1팀', type: '합주' };
+  const busking = { id: 20, name: '1팀', type: '합주' };
+  let categories = setTeamCategoryForTeam({}, regular, '정기공연', '합주');
+  categories = setTeamCategoryForTeam(categories, busking, '버스킹', '합주');
+  assert.equal(teamCategory(regular, categories), '정기공연');
+  assert.equal(teamCategory(busking, categories), '버스킹');
+});
+
+test('uses max plus one inside a category and does not reuse deleted numbers', () => {
+  const teams = [
+    { id: 1, name: '1팀', type: '합주' },
+    { id: 3, name: '3팀', type: '합주' },
+    { id: 4, name: '8팀', type: '합주' },
+  ];
+  const categories = { 정기공연: ['id:1', 'id:3'], 버스킹: ['id:4'] };
+  assert.equal(nextTeamNumberInCategory(teams, categories, {}, '정기공연'), 4);
+  assert.equal(nextTeamNumberInCategory(teams, categories, {}, '버스킹'), 9);
+});
+
+test('removes both stable and legacy category references for a deleted team', () => {
+  assert.deepEqual(removeTeamsFromCategories({ 정기공연: ['1팀'], 버스킹: ['id:20'] }, [
+    { id: 10, name: '1팀', type: '합주' },
+    { id: 20, name: '2팀', type: '합주' },
+  ]), {});
+});
+
+test('keeps a legacy same-name team when deleting an id-mapped team', () => {
+  const categories = { 정기공연: ['1팀'], 버스킹: ['id:20'] };
+  assert.deepEqual(removeTeamsFromCategories(categories, [
+    { id: 20, name: '1팀', type: '합주' },
+  ]), { 정기공연: ['1팀'] });
 });

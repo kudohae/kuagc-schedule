@@ -11,7 +11,6 @@ const isMetadataRole = value => FIXED_PATTERN.test(String(value || '').trim())
   || APPLICANT_PATTERN.test(String(value || '').trim());
 const visibleWantedRoles = song => (song?.wanted_roles || []).filter(role => !isMetadataRole(role));
 const isFixedSong = song => (song?.wanted_roles || []).some(role => FIXED_PATTERN.test(String(role || '').trim()));
-export const normalizeTeamName = value => String(value || '').trim().toLocaleLowerCase('ko-KR');
 
 function allocationFor(song, allMembers) {
   return calculateSongAllocation(
@@ -51,24 +50,12 @@ export function bandTeamMembers(song, allMembers) {
   return [...people.values()];
 }
 
-export function buildFormedTeamRows({ songs, members, tag, color, storageType = '합주' }) {
+export function buildFormedTeamRows({ songs, members, tag = '', startNumber = 1, color, storageType = '합주' }) {
   return songs.map((song, index) => ({
-    name: `${tag} ${index + 1}팀`,
+    name: `${tag ? `${tag} ` : ''}${startNumber + index}팀`,
     type: storageType,
     color,
     info: String(song.title || '').trim(),
     members: bandTeamMembers(song, members),
   }));
-}
-
-export function formedTeamImportConflict(currentTeams, categoryName, rows, categories = {}) {
-  const currentNames = new Set(currentTeams.map(team => normalizeTeamName(team.name)));
-  const mappedNames = Object.entries(categories)
-    .find(([name]) => normalizeTeamName(name) === normalizeTeamName(categoryName))?.[1] || [];
-  const categoryHasTeams = Array.isArray(mappedNames) && mappedNames.some(name => currentNames.has(normalizeTeamName(name)));
-  if (categoryHasTeams || currentTeams.some(team => normalizeTeamName(team.type) === normalizeTeamName(categoryName))) {
-    return `'${categoryName}' 팀 분류가 이미 존재합니다. 회차 이름을 바꾼 뒤 다시 시도해주세요.`;
-  }
-  const duplicate = rows.find(row => currentNames.has(normalizeTeamName(row.name)));
-  return duplicate ? `'${duplicate.name}' 팀이 이미 존재합니다. 팀 태그를 바꿔주세요.` : '';
 }
