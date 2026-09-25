@@ -29,6 +29,8 @@ body.dark .apply-status.finished{background:rgba(71,197,255,.05);border-color:rg
 .apply-team-picker{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
 .apply-team-picker .fs{width:100%;}
 .apply-team-category-field{width:calc((100% - 8px)/2);}
+.apply-team-number-field{transition:opacity .15s ease;}
+.apply-team-number-field.is-disabled{opacity:.42;}
 .apply-team-number-row{display:flex;align-items:center;gap:12px;min-height:36px;}
 .apply-team-number-entry{display:flex;align-items:center;gap:6px;flex:0 0 auto;font-size:14px;font-weight:600;}
 .apply-team-number-entry .fi{width:80px;flex:0 0 80px;}
