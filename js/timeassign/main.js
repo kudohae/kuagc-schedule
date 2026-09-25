@@ -1,11 +1,14 @@
 import { supabase } from '../supabase.js';
 import {
-  getConfig, fetchTeams, fetchBaseSlots, fetchExceptions, mergeSchedule,
+  getConfig, fetchTeams, fetchTeamCategories, fetchTeamKindDefaults, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchActiveRound, fetchApplications, submitApplication
 } from '../schedule.js';
 import { calculateTimeAssignments } from '../utils/timeAssignment.js';
 import { diffToHMS } from '../utils/time.js';
 import { syncServerTime, serverNow } from '../utils/serverTime.js';
+import { normalizeTeamKind } from '../utils/common.js?v=20260925-team-categories';
+import { escapeHtml as esc } from '../utils/html.js';
+import { availableTeamCategories, teamsInCategory } from './teamSelection.js?v=20260925-team-category-filter';
 
 const DAYS  = ['월','화','수','목','금','토','일'];
 const HOURS = Array.from({length:18},(_,i)=>i+8);
@@ -24,6 +27,12 @@ const errMsg = e => {
   return m || '오류가 발생했습니다';
 };
 
+function selectedTeamInfoHtml(){
+  if(!applyTeamId)return '';
+  const team=teams.find(item=>String(item.id)===String(applyTeamId));
+  return team?`<span style="color:var(--accent)">${esc(team.info||'—')}</span>`:'';
+}
+
 function fmtScheduled(ts){
   const d=new Date(ts),pad=n=>String(n).padStart(2,'0');
   return `${String(d.getFullYear()).slice(2)}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -32,8 +41,10 @@ function fmtScheduled(ts){
 // ── STATE ─────────────────────────────────────────────────────────────
 let season='1학기';
 let teams=[], baseSlots=[], exceptions=[], merged=[];
+let teamCategories={};
+let teamCategoryDefaults={'합주':'합주','스쿨':'스쿨','이외':'이외'};
 let round=null, applications=[];
-let applyPrefs={}, applyTeamId=null, applyTeamName='';
+let applyPrefs={}, applyTeamCategory='', applyTeamId=null;
 let taCountdownTimer=null;
 let _rtChannel=null;
 let _bcChannel=null;
@@ -160,8 +171,9 @@ export async function init(outerContainer) {
   // reset state
   _destroyed=false;
   season='1학기'; teams=[]; baseSlots=[]; exceptions=[]; merged=[];
+  teamCategories={}; teamCategoryDefaults={'합주':'합주','스쿨':'스쿨','이외':'이외'};
   round=null; applications=[];
-  applyPrefs={}; applyTeamId=null; applyTeamName='';
+  applyPrefs={}; applyTeamCategory=''; applyTeamId=null;
 
   // Create inner container
   outerContainer.innerHTML = '<div style="display:flex;justify-content:center;padding:40px"><div class="spin"></div></div>';
@@ -169,8 +181,8 @@ export async function init(outerContainer) {
   try {
     await syncServerTime(supabase);
     season = await getConfig('current_season').catch(()=>'1학기');
-    [teams, baseSlots, exceptions] = await Promise.all([
-      fetchTeams(), fetchBaseSlots(season), fetchExceptions(0)
+    [teams, teamCategories, teamCategoryDefaults, baseSlots, exceptions] = await Promise.all([
+      fetchTeams(), fetchTeamCategories(), fetchTeamKindDefaults(), fetchBaseSlots(season), fetchExceptions(0)
     ]);
     teams=korSort(teams,'name');
     merged=mergeSchedule(baseSlots,exceptions);
@@ -325,6 +337,14 @@ function render(){
 
   if(isOpen){
     const p1=applyPrefs[1], p2=applyPrefs[2], p3=applyPrefs[3];
+    const categoryNames=availableTeamCategories(teams,teamCategories,teamCategoryDefaults);
+    const selectedCategory=categoryNames.find(category=>normalizeTeamKind(category)===normalizeTeamKind(applyTeamCategory))||'';
+    if(applyTeamCategory&&!selectedCategory){applyTeamCategory='';applyTeamId=null;}
+    else if(selectedCategory)applyTeamCategory=selectedCategory;
+    const selectableTeams=teamsInCategory(teams,teamCategories,teamCategoryDefaults,applyTeamCategory);
+    if(applyTeamId&&!selectableTeams.some(team=>String(team.id)===String(applyTeamId)))applyTeamId=null;
+    const categoryOptions=`<option value="">팀 카테고리 선택</option>${categoryNames.map(category=>`<option value="${esc(category)}" ${normalizeTeamKind(category)===normalizeTeamKind(applyTeamCategory)?'selected':''}>${esc(category)}</option>`).join('')}`;
+    const teamOptions=`<option value="">팀 번호 선택</option>${selectableTeams.map(team=>`<option value="${team.id}" ${String(team.id)===String(applyTeamId)?'selected':''}>${esc(team.name)}</option>`).join('')}`;
 
     function prefFormRow(n,cls,label,optional,p){
       const dayOptsN=`<option value="">요일 선택</option>${DAYS.map((d,i)=>`<option value="${i}" ${i===p?.day?'selected':''}>${d}</option>`).join('')}`;
@@ -347,20 +367,15 @@ function render(){
     html+=`
     <div class="apply-card">
       <div class="apply-card-title">시간 신청</div>
-      <div style="margin-bottom:14px">
-        <div class="fl">팀 번호 *</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input class="fi" type="number" min="1" id="apTeamInput" placeholder="번호"
-            oninput="onApplyTeamInput(this.value)"
-            value="${applyTeamName.replace(/팀$/,'')}" style="width:80px;flex-shrink:0"/>
-          <span style="font-size:14px;font-weight:600">팀</span>
-          <div id="apTeamInfo" style="font-size:12px;min-width:80px;flex-shrink:0">${(()=>{
-            if(!applyTeamName) return '';
-            const _t=teams.find(t=>normTeam(t.name)===normTeam(applyTeamName));
-            return _t
-              ? `<span style="color:var(--accent)">${_t.info||'—'}</span>`
-              : `<span style="color:var(--danger)">없는 팀입니다. 팀명을 확인해주세요.</span>`;
-          })()}</div>
+      <div class="apply-team-picker">
+        <div>
+          <div class="fl">팀 카테고리 *</div>
+          <select class="fs" id="apTeamCategory" onchange="onApplyTeamCategoryChange(this.value)">${categoryOptions}</select>
+        </div>
+        <div>
+          <div class="fl">팀 번호 *</div>
+          <select class="fs" id="apTeamSelect" onchange="onApplyTeamChange(this.value)" ${applyTeamCategory?'':'disabled'}>${teamOptions}</select>
+          <div id="apTeamInfo" class="apply-team-info">${selectedTeamInfoHtml()}</div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
@@ -444,22 +459,23 @@ function renderList(){
 }
 
 // ── INTERACTIONS ──────────────────────────────────────────────────────
-const normTeam=s=>s.replace(/\s/g,'');
-window.onApplyTeamInput=function(val){
-  const trimmed=val.trim();
-  applyTeamName=trimmed?trimmed+'팀':'';
-  const norm=normTeam(applyTeamName);
+window.onApplyTeamCategoryChange=function(value){
+  applyTeamCategory=String(value||'').trim();
+  applyTeamId=null;
+  const select=document.getElementById('apTeamSelect');
   const infoEl=document.getElementById('apTeamInfo');
-  if(!infoEl) return;
-  if(!norm){ applyTeamId=null; infoEl.innerHTML=''; return; }
-  const t=teams.find(t=>normTeam(t.name)===norm);
-  if(t){
-    applyTeamId=t.id;
-    infoEl.innerHTML=`<span style="color:var(--accent)">${t.info||'—'}</span>`;
-  } else {
-    applyTeamId=null;
-    infoEl.innerHTML=`<span style="color:var(--danger)">없는 팀입니다. 팀명을 확인해주세요.</span>`;
-  }
+  if(infoEl)infoEl.innerHTML='';
+  if(!select)return;
+  const categoryTeams=teamsInCategory(teams,teamCategories,teamCategoryDefaults,applyTeamCategory);
+  select.innerHTML=`<option value="">팀 번호 선택</option>${categoryTeams.map(team=>`<option value="${team.id}">${esc(team.name)}</option>`).join('')}`;
+  select.disabled=!applyTeamCategory;
+};
+
+window.onApplyTeamChange=function(value){
+  const team=teams.find(item=>String(item.id)===String(value));
+  applyTeamId=team?.id||null;
+  const infoEl=document.getElementById('apTeamInfo');
+  if(infoEl)infoEl.innerHTML=team?`<span style="color:var(--accent)">${esc(team.info||'—')}</span>`:'';
 };
 
 window.onApplyDayChange=function(n){
@@ -500,7 +516,7 @@ window.submitApply=async function(){
       pref1_day:parseInt(d1),pref1_hour:parseInt(h1),
       pref2_day:d2&&h2?parseInt(d2):null,pref2_hour:d2&&h2?parseInt(h2):null,
       pref3_day:d3&&h3?parseInt(d3):null,pref3_hour:d3&&h3?parseInt(h3):null});
-    applyPrefs={}; applyTeamId=null; applyTeamName='';
+    applyPrefs={}; applyTeamCategory=''; applyTeamId=null;
     window.toast('신청이 제출됐습니다','ok');
     broadcastRefresh();
     scheduleApplicationsRefresh(0);

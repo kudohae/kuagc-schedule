@@ -7,7 +7,7 @@ const VIEW_CSS = {
   ensemble:   'css/ensemble.css',
   band:       'css/band.css',
 };
-const VIEW_VERSION = { band: '20260924-manual-lock' };
+const VIEW_VERSION = { timeassign: '20260925-team-category-filter', band: '20260924-manual-lock' };
 
 let _currentView = null;
 let _currentDestroy = null;
