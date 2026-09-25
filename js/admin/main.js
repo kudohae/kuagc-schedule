@@ -27,6 +27,15 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') window.closeModal?
 const COLORS= ['#47c5ff','#ff6b6b','#6bffb8','#ffaa47','#c47fff','#ff47a0','#47ffea','#ffd447','#b4ff47','#ff9d47'];
 const reqActualDate=(weekOffset,day)=>{const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7)+weekOffset*7);const d=new Date(mon);d.setDate(mon.getDate()+day);return `${d.getMonth()+1}/${d.getDate()}`;};
 const fmtTime=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;};
+function timeApplicationTeamIdentityHtml(team,isVoid){
+  const category=teamCategory(team,teamCategories,teamKindDefaults)||team?.type||'—';
+  return `<div class="ta-team-identity">
+    <span class="ta-team-category" title="${esc(category)}">${esc(category)}</span>
+    <span class="ta-team-separator" aria-hidden="true">·</span>
+    <span class="ta-team-name">${esc(team?.name||'—')}</span>
+    ${isVoid?'<span class="pbadge none ta-team-void">무효</span>':''}
+  </div>`;
+}
 function weekLabelWithThis(off){
   return weekLabel(off)+(off===0?' (이번주)':'');
 }
@@ -1691,12 +1700,12 @@ function renderApply(){
     html+=`<div class="card">
       <div style="font-size:11px;color:var(--text2);padding:8px 10px 0;font-weight:700">${validCount}팀 신청 중${applications.length>validCount?` (무효 ${applications.length-validCount}건 포함)`:''}</div>
       <table class="apply-tbl">
-        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFinOrApproved?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th class="ta-team-col">팀</th><th>1지망</th><th>2지망</th><th>3지망</th>${isFinOrApproved?'<th>결과</th>':''}<th>제출시각</th><th></th></tr></thead>
         <tbody>${applications.map((a,i)=>{
           const void_=isVoid(a);
           return `<tr style="${void_?'opacity:.3;':''}">
             <td style="color:var(--text3);font-family:'Space Mono',monospace">${String(i+1).padStart(2,'0')}</td>
-            <td style="font-weight:600${void_?';text-decoration:line-through':''}">${a.teams.name}${void_?` <span class="pbadge none" style="font-size:9px">무효</span>`:''}</td>
+            <td class="ta-team-col" style="font-weight:600${void_?';text-decoration:line-through':''}">${timeApplicationTeamIdentityHtml(a.teams,void_)}</td>
             <td>${DAYS[a.pref1_day]} ${a.pref1_hour}:00</td>
             <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
             <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>

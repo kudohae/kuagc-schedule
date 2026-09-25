@@ -156,6 +156,11 @@ body.dark .tcard.tcard-sel{background:rgba(71,197,255,.05);}
 .apply-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);}
 .apply-tbl tr:last-child td{border-bottom:none;}
 .apply-tbl tr:hover td{background:rgba(255,255,255,.02);}
+.apply-tbl .ta-team-col{width:24%;min-width:120px;max-width:210px;}
+.ta-team-identity{display:flex;align-items:center;gap:3px;min-width:0;max-width:100%;}
+.ta-team-category{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ta-team-separator,.ta-team-name,.ta-team-void{flex:0 0 auto;}
+.ta-team-void{font-size:9px;}
 .pbadge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;}
 .pbadge.p1{background:rgba(232,255,71,.15);color:var(--accent);}
 .pbadge.p2{background:rgba(71,197,255,.15);color:var(--accent2);}
