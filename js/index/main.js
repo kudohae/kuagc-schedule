@@ -7,7 +7,7 @@ import {
 } from '../schedule.js?v=20260923-team-kinds';
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
-import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, normalizeTeamKind, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260923-team-kinds';
+import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, normalizeTeamKind, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260925-team-categories';
 
 window.toggleTheme = toggleTheme;
 

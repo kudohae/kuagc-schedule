@@ -119,6 +119,14 @@ body.dark .blk-empty{border-color:rgba(255,255,255,.1);}
 .teams-kind-name{min-width:0;width:min(240px,70vw);border:1px solid transparent;border-radius:4px;background:transparent;color:var(--text2);font:inherit;letter-spacing:inherit;padding:3px 5px;}
 .teams-kind-name:hover,.teams-kind-name:focus{border-color:var(--border);background:var(--surface);outline:none;}
 .teams-kind-name:focus{border-color:var(--accent2);}
+.teams-kind-name.is-static{display:inline-block;border-color:transparent;background:transparent;}
+.teams-kind-name.is-static:hover{border-color:transparent;background:transparent;}
+.team-classification-step{display:flex;flex-direction:column;gap:14px;}
+.team-classification-prompt{font-size:14px;font-weight:700;color:var(--text);text-align:center;padding:4px 0;}
+.team-classification-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.team-classification-buttons .btn{padding:14px 8px;font-size:13px;}
+.team-auto-name{font-size:14px;font-weight:800;padding:6px 0;color:var(--text);}
+.team-gray-note{font-size:11px;color:var(--text3);}
 #teamKindArea.is-disabled{opacity:.48;}
 .teams-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;}
 .tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;display:flex;flex-direction:column;gap:6px;transition:border-color .12s;}
