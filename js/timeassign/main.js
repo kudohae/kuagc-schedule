@@ -371,7 +371,7 @@ function render(){
           <div class="fl">팀 카테고리 *</div>
           <select class="fs" id="apTeamCategory" onchange="onApplyTeamCategoryChange(this.value)">${categoryOptions}</select>
         </div>
-        <div class="apply-team-number-field">
+        <div class="apply-team-number-field${applyTeamCategory?'':' is-disabled'}" id="apTeamNumberField">
           <div class="fl">팀 번호 *</div>
           <div class="apply-team-number-row">
             <div class="apply-team-number-entry">
@@ -469,8 +469,10 @@ window.onApplyTeamCategoryChange=function(value){
   applyTeamNumber='';
   applyTeamId=null;
   const input=document.getElementById('apTeamInput');
+  const field=document.getElementById('apTeamNumberField');
   const infoEl=document.getElementById('apTeamInfo');
   if(infoEl)infoEl.innerHTML='';
+  if(field)field.classList.toggle('is-disabled',!applyTeamCategory);
   if(!input)return;
   input.value='';
   input.disabled=!applyTeamCategory;
