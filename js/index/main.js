@@ -1,4 +1,4 @@
-import { initRouter } from '../router.js?v=20260925-timeassign-number-disabled';
+import { initRouter } from '../router.js?v=20260925-timeassign-category-label';
 import {
   getConfig, fetchTeams, fetchTeamCategories, fetchTeamKindDefaults, fetchBaseSlots, fetchExceptions, mergeSchedule,
   fetchRequests, createRequest, rejectRequest,

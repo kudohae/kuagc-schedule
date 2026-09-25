@@ -50,6 +50,11 @@ body.dark .apply-status.finished{background:rgba(71,197,255,.05);border-color:rg
 .apply-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);}
 .apply-tbl tr:last-child td{border-bottom:none;}
 .apply-tbl tr:hover td{background:rgba(255,255,255,.02);}
+.apply-tbl .ta-team-col{width:24%;min-width:120px;max-width:210px;}
+.ta-team-identity{display:flex;align-items:center;gap:3px;min-width:0;max-width:100%;}
+.ta-team-category{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ta-team-separator,.ta-team-name,.ta-team-void{flex:0 0 auto;}
+.ta-team-void{font-size:9px;}
 .ta-app-row{cursor:pointer;}
 .ta-app-row:focus-visible td{outline:1px solid var(--accent2);outline-offset:-2px;}
 .ta-app-row.active td{background:rgba(71,197,255,.05);}

@@ -6,7 +6,7 @@ import {
 import { calculateTimeAssignments } from '../utils/timeAssignment.js';
 import { diffToHMS } from '../utils/time.js';
 import { syncServerTime, serverNow } from '../utils/serverTime.js';
-import { normalizeTeamKind } from '../utils/common.js?v=20260925-team-categories';
+import { normalizeTeamKind, teamCategory as resolveTeamCategory } from '../utils/common.js?v=20260925-team-categories';
 import { escapeHtml as esc } from '../utils/html.js';
 import { availableTeamCategories, teamByNumberInCategory, teamsInCategory } from './teamSelection.js?v=20260925-team-number-input';
 
@@ -31,6 +31,16 @@ function selectedTeamInfoHtml(){
   if(!applyTeamId)return '';
   const team=teams.find(item=>String(item.id)===String(applyTeamId));
   return team?`<span style="color:var(--accent)">${esc(team.info||'—')}</span>`:'';
+}
+
+function applicationTeamIdentityHtml(team, isVoid){
+  const category=resolveTeamCategory(team,teamCategories,teamCategoryDefaults)||team?.type||'—';
+  return `<div class="ta-team-identity">
+    <span class="ta-team-category" title="${esc(category)}">${esc(category)}</span>
+    <span class="ta-team-separator" aria-hidden="true">·</span>
+    <span class="ta-team-name">${esc(team?.name||'—')}</span>
+    ${isVoid?'<span class="pbadge none ta-team-void">무효</span>':''}
+  </div>`;
 }
 
 function fmtScheduled(ts){
@@ -425,7 +435,7 @@ function renderList(){
     </div>
     <div style="overflow-x:auto">
       <table class="apply-tbl">
-        <thead><tr><th>#</th><th>팀</th><th>1지망</th><th>2지망</th><th>3지망</th><th class="ta-expected-col">${isFin?'결과':'예상 배정'}</th></tr></thead>
+        <thead><tr><th>#</th><th class="ta-team-col">팀</th><th>1지망</th><th>2지망</th><th>3지망</th><th class="ta-expected-col">${isFin?'결과':'예상 배정'}</th></tr></thead>
         <tbody>
           ${applications.map((a,i)=>{
             const void_=isVoid(a);
@@ -437,7 +447,7 @@ function renderList(){
                 : (()=>{const ex=expectedById.get(a.id);return ex?.day!=null?dayHour(ex.day,ex.hour):'<span class="pbadge none">미배정</span>';})();
             return `<tr class="ta-app-row${expanded?' active':''}" data-app-id="${a.id}" tabindex="0" style="${void_?'opacity:.32;':''}" aria-expanded="${expanded?'true':'false'}">
               <td style="color:var(--text3);font-family:'Space Mono',monospace">${String(i+1).padStart(2,'0')}</td>
-              <td style="font-weight:600${void_?';text-decoration:line-through':''}">${a.teams.name}${void_?` <span class="pbadge none" style="font-size:9px">무효</span>`:''}</td>
+              <td class="ta-team-col" style="font-weight:600${void_?';text-decoration:line-through':''}">${applicationTeamIdentityHtml(a.teams,void_)}</td>
               <td>${dayHour(a.pref1_day,a.pref1_hour)}</td>
               <td>${a.pref2_day!=null?DAYS[a.pref2_day]+' '+a.pref2_hour+':00':'—'}</td>
               <td>${a.pref3_day!=null?DAYS[a.pref3_day]+' '+a.pref3_hour+':00':'—'}</td>
