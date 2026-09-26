@@ -308,6 +308,7 @@ function render(){
       <div class="apply-status-texts">
         <div class="apply-status-title">신청 기간이 아닙니다</div>
         <div class="apply-status-sub">${fmtScheduled(targetDate)}에 신청이 열립니다</div>
+        <div class="apply-status-notice">같은 팀이 여러 번 신청을 넣으면 마지막 신청만 유효로 처리됩니다.</div>
         <div class="cd-num cd-open" id="ta-cd">${diffToHMS(diff)}</div>
       </div>
     </div>`;
