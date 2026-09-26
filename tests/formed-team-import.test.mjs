@@ -9,6 +9,7 @@ import {
   nextTeamNumberInCategory,
   removeTeamsFromCategories,
   renameTeamKind,
+  scheduleTeamBadge,
   setTeamCategoryForTeam,
   setTeamKindForName,
   teamCategory,
@@ -60,6 +61,22 @@ test('uses a renamed default kind without changing the fixed classification', ()
   const team = { name: '1팀', type: '합주' };
   assert.equal(teamCategory(team, {}, { '합주': '정기공연' }), '정기공연');
   assert.equal(team.type, '합주');
+});
+
+test('uses the category as the schedule badge only for ensemble teams', () => {
+  const categories = { '2026-2 정기공연': ['id:10'] };
+  assert.deepEqual(scheduleTeamBadge({ id: 10, type: '합주' }, categories), {
+    label: '2026-2 정기공연',
+    isCategory: true,
+  });
+  assert.deepEqual(scheduleTeamBadge({ id: 20, type: '스쿨' }, categories), {
+    label: '스쿨',
+    isCategory: false,
+  });
+  assert.deepEqual(scheduleTeamBadge({ id: 10, type: '합주' }, categories, {}, true), {
+    label: '추가',
+    isCategory: false,
+  });
 });
 
 test('renames a team kind and keeps future teams on the renamed default', () => {

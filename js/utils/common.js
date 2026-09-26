@@ -25,6 +25,14 @@ export const teamCategory = (team, categories = {}, defaults = {}) => {
   return entry?.[0] || defaults?.[team?.type] || team?.type || '';
 };
 
+export const scheduleTeamBadge = (team, categories = {}, defaults = {}, isExtra = false) => {
+  if (isExtra) return { label: '추가', isCategory: false };
+  if (team?.type === '합주') {
+    return { label: teamCategory(team, categories, defaults) || '합주', isCategory: true };
+  }
+  return { label: team?.type || '', isCategory: false };
+};
+
 export function setTeamCategoryForTeam(categories, team, categoryName, fallbackCategory = '') {
   const token = teamCategoryToken(team.id);
   const next = {};
