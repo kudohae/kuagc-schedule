@@ -17,6 +17,7 @@ body.dark .apply-status.finished{background:rgba(71,197,255,.05);border-color:rg
 .apply-status-texts{display:flex;flex-direction:column;gap:2px;}
 .apply-status-title{font-size:14px;font-weight:700;}
 .apply-status-sub{font-size:11px;color:var(--text2);}
+.apply-status-notice{margin-top:2px;font-size:10px;line-height:1.45;color:var(--text3);}
 
 /* ── FORM CARD ── */
 .apply-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
