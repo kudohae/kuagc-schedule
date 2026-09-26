@@ -80,6 +80,7 @@ body.dark .blk{box-shadow:0 1px 3px rgba(0,0,0,.35);}
 .blk-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.2px;color:#fff;}
 .blk-info{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9;color:#fff;}
 .blk-tag{font-size:9px;font-weight:700;background:rgba(0,0,0,.2);padding:1px 3px;border-radius:2px;flex-shrink:0;margin-left:auto;color:#fff;}
+.blk-tag-category{min-width:0;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:1;}
 .blk.absent{box-shadow:none;}
 .blk.extra{border-left:4px solid var(--accent2) !important;box-shadow:0 1px 3px rgba(0,0,0,.15);}
 .blk.pending{opacity:.5;box-shadow:none;}

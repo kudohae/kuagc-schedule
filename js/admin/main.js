@@ -19,7 +19,7 @@ import {
 
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
-import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, normalizeTeamKind, renameTeamKind, setTeamCategoryForTeam, removeTeamsFromCategories, nextTeamNumberInCategory, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260925-team-categories';
+import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, scheduleTeamBadge, normalizeTeamKind, renameTeamKind, setTeamCategoryForTeam, removeTeamsFromCategories, nextTeamNumberInCategory, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260926-schedule-category-badge';
 initTheme();
 window.toggleTheme = toggleTheme;
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') window.closeModal?.(); });
@@ -1033,8 +1033,11 @@ function renderSchedule(){
         } else {
           blk.style.background=c;
           if(isExtra) blk.style.borderLeft='4px solid var(--accent2)';
+          const tag=scheduleTeamBadge(t,teamCategories,teamKindDefaults,isExtra);
           const tagStyle=isExtra?'background:var(--accent2);color:#000':'color:#000';
-          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${esc(t.name)}</span><span class="blk-tag" style="${tagStyle}">${isExtra?'추가':esc(t.type)}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${esc(t.info||'')}</span></div>`;
+          const tagClass=`blk-tag${tag.isCategory?' blk-tag-category':''}`;
+          const tagTitle=tag.isCategory?` title="${esc(tag.label)}"`:'';
+          blk.innerHTML=`<div class="blk-top"><span class="blk-name" style="color:#000">${esc(t.name)}</span><span class="${tagClass}" style="${tagStyle}"${tagTitle}>${esc(tag.label)}</span></div><div class="blk-div"></div><div class="blk-bot"><span class="blk-info" style="color:#000">${esc(t.info||'')}</span></div>`;
         }
         blk.onclick=()=>openSlotModal(s); cell.appendChild(blk);
       } else if(pe){
