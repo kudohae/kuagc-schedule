@@ -1,0 +1,2192 @@
+body.band-admin-mode {
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: #181b1e;
+}
+
+body.band-admin-mode > header,
+body.band-admin-mode > .tab-bar,
+body.band-admin-mode > #statusBd {
+  display: none !important;
+}
+
+body.band-admin-mode #view-dynamic {
+  min-height: 100dvh;
+}
+
+.band-admin-app {
+  --ink: #181b1e;
+  --muted: #6f777e;
+  --line: #d9dee2;
+  --green: #5c9e00;
+  --blue: #0077cc;
+  --red: #b4232d;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.band-admin-app button,
+.band-admin-app input,
+.band-admin-app textarea,
+.band-admin-app select {
+  font: inherit;
+}
+
+.band-admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, .96);
+}
+
+.band-admin-brand,
+.band-admin-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.band-admin-brand img,
+.band-admin-mark img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: grayscale(1) contrast(1.2);
+}
+
+.band-admin-topbar > div {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.band-admin-topbar nav {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 7px;
+}
+
+.band-admin-topbar a,
+.band-admin-topbar button,
+.band-admin-tools a,
+.band-admin-tools button,
+.band-admin-round button,
+.band-admin-song-list header button,
+.band-admin-editor button,
+.band-admin-modal button,
+.band-admin-failure button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.band-admin-topbar a {
+  display: inline-flex;
+  align-items: center;
+}
+
+.band-admin-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.band-admin-tools span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.band-admin-tools a {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.band-admin-tools button[aria-label] {
+  width: 34px;
+  padding: 0;
+  font-size: 18px;
+}
+
+.band-admin-topbar button[aria-label] {
+  width: 34px;
+  padding: 0;
+  font-size: 18px;
+}
+
+.band-admin-page {
+  width: min(1380px, calc(100% - 40px));
+  height: calc(100dvh - 58px);
+  margin: 0 auto;
+  padding: 24px 0 54px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.is-band-admin-embedded,
+.is-band-admin-embedded .band-admin-app {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.is-band-admin-embedded .band-admin-app {
+  background: transparent;
+}
+
+.is-band-admin-embedded .band-admin-page {
+  width: min(1240px, calc(100% - 48px));
+  height: 100%;
+  margin: 0 auto;
+  padding: 12px 0 18px;
+}
+
+.band-admin-round {
+  flex: none;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.band-admin-round > div,
+.band-admin-round form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.band-admin-round-head {
+  width: 100%;
+}
+
+.band-admin-round .band-admin-round-head {
+  display: grid;
+  grid-template-columns: minmax(280px, 500px) auto;
+  justify-content: start;
+}
+
+.band-admin-round-picker {
+  min-width: 0;
+}
+
+.band-admin-round-picker > span {
+  flex: none;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.band-admin-round-picker select {
+  min-width: 0;
+  width: min(460px, 100%);
+  font-weight: 800;
+}
+
+.band-admin-round > div > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.band-admin-current-round {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 2px solid var(--green);
+  border-radius: 5px;
+  background: #eef7e3;
+  color: #4b8200;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.band-admin-round select,
+.band-admin-round input[type="text"],
+.band-admin-round input:not([type]) {
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid #cbd1d6;
+  border-radius: 5px;
+  background: #fff;
+  font-size: 11px;
+}
+
+.band-admin-round select {
+  min-width: 220px;
+}
+
+.band-admin-round form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e7eaed;
+}
+
+.band-admin-round-options {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e7eaed;
+}
+
+.band-admin-round-options .band-admin-blind {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid #cbd1d6;
+  border-radius: 5px;
+  background: #fff;
+  color: #50585f;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.band-admin-round-options .band-admin-schedule,
+.band-admin-round-options .band-round-scheduled {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--blue);
+  border-radius: 5px;
+  background: #edf7fd;
+  color: #0064ad;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.band-round-scheduled {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.band-admin-round-options .band-admin-blind:hover {
+  border-color: #969fa6;
+  background: #f7f8f9;
+}
+
+.band-admin-round-options .band-admin-blind.is-active {
+  border-color: #d56565;
+  background: #fff1f1;
+  color: #a62828;
+}
+
+.band-admin-round form > input {
+  min-width: 220px;
+  flex: 1;
+}
+
+.band-admin-round label,
+.band-admin-check {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px !important;
+  color: #454c52;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.band-admin-columns {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 310px minmax(0, 1fr) 286px;
+  gap: 0;
+  background: transparent;
+}
+
+.band-admin-participants-trigger {
+  display: none;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.band-admin-participants-trigger:hover {
+  border-color: #87928f;
+  background: #f5f8f7;
+}
+
+.band-admin-participants-trigger:active {
+  transform: translateY(1px) scale(.99);
+}
+
+.band-admin-song-list {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-right: 0;
+  background: #fafbfb;
+  overflow: hidden;
+}
+
+.band-admin-song-list > header {
+  flex: none;
+}
+
+.band-admin-song-list > div {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.band-admin-song-list > header,
+.band-admin-editor > header,
+.band-admin-members > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 17px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.band-admin-song-list h1,
+.band-admin-editor h2,
+.band-admin-members h3 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.band-admin-song-list h1 {
+  display: inline;
+  font-size: 15px;
+}
+
+.band-admin-song-list header span,
+.band-admin-members header span,
+.band-admin-editor > header span {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.band-admin-song-list > div > button {
+  width: 100%;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border: 0;
+  border-bottom: 1px solid #e7eaed;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.band-admin-song-list > div > button.is-selected {
+  background: #eef7e3;
+  box-shadow: inset 3px 0 var(--green);
+}
+
+.band-admin-song-list > div > button.is-fixed:hover {
+  background: #edf7fd;
+}
+
+.band-admin-song-list > div > button.is-fixed.is-selected {
+  background: #eaf5fc;
+  box-shadow: inset 3px 0 var(--blue);
+}
+
+.band-admin-song-list button span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.band-admin-song-list button b,
+.band-admin-song-list button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.band-admin-song-list button b {
+  font-size: 11px;
+}
+
+.band-admin-song-list button small,
+.band-admin-song-list button em {
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+}
+
+.band-admin-song-meta {
+  align-items: flex-end;
+  gap: 7px !important;
+}
+
+.band-admin-song-meta strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.band-admin-song-meta strong i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.band-admin-song-meta .is-formed { color: var(--green); }
+.band-admin-song-meta .is-fixed { color: var(--blue); }
+.band-admin-song-meta .is-open { color: #c8760a; }
+
+.band-admin-editor {
+  min-width: 0;
+  min-height: 0;
+  padding-bottom: 32px;
+  border: 1px solid var(--line);
+  border-left: 0;
+  background: #fff;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.band-admin-editor > header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #fff;
+}
+
+.band-admin-editor h2 {
+  margin-top: 4px;
+  font-size: 19px;
+}
+
+.band-admin-card {
+  margin: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.band-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+}
+
+.band-admin-grid label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.band-admin-grid label > span {
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.band-admin-grid input:not([type="checkbox"]),
+.band-admin-grid textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd1d6;
+  border-radius: 5px;
+  outline: none;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.band-admin-grid input:not([type="checkbox"]) {
+  height: 38px;
+  padding: 0 10px;
+}
+
+.band-admin-grid textarea {
+  resize: vertical;
+  padding: 9px 10px;
+}
+
+.band-admin-grid input:focus,
+.band-admin-grid textarea:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(8, 127, 91, .1);
+}
+
+.band-admin-grid small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.band-admin-grid .is-wide {
+  grid-column: 1 / -1;
+}
+
+.band-admin-team-flags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.band-admin-formed {
+  min-height: 58px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px !important;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 2px solid #c8d0d5;
+  border-radius: 6px;
+  background: #f5f7f8;
+  cursor: pointer;
+}
+
+.band-admin-formed:has(input:checked) {
+  border-color: var(--green);
+  background: #eef7e3;
+}
+
+.band-admin-team-flags .band-admin-formed:last-child {
+  border-color: #c8d0d5;
+  background: #f5f7f8;
+}
+
+.band-admin-team-flags .band-admin-formed:last-child:has(input:checked) {
+  border-color: var(--blue);
+  background: #eaf5fc;
+  color: #005f9f;
+}
+
+.band-admin-team-flags .band-admin-formed:last-child input {
+  accent-color: var(--blue);
+}
+
+.band-admin-formed input {
+  width: 21px;
+  height: 21px;
+  flex: none;
+  accent-color: var(--green);
+}
+
+.band-admin-formed > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.band-admin-formed b {
+  font-size: 12px;
+}
+
+.band-admin-formed small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.band-admin-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.band-admin-actions button,
+.band-admin-card + section header button,
+.band-admin-modal footer button[type="submit"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.band-admin-editor button.is-danger {
+  border-color: #e3b8bc;
+  color: var(--red);
+}
+
+.band-admin-member-actions .band-admin-move {
+  border-color: var(--blue);
+  background: #fff;
+  color: var(--blue);
+}
+
+.band-admin-member-actions .band-admin-replace {
+  border-color: #9dcbe8;
+  background: #f4faff;
+  color: #005f9f;
+}
+
+.band-admin-members {
+  width: calc(100% - 36px);
+  max-width: calc(100% - 36px);
+  min-width: 0;
+  margin: 18px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.band-admin-members > header > div {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.band-admin-members > header > div > span {
+  margin-left: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.band-admin-members > header,
+.band-admin-member-group > header {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.band-admin-members > header > button,
+.band-admin-member-group > header > span {
+  flex: none;
+}
+
+.band-admin-members h3 {
+  display: inline;
+  font-size: 12px;
+}
+
+.band-admin-members article {
+  min-height: 55px;
+  display: grid;
+  grid-template-columns: 44px minmax(150px, .8fr) minmax(100px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #e9ecee;
+}
+
+.band-admin-members article.is-excluded {
+  background: #f0f2f3;
+  color: #7f878d;
+}
+
+.band-admin-members article.is-excluded b {
+  text-decoration: line-through;
+}
+
+.band-admin-inclusion {
+  width: 44px;
+  min-height: 27px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  color: #fff !important;
+  font-size: 8px !important;
+  letter-spacing: 0;
+}
+
+.band-admin-inclusion.is-on {
+  background: var(--blue) !important;
+}
+
+.band-admin-inclusion.is-off {
+  background: #98a0a6 !important;
+}
+
+.band-admin-members article:last-child {
+  border-bottom: 0;
+}
+
+.band-admin-member-group + .band-admin-member-group {
+  border-top: 8px solid #f0f3f5;
+}
+
+.band-admin-member-group > header {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: #f7f8f9;
+}
+
+.band-admin-member-group h4 {
+  min-width: 0;
+  margin: 0;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.band-admin-member-group > header span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.band-admin-member-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.band-admin-member-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.band-admin-member-identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.band-admin-member-identity em {
+  display: inline-flex;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: #eef7e3;
+  color: var(--green);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.band-admin-members article b {
+  font-size: 10px;
+}
+
+.band-admin-members article small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.band-admin-member-info small span,
+.band-admin-member-info small time {
+  display: inline;
+}
+
+.band-admin-member-info time span + span {
+  margin-left: 5px;
+}
+
+.band-admin-member-info > time {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.25;
+}
+
+.band-admin-members article p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+
+.band-admin-members article p span {
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: #edf0f2;
+  color: #555d63;
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.band-admin-member-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.band-admin-member-actions > span {
+  padding: 5px 7px;
+  border-radius: 4px;
+  background: #eef7e3;
+  color: var(--green);
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.band-admin-inclusion.is-applicant {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green) !important;
+}
+
+.band-admin-participants {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+  border: 1px solid #c8d2cf;
+  border-radius: 6px;
+  background: #f4f7f6;
+  box-shadow: 0 5px 16px rgba(31, 45, 40, .08);
+  overflow: hidden;
+}
+
+.band-admin-participants > header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #eef7e3;
+  box-shadow: inset 3px 0 var(--green);
+}
+
+.band-admin-participant-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px;
+}
+
+.band-admin-participant-tabs button {
+  min-height: 27px;
+  padding: 0 9px;
+  border: 1px solid #bdc8c3;
+  border-radius: 4px;
+  background: #fff;
+  color: #59625f;
+  cursor: pointer;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.band-admin-participant-tabs button.is-active {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
+.band-admin-participants h2 {
+  display: inline;
+  margin: 0;
+  font-size: 14px;
+}
+
+.band-admin-participants header span {
+  margin-left: 5px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.band-admin-participant-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.band-admin-participant-list article {
+  padding: 12px 13px 0;
+  border-bottom: 1px solid #e7eaed;
+  background: #fff;
+}
+
+.band-admin-participant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.band-admin-participant-identity,
+.band-admin-participant-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.band-admin-participant-list b {
+  font-size: 10px;
+}
+
+.band-admin-participant-list small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.band-admin-participant-actions strong,
+.band-admin-participant-actions button {
+  flex: none;
+  min-height: 25px;
+  padding: 0 7px;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.band-admin-participant-actions strong {
+  display: inline-flex;
+  align-items: center;
+  background: #eef7e3;
+  color: var(--green);
+}
+
+.band-admin-participant-actions button {
+  border: 1px solid #bfc8cd;
+  background: #fff;
+  color: #424b51;
+  cursor: pointer;
+}
+
+.band-admin-participant-actions button[aria-expanded="true"] {
+  border-color: var(--blue);
+  background: #eaf5fc;
+  color: #005f9f;
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+.band-admin-participant-list article > p {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 7px 0 11px;
+}
+
+.band-admin-participant-list p span,
+.band-admin-participant-list p strong {
+  padding: 3px 5px;
+  border-radius: 3px;
+  background: #edf0f2;
+  color: #555d63;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.band-admin-participant-drawer {
+  max-height: 0;
+  margin: 0 -13px;
+  overflow: hidden;
+  opacity: 0;
+  background: #f4f7f6;
+  transition: max-height 240ms ease, opacity 180ms ease, margin-top 240ms ease;
+}
+
+.band-admin-participant-list article.is-expanded .band-admin-participant-drawer {
+  max-height: 560px;
+  opacity: 1;
+}
+
+.band-admin-participant-drawer > div {
+  padding: 5px 12px 8px;
+}
+
+.band-admin-participant-song {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #dfe5e2;
+}
+
+.band-admin-participant-song:last-child {
+  border-bottom: 0;
+}
+
+.band-admin-participant-song > b {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.band-admin-participant-song-roles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.band-admin-participant-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.band-admin-participant-role em,
+.band-admin-participant-role button {
+  min-height: 23px;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.band-admin-participant-role em {
+  display: inline-flex;
+  align-items: center;
+  background: #edf0f2;
+  color: #58615f;
+  font-style: normal;
+}
+
+.band-admin-participant-role button {
+  border: 1px solid #9dcbe8;
+  background: #f4faff;
+  color: #005f9f;
+  cursor: pointer;
+}
+
+.band-admin-confirm-copy {
+  margin: 0;
+  color: #31383d;
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.band-admin-empty {
+  padding: 34px 18px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.band-admin-empty.is-large {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+}
+
+.band-admin-modal {
+  --ink: #181b1e;
+  --muted: #6f777e;
+  --line: #d9dee2;
+  --green: #5c9e00;
+  --blue: #0077cc;
+  --red: #b4232d;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 18, 20, .58);
+}
+
+.band-admin-modal button,
+.band-admin-mobile-editor button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 1;
+}
+
+.band-admin-mobile-editor .band-admin-actions button,
+.band-admin-mobile-editor .band-admin-members header button {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.band-admin-mobile-editor button.is-danger {
+  border-color: #e3b8bc;
+  background: #fff;
+  color: var(--red);
+}
+
+.band-admin-modal > section {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.band-admin-modal section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.band-admin-modal h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.band-admin-modal section > header button {
+  border: 0;
+  font-size: 20px;
+}
+
+.band-admin-modal-body {
+  padding: 18px 20px;
+}
+
+.band-admin-modal form > p {
+  min-height: 14px;
+  margin: 0;
+  padding: 0 20px;
+  color: var(--red);
+  font-size: 9px;
+}
+
+.band-admin-modal footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  padding: 10px 20px 20px;
+}
+
+.band-admin-modal footer button[type="submit"],
+.band-round-add > button[type="submit"] {
+  border-color: #181b1e !important;
+  background: #181b1e !important;
+  color: #fff !important;
+  opacity: 1 !important;
+}
+
+.band-admin-grid select,
+.band-round-manager input[type="text"],
+.band-round-manager input:not([type]) {
+  width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid #cbd1d6;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.band-move-summary {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border-left: 3px solid var(--blue);
+  background: #edf7fd;
+}
+
+.band-move-summary b {
+  font-size: 13px;
+}
+
+.band-move-summary span {
+  color: #59636c;
+  font-size: 10px;
+}
+
+.band-assignment-summary,
+.band-replacement-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.band-assignment-summary b,
+.band-replacement-summary b {
+  font-size: 13px;
+}
+
+.band-assignment-summary span,
+.band-replacement-summary span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.band-assignment-options,
+.band-replacement-options {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.band-assignment-options legend,
+.band-replacement-options legend {
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.band-assignment-options label,
+.band-replacement-options label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid #d5dade;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.band-assignment-options label:has(input:checked),
+.band-replacement-options label:has(input:checked) {
+  border-color: var(--blue);
+  background: #f4faff;
+}
+
+.band-assignment-options label > span,
+.band-replacement-options label > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.band-assignment-options label b,
+.band-replacement-options label b {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.band-assignment-options label small,
+.band-replacement-options label small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.band-assignment-options label em,
+.band-replacement-options label em {
+  color: #7a5a17;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.band-assignment-options label em.is-vacant {
+  color: var(--green);
+}
+
+.band-replacement-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.band-round-manager {
+  width: min(760px, 100%) !important;
+}
+
+.band-round-manager-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.band-round-manager-summary > div {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.band-round-manager-summary span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.band-round-manager-summary strong {
+  color: var(--green);
+  font-size: 18px;
+}
+
+.band-round-manager-summary > button {
+  min-height: 34px;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.band-round-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.band-round-add[hidden] {
+  display: none;
+}
+
+.band-round-add > button[type="submit"] {
+  min-height: 34px !important;
+  height: 34px;
+  align-self: end;
+  padding: 0 13px;
+}
+
+.band-round-add > label:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.band-round-add span {
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.band-round-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.band-round-list > article {
+  min-height: 86px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fafbfb;
+  overflow: hidden;
+}
+
+.band-round-item-content {
+  min-width: 0;
+  padding: 11px 12px;
+}
+
+.band-round-item-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.band-round-order-controls {
+  width: 38px;
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  border-right: 1px solid var(--line);
+  background: #f1f6fa;
+}
+
+.band-round-order-controls button {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--blue) !important;
+  cursor: pointer;
+  font-size: 16px !important;
+  line-height: 1;
+}
+
+.band-round-order-controls button + button {
+  border-top: 1px solid var(--line) !important;
+}
+
+.band-round-order-controls button:hover:not(:disabled) {
+  background: #e2f1fa !important;
+}
+
+.band-round-order-controls button:disabled {
+  color: #b7c4cc !important;
+  cursor: default;
+}
+
+.band-schedule-manager {
+  width: min(820px, 100%) !important;
+}
+
+.band-schedule-manager form {
+  padding: 18px 20px 0;
+}
+
+.band-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.band-schedule-panel {
+  overflow: hidden;
+  border: 1px solid #b9c3cc;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.band-schedule-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.band-schedule-panel h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.band-schedule-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.band-schedule-switch input {
+  width: 34px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.band-schedule-fields {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  transition: opacity 160ms ease, background-color 160ms ease;
+}
+
+.band-schedule-panel.is-manual .band-schedule-fields {
+  background: #f1f3f5;
+  opacity: .45;
+}
+
+.band-schedule-fields label {
+  display: grid;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.band-schedule-fields input {
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 9px;
+  border: 1px solid #cbd1d6;
+  border-radius: 5px;
+  background: #fff;
+  font: inherit;
+}
+
+.band-schedule-fields small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.band-round-item-head .is-danger {
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.band-round-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.band-round-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #cbd1d6;
+  border-radius: 5px;
+  background: #fff;
+  color: #50585f;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.band-round-options label:has(input:checked) {
+  border-color: var(--green);
+  background: #eef7e3;
+  color: #4b8200;
+  box-shadow: inset 0 0 0 1px var(--green);
+}
+
+.band-round-options input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+.band-round-options input:disabled {
+  cursor: wait;
+}
+
+.band-round-manager-error {
+  min-height: 14px;
+  margin: 10px 0 0;
+  color: var(--red);
+  font-size: 9px;
+}
+
+.band-admin-participants-modal > [data-participants-modal] .band-admin-participants {
+  max-height: calc(100dvh - 130px);
+  border-left: 0;
+}
+
+.band-admin-message {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 130;
+  padding: 11px 14px;
+  transform: translateY(10px);
+  border-radius: 5px;
+  background: #202529;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+  transition: .18s ease;
+}
+
+.band-admin-message.is-visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.band-admin-message.is-success {
+  background: var(--green);
+}
+
+.band-admin-message.is-error {
+  background: var(--red);
+}
+
+.band-admin-login,
+.band-admin-failure {
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.band-admin-login form {
+  width: min(360px, 100%);
+  padding: 26px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.band-admin-login h1 {
+  margin: 24px 0 4px;
+  font-size: 25px;
+}
+
+.band-admin-login p {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.band-admin-login label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.band-admin-login input {
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #cbd1d6;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.band-admin-login form > button {
+  width: 100%;
+  height: 40px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.band-admin-login form > a:last-child {
+  display: block;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 9px;
+  text-align: center;
+}
+
+.band-admin-form-error {
+  min-height: 17px;
+  margin-top: 8px;
+  color: var(--red);
+  font-size: 9px;
+}
+
+.band-admin-failure > div,
+.band-admin-failure {
+  text-align: center;
+}
+
+.band-admin-failure h1 {
+  font-size: 20px;
+}
+
+.band-admin-failure p {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+@media (min-width: 821px) {
+  .band-admin-app {
+    font-size: 13px;
+  }
+
+  .band-admin-topbar a,
+  .band-admin-topbar button,
+  .band-admin-tools a,
+  .band-admin-tools button,
+  .band-admin-round button,
+  .band-admin-song-list header button,
+  .band-admin-editor button,
+  .band-admin-modal button {
+    font-size: 12px;
+  }
+
+  .band-admin-round label,
+  .band-admin-check,
+  .band-admin-round select {
+    font-size: 12px;
+  }
+
+  .band-admin-song-list h1 {
+    font-size: 18px;
+  }
+
+  .band-admin-song-list button b {
+    font-size: 13px;
+  }
+
+  .band-admin-song-list button small,
+  .band-admin-song-list button em,
+  .band-admin-song-meta strong {
+    font-size: 11px;
+  }
+
+  .band-admin-editor h2 {
+    font-size: 23px;
+  }
+
+  .band-admin-grid label > span {
+    font-size: 11px;
+  }
+
+  .band-admin-grid input:not([type="checkbox"]),
+  .band-admin-grid textarea,
+  .band-admin-grid select {
+    font-size: 13px;
+  }
+
+  .band-admin-grid small,
+  .band-admin-formed small {
+    font-size: 10px;
+  }
+
+  .band-admin-formed b {
+    font-size: 14px;
+  }
+
+  .band-admin-members h3 {
+    font-size: 15px;
+  }
+
+  .band-admin-members > header > div > span,
+  .band-admin-member-group > header span {
+    font-size: 11px;
+  }
+
+  .band-admin-member-group h4,
+  .band-admin-members article b {
+    font-size: 13px;
+  }
+
+  .band-admin-member-identity small,
+  .band-admin-member-identity em,
+  .band-admin-members article p span,
+  .band-admin-member-actions > span {
+    font-size: 10px;
+  }
+
+  .band-admin-member-info > time {
+    font-size: 9px;
+  }
+
+  .band-admin-participants h2,
+  .band-admin-modal h2 {
+    font-size: 18px;
+  }
+
+  .band-admin-participant-list article b {
+    font-size: 13px;
+  }
+
+  .band-admin-participant-list article small,
+  .band-admin-participant-list article p span {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 820px) {
+  @keyframes band-admin-sheet-in {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes band-admin-sheet-out {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
+  }
+
+  .band-admin-topbar {
+    height: 50px;
+    padding: 0 16px;
+  }
+
+  .band-admin-brand img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .band-admin-page {
+    width: 100%;
+    height: auto;
+    min-height: calc(100dvh - 50px);
+    padding: 12px 12px 24px;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+
+  .is-band-admin-embedded .band-admin-page {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 10px 10px 18px;
+    overflow-y: auto;
+  }
+
+  .band-admin-columns {
+    flex: none;
+    display: block;
+  }
+
+  .band-admin-round .band-admin-round-head {
+    align-items: center;
+  }
+
+  .band-admin-participants-trigger {
+    width: 100%;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin: 0 0 12px;
+    border: 1px solid #b9c2c8;
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .band-admin-participants-trigger span {
+    color: var(--green);
+  }
+
+  .band-admin-song-list {
+    height: min(58dvh, 560px);
+    border-right: 0;
+    border-bottom: 5px solid #e2e6e9;
+  }
+
+  .band-admin-song-list > div {
+    flex: 1;
+    max-height: none;
+  }
+
+  .band-admin-song-list > div > button {
+    min-height: 76px;
+    padding: 14px 16px;
+  }
+
+  .band-admin-song-list button b {
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  .band-admin-song-list button small,
+  .band-admin-song-list button em {
+    font-size: 11px;
+  }
+
+  .band-admin-editor {
+    display: none;
+  }
+
+  .band-admin-participants {
+    display: none;
+  }
+
+  .band-admin-participants-modal .band-admin-participants {
+    display: flex;
+    margin-left: 0;
+    max-height: calc(92dvh - 58px);
+    border-left: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .band-admin-modal {
+    align-items: end;
+    padding: 0;
+  }
+
+  .band-admin-modal > section {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 12px 12px 0 0;
+    animation: band-admin-sheet-in 220ms cubic-bezier(.2, .75, .25, 1) both;
+  }
+
+  .band-admin-modal.is-closing > section {
+    animation: band-admin-sheet-out 190ms ease-in both;
+  }
+
+  .band-admin-song-modal > section {
+    height: 92dvh;
+  }
+
+  .band-admin-mobile-editor {
+    height: calc(92dvh - 59px);
+    overflow-y: auto;
+  }
+
+  .band-admin-mobile-editor > header {
+    position: static;
+    min-height: 78px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 15px 18px;
+    background: #fafbfb;
+  }
+
+  .band-admin-mobile-editor > header > div {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+  }
+
+  .band-admin-mobile-editor > header span {
+    margin: 0;
+    font-size: 10px;
+  }
+
+  .band-admin-mobile-editor > header h2 {
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.2;
+  }
+
+  .band-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .band-admin-grid .is-wide {
+    grid-column: auto;
+  }
+
+  .band-admin-grid .band-admin-team-flags {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .band-admin-team-flags .band-admin-formed {
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .band-admin-members article {
+    min-height: 86px;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px 10px;
+    padding: 12px 13px;
+  }
+
+  .band-admin-members .band-admin-member-info b {
+    font-size: 12px;
+  }
+
+  .band-admin-member-identity {
+    flex-wrap: wrap;
+    gap: 4px 6px;
+  }
+
+  .band-admin-member-identity small {
+    font-size: 10px;
+  }
+
+  .band-admin-member-identity em {
+    display: inline-flex;
+    font-size: 9px;
+  }
+
+  .band-admin-member-info > time {
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  .band-admin-members article p {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+
+  .band-admin-members article p span {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .band-admin-member-actions {
+    gap: 4px;
+  }
+
+  .band-admin-member-actions button {
+    min-height: 34px;
+    padding: 0 9px;
+    font-size: 10px;
+  }
+
+  .band-admin-mobile-editor .band-admin-members > header > button {
+    min-height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    line-height: 1;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .band-admin-participants > header {
+    padding: 14px 12px;
+  }
+
+  .band-admin-participant-tabs button {
+    padding: 0 7px;
+  }
+
+  .band-assignment-options label,
+  .band-replacement-options label {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .band-assignment-options label > em,
+  .band-replacement-options label > em {
+    grid-column: 2;
+  }
+
+  .band-admin-round form,
+  .band-round-add:not([hidden]) {
+    align-items: stretch;
+  }
+
+  .band-admin-round form > input {
+    width: 100%;
+  }
+
+  .band-admin-round .band-admin-round-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .band-admin-round-picker {
+    width: 100%;
+  }
+
+  .band-admin-round-picker select {
+    flex: 1;
+    width: 100%;
+  }
+
+  .band-round-add {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .band-round-list > article {
+    padding: 0;
+  }
+
+  .band-round-item-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .band-round-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .band-admin-round-options .band-admin-blind {
+    grid-column: 1 / -1;
+  }
+
+  .band-schedule-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .band-round-options label {
+    justify-content: center;
+  }
+
+  .band-admin-round label {
+    min-height: 30px;
+  }
+
+.band-admin-card,
+.band-admin-members {
+    margin: 12px;
+  }
+
+  .band-admin-members {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+  }
+}
+
+.band-admin-formation-warning {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #e2b665;
+  border-radius: 5px;
+  background: #fff7e8;
+  color: #7a4b00;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.band-admin-formation-warning.is-manual {
+  border-color: #b8c7d4;
+  background: #f2f6f9;
+  color: #425363;
+}
+
+@media (max-width: 380px) {
+  .band-admin-round .band-admin-round-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .band-admin-round .band-admin-round-head > button {
+    width: 100%;
+  }
+
+  .band-admin-member-actions {
+    grid-column: 2 / -1;
+    grid-row: 3;
+    width: 100%;
+    flex-direction: row;
+  }
+
+  .band-admin-member-actions button {
+    flex: 1;
+  }
+
+  .band-admin-member-info time {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  .band-admin-member-info time span + span {
+    margin-left: 0;
+  }
+}
