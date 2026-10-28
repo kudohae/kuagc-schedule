@@ -477,7 +477,7 @@ window.openClaimModal=function openClaimModal(){
   const hourOpts=HOURS.map(h=>`<option value="${h}">${h}:00${h>=24?' (익일)':''}</option>`).join('');
   showModal('추가 사용 신청',
     `<div style="background:rgba(255,170,71,.1);border:1px solid rgba(255,170,71,.3);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--warn);line-height:1.5;">
-       ⚠️ 합주는 <strong>1주 1회</strong>가 원칙입니다.<br>추가 합주 신청 전, 기존 배정 시간에 <strong>미사용 보고</strong>를 먼저 해주세요.<br>신청 완료 후 <strong>회장단에게 연락하여 승인을 부탁</strong>해주세요.
+       ⚠️ 합주는 <strong>1주 1회</strong>가 원칙입니다.<br>추가 합주 신청 전, 기존 배정 시간에 <strong>미사용 보고</strong>를 먼저 해주세요.<br>신청 완료 후 <strong>회장단에게 연락하여 승인을 요청</strong>해주세요.
      </div>
      <div><div class="fl">팀 선택</div><select class="fs" id="clTeam">${opts}</select></div>
      <div style="display:flex;gap:8px"><div style="flex:1"><div class="fl">요일</div><select class="fs" id="clDay">${dayOpts}</select></div><div style="flex:1"><div class="fl">시간</div><select class="fs" id="clHour">${hourOpts}</select></div></div>
