@@ -1,4 +1,6 @@
-export const DAYS  = ['월','화','수','목','금','토','일'];
+import { escapeHtml } from './html.js';
+
+export const DAYS  =['월','화','수','목','금','토','일'];
 export const HOURS = Array.from({length:18},(_,i)=>i+8);
 export const GRAY  = '#888888';
 
@@ -25,7 +27,31 @@ export const teamCategory = (team, categories = {}, defaults = {}) => {
   return entry?.[0] || defaults?.[team?.type] || team?.type || '';
 };
 
-export const scheduleTeamBadge = (team, categories = {}, defaults = {}, isExtra = false) => {
+// 화면에 표시할 카테고리 순서: 기본 합주 카테고리 → 사용자 카테고리(이름순) → 스쿨 → 이외
+export const orderedTeamCategories = (teams = [], categories = {}, defaults = {}) => {
+  const kinds = [...new Set(teams.map(t => teamCategory(t, categories, defaults)).filter(Boolean))];
+  const preferred = [defaults['합주'], defaults['스쿨'], defaults['이외']].filter(Boolean);
+  const custom = kinds.filter(kind => !preferred.some(item => normalizeTeamKind(item) === normalizeTeamKind(kind)))
+    .sort((a, b) => a.localeCompare(b, 'ko-KR', { numeric: true }));
+  return [...new Set([preferred[0], ...custom, preferred[1], preferred[2]].filter(Boolean))]
+    .filter(kind => kinds.some(item => normalizeTeamKind(item) === normalizeTeamKind(kind)));
+};
+
+// 팀 선택 드롭다운: 카테고리별 <optgroup>, 그룹 안은 이름순
+export const teamSelectOptionsHTML = (teams = [], categories = {}, defaults = {}, selectedId = null) => {
+  const option = t => `<option value="${t.id}"${t.id === selectedId ? ' selected' : ''}>${escapeHtml(t.name)}</option>`;
+  const kinds = orderedTeamCategories(teams, categories, defaults);
+  const inKind = kind => t => normalizeTeamKind(teamCategory(t, categories, defaults)) === normalizeTeamKind(kind);
+  const groups = kinds.map(kind => {
+    const list = korSort(teams.filter(inKind(kind)), 'name');
+    return list.length ? `<optgroup label="${escapeHtml(kind)}">${list.map(option).join('')}</optgroup>` : '';
+  });
+  const rest = korSort(teams.filter(t => !kinds.some(kind => inKind(kind)(t))), 'name');
+  if (rest.length) groups.push(`<optgroup label="미분류">${rest.map(option).join('')}</optgroup>`);
+  return groups.join('');
+};
+
+export const scheduleTeamBadge =(team, categories = {}, defaults = {}, isExtra = false) => {
   if (isExtra) return { label: '추가', isCategory: false };
   if (team?.type === '합주') {
     return { label: teamCategory(team, categories, defaults) || '합주', isCategory: true };

@@ -10,7 +10,7 @@ import {
   fetchApplications, deleteApplication, runAssignment, approveDraft,
   fetchContacts, upsertContact, deleteContact,
   fetchVacancyReports, deleteVacancyReport
-} from '../schedule.js?v=20260923-team-kinds';
+} from '../schedule.js?v=20261106-team-select-category';
 
 import {
   buildFormedTeamRows,
@@ -19,7 +19,7 @@ import {
 
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
-import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, scheduleTeamBadge, normalizeTeamKind, renameTeamKind, setTeamCategoryForTeam, removeTeamsFromCategories, nextTeamNumberInCategory, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260926-schedule-category-badge';
+import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, orderedTeamCategories, teamSelectOptionsHTML, scheduleTeamBadge, normalizeTeamKind, renameTeamKind, setTeamCategoryForTeam, removeTeamsFromCategories, nextTeamNumberInCategory, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20261106-team-select-category';
 initTheme();
 window.toggleTheme = toggleTheme;
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') window.closeModal?.(); });
@@ -1099,7 +1099,7 @@ window.markAbsent=async function(teamId,day,hour){
 };
 window.openEditSlotModal=function(slotId){
   const s=baseSlots.find(b=>b.id===slotId);
-  const tOpts=korSort(teams,'name').map(t=>`<option value="${t.id}" ${t.id===s.team_id?'selected':''}>${t.name}</option>`).join('');
+  const tOpts=teamSelectOptionsHTML(teams,teamCategories,teamKindDefaults,s.team_id);
   showModal('슬롯 수정',
     `<div><div class="fl">팀</div><select class="fs" id="eTeam">${tOpts}</select></div>
      <div><div class="fl">요일</div><select class="fs" id="eDay">${DAYS.map((d,i)=>`<option value="${i}" ${i===s.day?'selected':''}>${d}</option>`).join('')}</select></div>
@@ -1125,7 +1125,7 @@ window.deleteSlot=async function(id){
   }catch(e){toast(errMsg(e),'err');}
 };
 window.openAddSlotModal=function(day=0,hour=10){
-  const tOpts=korSort(teams,'name').map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const tOpts=teamSelectOptionsHTML(teams,teamCategories,teamKindDefaults);
   // ±4주 범위 옵션 생성
   const weekOpts=Array.from({length:9},(_,i)=>i-4).map(off=>{
     const label=weekLabelWithThis(off);
@@ -1228,12 +1228,7 @@ window.doReject=async function(id){
 
 // ── TEAMS ─────────────────────────────────────────────────────────────
 function currentTeamKinds(){
-  const kinds=[...new Set(teams.map(t=>teamCategory(t,teamCategories,teamKindDefaults)).filter(Boolean))];
-  const preferred=[teamKindDefaults['합주'],teamKindDefaults['스쿨'],teamKindDefaults['이외']].filter(Boolean);
-  const custom=kinds.filter(kind=>!preferred.some(item=>normalizeTeamKind(item)===normalizeTeamKind(kind)))
-    .sort((a,b)=>a.localeCompare(b,'ko-KR',{numeric:true}));
-  return [...new Set([preferred[0],...custom,preferred[1],preferred[2]].filter(Boolean))]
-    .filter(kind=>kinds.some(item=>normalizeTeamKind(item)===normalizeTeamKind(kind)));
+  return orderedTeamCategories(teams,teamCategories,teamKindDefaults);
 }
 
 function renderTeams(){
