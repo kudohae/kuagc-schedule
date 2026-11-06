@@ -3,7 +3,7 @@ import {
   getConfig, setConfig, fetchTeamCategories, setTeamCategories, fetchTeamKindDefaults, setTeamKindDefaults,
   fetchTeams, createTeam, createTeams, updateTeam, deleteTeam,
   fetchBaseSlots, createBaseSlot, updateBaseSlot, deleteBaseSlot,
-  fetchExceptions, createException, deleteException, mergeSchedule,
+  fetchExceptions, createException, deleteException, claimWeekSlot, revertExtraToAbsent, mergeSchedule,
   fetchRequests, fetchAllPendingRequests, approveRequest, rejectRequest, approveTerminate,
   fetchNotices, createNotice, deleteNotice,
   fetchActiveRound, createRound, updateRound,
@@ -1023,7 +1023,8 @@ function renderSchedule(){
     for(const h of HOURS){
       const cell=document.createElement('div'); cell.className='sch-slot';
       const s=mm.get(`${d}-${h}`),pe=pm.get(`${d}-${h}`);
-      if(s){
+      // 미사용 칸에 추가 사용 신청이 대기 중이면 신청을 우선 표시
+      if(s&&!(s.status==='absent'&&pe)){
         const t=s.teams,absent=s.status==='absent',isExtra=s.source==='extra',c=teamClr(t);
         const blk=document.createElement('div');
         blk.className=`blk${absent?' absent':''}${isExtra?' extra':''}`;
@@ -1071,6 +1072,7 @@ function openSlotModal(s){
      ${t.info?`<div class="irow"><span class="ik">정보</span><span>${esc(t.info)}</span></div>`:''}`,
     `<button class="btn btn-s" onclick="closeModal()">닫기</button>
      ${s.exceptionId?`<button class="btn btn-s" onclick="removeException(${s.exceptionId})">예외 제거</button>`:''}
+     ${isExtra&&s.baseTeamId?`<button class="btn btn-d" onclick="revertToAbsent(${s.exceptionId},${s.baseTeamId})">미사용으로 되돌리기</button>`:''}
      ${!absent&&s.source==='base'?`<button class="btn btn-d" onclick="markAbsent(${s.team_id},${s.day},${s.hour})">이번 주 미사용</button>`:''}
      ${s.source==='base'?`<button class="btn btn-p" onclick="openEditSlotModal(${s.id})">수정</button>`:''}`
   );
@@ -1080,6 +1082,12 @@ window.removeException=async function(id){
   try{
     await deleteException(id); exceptions=await fetchExceptions(weekOff);
     merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('예외 제거되었습니다','ok');
+  }catch(e){toast(errMsg(e),'err');}
+};
+window.revertToAbsent=async function(id,baseTeamId){
+  try{
+    await revertExtraToAbsent(id,baseTeamId); exceptions=await fetchExceptions(weekOff);
+    merged=mergeSchedule(baseSlots,exceptions); closeModal(); renderSchedule(); toast('추가 사용을 취소하고 미사용으로 되돌렸습니다','ok');
   }catch(e){toast(errMsg(e),'err');}
 };
 window.markAbsent=async function(teamId,day,hour){
@@ -1150,7 +1158,7 @@ window.addSlot=async function(){
       baseSlots=await fetchBaseSlots(season);
     } else {
       const off=parseInt(target.replace('week_',''));
-      await createException({team_id,day,hour,week_offset:off,exception_type:'extra'});
+      await claimWeekSlot({team_id,day,hour,week_offset:off,baseSlots});
       exceptions=await fetchExceptions(weekOff);
     }
     merged=mergeSchedule(baseSlots,exceptions);
@@ -1198,7 +1206,7 @@ function openPendingSlotModal(req){
 window.doApprove=async function(id){
   const req=pendingAll.find(r=>r.id===id); if(!req) return;
   try{
-    await approveRequest(req,req.week_offset); toast('승인되었습니다','ok');
+    await approveRequest(req,baseSlots); toast('승인되었습니다','ok');
     [exceptions,requests,pendingAll]=await Promise.all([fetchExceptions(weekOff),fetchRequests(weekOff),fetchAllPendingRequests()]);
     merged=mergeSchedule(baseSlots,exceptions); renderSchedule(); renderPending();
   }catch(e){toast(errMsg(e),'err');}

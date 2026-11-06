@@ -85,6 +85,8 @@ A-2. 시간표 렌더링 로직
         → 원래 슬롯은 absent, 새 시간에 override 슬롯 표시
      d) exception_type = 'extra' (base_slot 없음)
         → 추가 슬롯 표시 (팀 색상, "추가" 레이블)
+     e) base_slot이 있고 exception_type = 'extra'
+        → 기본 팀이 미사용한 칸을 다른 팀이 추가 사용 (exception의 팀으로 "추가" 표시)
   3. 어떤 슬롯에도 해당 없는 셀 → 빈 칸 (클릭 시 신청 가능)
 
   week_offset 계산:
@@ -102,7 +104,13 @@ A-3. 요청(request) 처리 로직
   - 해당 주에 이미 absent exception이 있으면 삽입 건너뜀 (중복 방지)
 
   extra (추가 사용 신청):
-  - 승인 시: slot_exceptions에 {exception_type:'extra'} 삽입
+  - 신청 시: 해당 주에 사용 중인 칸(정상 슬롯·추가 슬롯)은 신청 불가. 빈 칸·미사용 칸만 가능
+  - 승인 시 (claimWeekSlot):
+    · 빈 칸 → slot_exceptions에 {exception_type:'extra'} 삽입
+    · 미사용 칸 → 기존 absent exception 행을 신청 팀의 extra로 전환
+      (주·칸당 exception 한 행만 허용되는 유니크 인덱스 때문에 새 행 삽입 불가)
+    · 기본 팀이 쓰는 칸 / 이미 extra가 있는 칸 → 오류, 요청은 pending 유지
+  - 관리자 "미사용으로 되돌리기": 전환된 extra를 원래 팀의 absent로 복구
 
   terminate (종료 처리, admin 전용):
   - 해당 팀의 base_slots 중 day/hour 일치하는 레코드 영구 삭제
