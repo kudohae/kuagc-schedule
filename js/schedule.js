@@ -158,6 +158,45 @@ export async function deleteException(id) {
   if (error) throw error;
 }
 
+// 지정 주의 한 칸을 팀이 추가 사용하도록 배정한다.
+// - 빈 칸: extra 예외 생성
+// - 미사용(absent) 칸: 같은 행을 신청 팀의 extra로 전환
+//   (slot_exceptions는 주·칸당 한 행만 허용되므로 새 행을 만들 수 없다)
+// - 기본 배정 팀이 쓰는 칸, 이미 추가 사용이 잡힌 칸: 오류
+export async function claimWeekSlot({ team_id, day, hour, week_offset, baseSlots = [] }) {
+  const targetStart = targetWeekStart(week_offset);
+  const { data: existing, error } = await supabase
+    .from('slot_exceptions')
+    .select('id, exception_type, created_at, week_offset')
+    .eq('day', day)
+    .eq('hour', hour);
+  if (error) throw error;
+  const sameWeek = (existing || []).find(row => weekKey(rowTargetWeekStart(row)) === weekKey(targetStart));
+  if (sameWeek) {
+    if (sameWeek.exception_type !== 'absent') throw new Error('이미 해당 주 그 시간에 추가 사용이 잡혀 있습니다');
+    const { data, error: updateError } = await supabase.from('slot_exceptions')
+      .update({ team_id, exception_type: 'extra', status: 'normal' })
+      .eq('id', sameWeek.id)
+      .eq('exception_type', 'absent')
+      .select('id');
+    if (updateError) throw updateError;
+    if (!data?.length) throw new Error('시간표가 그사이 변경됐습니다. 새로고침 후 다시 시도해주세요');
+    return;
+  }
+  if (baseSlots.some(b => b.day === day && b.hour === hour)) {
+    throw new Error('기본 배정 팀이 사용 중인 시간입니다. 먼저 미사용 처리가 필요합니다');
+  }
+  await createException({ team_id, day, hour, week_offset, exception_type: 'extra' });
+}
+
+// 미사용 칸에 들어간 추가 사용을 취소하고 원래 팀의 미사용 상태로 되돌린다.
+export async function revertExtraToAbsent(id, baseTeamId) {
+  const { error } = await supabase.from('slot_exceptions')
+    .update({ team_id: baseTeamId, exception_type: 'absent', status: 'absent' })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 // ─── MERGE ───────────────────────────────────────────────────────────
 // base_slots + exceptions 합산 → 최종 시간표
 export function mergeSchedule(baseSlots, exceptions) {
@@ -173,6 +212,9 @@ export function mergeSchedule(baseSlots, exceptions) {
       result.push({ ...base, status: 'absent', source: 'base', exceptionId: ex.id });
     } else if (ex.exception_type === 'override') {
       result.push({ ...ex, status: 'normal', source: 'override', exceptionId: ex.id });
+    } else if (ex.exception_type === 'extra') {
+      // 기본 팀이 미사용한 칸을 다른 팀이 추가 사용
+      result.push({ ...ex, status: 'normal', source: 'extra', exceptionId: ex.id, baseTeamId: base.team_id });
     }
   }
   for (const [key, ex] of exMap) {
@@ -194,20 +236,25 @@ export async function createRequest({ type, team_id, day, hour, week_offset, rea
   if (error) throw error;
   return data;
 }
-export async function approveRequest(request) {
-  await supabase.from('requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', request.id);
-  const ex_type = request.type === 'absent' ? 'absent' : 'extra';
+// baseSlots: 현재 시즌 기본 시간표 (추가 사용 승인 시 충돌 판정용)
+export async function approveRequest(request, baseSlots = []) {
   const targetStart = rowTargetWeekStart(request);
   const effectiveWeekOffset = relativeWeekOffsetFromNow(targetStart);
-  const { data: existing, error } = await supabase
-    .from('slot_exceptions')
-    .select('id, created_at, week_offset')
-    .eq('day', request.day)
-    .eq('hour', request.hour);
-  if (error) throw error;
-  if (!(existing || []).some(row => weekKey(rowTargetWeekStart(row)) === weekKey(targetStart))) {
-    await createException({ team_id: request.team_id, day: request.day, hour: request.hour, week_offset: effectiveWeekOffset, exception_type: ex_type });
+  if (request.type === 'extra') {
+    await claimWeekSlot({ team_id: request.team_id, day: request.day, hour: request.hour, week_offset: effectiveWeekOffset, baseSlots });
+  } else {
+    const { data: existing, error } = await supabase
+      .from('slot_exceptions')
+      .select('id, created_at, week_offset')
+      .eq('day', request.day)
+      .eq('hour', request.hour);
+    if (error) throw error;
+    if (!(existing || []).some(row => weekKey(rowTargetWeekStart(row)) === weekKey(targetStart))) {
+      await createException({ team_id: request.team_id, day: request.day, hour: request.hour, week_offset: effectiveWeekOffset, exception_type: 'absent' });
+    }
   }
+  const { error: statusError } = await supabase.from('requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', request.id);
+  if (statusError) throw statusError;
 }
 export async function rejectRequest(id) {
   const { error } = await supabase.from('requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id);

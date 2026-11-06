@@ -225,7 +225,8 @@ function renderSchedule(){
     for(const h of HOURS){
       const cell=document.createElement('div'); cell.className='sch-slot';
       const s=mm.get(`${d}-${h}`), pe=pm.get(`${d}-${h}`);
-      if(s){
+      // 미사용 칸에 추가 사용 신청이 대기 중이면 신청을 우선 표시
+      if(s&&!(s.status==='absent'&&pe)){
         const t=s.teams, absent=s.status==='absent', isExtra=s.source==='extra';
         const c=teamClr(t);
         const blk=document.createElement('div');
@@ -503,6 +504,9 @@ window.submitClaim=async function(){
   const hour=parseInt(document.getElementById('clHour').value);
   const reason=document.getElementById('clReason').value.trim();
   if(!reason){toast('사유를 입력해주세요','err');return;}
+  // 빈 칸 또는 미사용 칸만 신청 가능
+  const occupied=merged.find(s=>s.day===day&&s.hour===hour&&s.status!=='absent');
+  if(occupied){toast(`${DAYS[day]} ${hour}:00 — 이미 사용 중인 시간입니다 (${occupied.teams?.name||'다른 팀'}). 빈 칸이나 미사용 칸만 신청할 수 있습니다`,'err');return;}
   const _now=Date.now();
   if(_now-_lastClaimTs<3000){toast('잠시 후 다시 시도해주세요','err');return;}
   _lastClaimTs=_now;

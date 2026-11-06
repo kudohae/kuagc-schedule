@@ -301,6 +301,7 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
             <tr><td>base_slot 있음 + <span class="badge gray">absent</span></td><td>미사용 — 빗금 패턴, 회색</td></tr>
             <tr><td>base_slot 있음 + <span class="badge orange">override</span></td><td>원래 슬롯은 absent 처리, 새 시간에 override 슬롯 표시</td></tr>
             <tr><td><span class="badge blue">extra</span> (base_slot 없음)</td><td>추가 슬롯 — 팀 색상, "추가" 레이블</td></tr>
+            <tr><td>base_slot 있음 + <span class="badge blue">extra</span></td><td>기본 팀이 미사용한 칸을 다른 팀이 추가 사용 — exception 팀 색상, "추가" 레이블</td></tr>
             <tr><td>어느 슬롯에도 해당 없음</td><td>빈 칸 (클릭 시 신청 가능)</td></tr>
           </table>
           <div class="code" style="margin-top:10px"><span class="cm">// week_offset 계산</span>
@@ -320,7 +321,7 @@ body.dark .info-box{background:rgba(71,197,255,.05);border-color:rgba(71,197,255
             </tr>
             <tr>
               <td><span class="badge blue">extra</span></td>
-              <td>slot_exceptions에 {exception_type:'extra'} 삽입</td>
+              <td>빈 칸: slot_exceptions에 {exception_type:'extra'} 삽입. 미사용 칸: 기존 absent 행을 신청 팀의 extra로 전환. 사용 중인 칸: 오류 (요청은 pending 유지). 신청 단계에서도 사용 중인 칸은 막힘.</td>
             </tr>
             <tr>
               <td><span class="badge red">terminate</span></td>
