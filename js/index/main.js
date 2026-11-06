@@ -4,10 +4,10 @@ import {
   fetchRequests, createRequest, rejectRequest,
   createException, deleteException, fetchNotices,
   fetchContacts, createVacancyReport
-} from '../schedule.js?v=20260923-team-kinds';
+} from '../schedule.js?v=20261106-team-select-category';
 import { initTheme, toggleTheme } from '../utils/theme.js';
 import { escapeHtml as esc } from '../utils/html.js';
-import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, scheduleTeamBadge, normalizeTeamKind, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20260926-schedule-category-badge';
+import { DAYS, HOURS, GRAY, korSort, teamClr, teamCategory, orderedTeamCategories, teamSelectOptionsHTML, scheduleTeamBadge, normalizeTeamKind, timeStr, errMsg, getWeekDates, weekLabel } from '../utils/common.js?v=20261106-team-select-category';
 
 window.toggleTheme = toggleTheme;
 
@@ -118,12 +118,7 @@ function render(){
 }
 
 function teamListHTML(){
-  const kinds=[...new Set(teams.map(t=>teamCategory(t,teamCategories,teamKindDefaults)).filter(Boolean))];
-  const preferred=[teamKindDefaults['합주'],teamKindDefaults['스쿨'],teamKindDefaults['이외']].filter(Boolean);
-  const custom=kinds.filter(kind=>!preferred.some(item=>normalizeTeamKind(item)===normalizeTeamKind(kind)))
-    .sort((a,b)=>a.localeCompare(b,'ko-KR',{numeric:true}));
-  const groups=[...new Set([preferred[0],...custom,preferred[1],preferred[2]].filter(Boolean))]
-    .filter(kind=>kinds.some(item=>normalizeTeamKind(item)===normalizeTeamKind(kind))).map(k=>({k}));
+  const groups=orderedTeamCategories(teams,teamCategories,teamKindDefaults).map(k=>({k}));
   return groups.map(g=>{
     let list=korSort(teams.filter(t=>normalizeTeamKind(teamCategory(t,teamCategories,teamKindDefaults))===normalizeTeamKind(g.k)),'name');
     if(!list.length) return '';
@@ -401,7 +396,7 @@ window.openTeamAbsentModal=function(){
     merged.some(s=>s.team_id===t.id&&s.status!=='absent'&&s.source==='base')
   ),'name');
   if(!teamsWithSlots.length){toast('이번 주에 신고 가능한 팀이 없습니다','err');return;}
-  const teamOpts=teamsWithSlots.map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.type)})</option>`).join('');
+  const teamOpts=teamSelectOptionsHTML(teamsWithSlots,teamCategories,teamKindDefaults);
   showModal('동방 미사용 보고',
     `<div><div class="fl">팀 선택 *</div><select class="fs" id="taTeam" onchange="onTeamAbsentTeamChange()">${teamOpts}</select></div>
      <div id="taSlotWrap" style="margin-top:4px"></div>
@@ -473,7 +468,7 @@ window.submitVacancyReport=async function(){
 };
 
 window.openClaimModal=function openClaimModal(){
-  const opts=korSort(teams,'name').map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.type)})</option>`).join('');
+  const opts=teamSelectOptionsHTML(teams,teamCategories,teamKindDefaults);
   const dayOpts=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
   const hourOpts=HOURS.map(h=>`<option value="${h}">${h}:00${h>=24?' (익일)':''}</option>`).join('');
   showModal('추가 사용 신청',
